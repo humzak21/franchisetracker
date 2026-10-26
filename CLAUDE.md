@@ -16,7 +16,7 @@ A Football Manager style front end for a Madden franchise. Single user, Convex b
 | Everything a PR must pass | `npm run check` (typecheck app + Convex, lint, tests) |
 | Format | `npm run format` (Prettier with the Tailwind class sorter) |
 | Production build, served locally | `npm run build && npm run preview` |
-| Deploy production | `npm run deploy` (needs `CONVEX_DEPLOY_KEY` for the prod deployment; builds the front end against the prod URL). Front-end hosting is not wired yet; until it is, publish `dist/` to the chosen static host. |
+| Deploy production | Push to `main`. Vercel builds with `npm run deploy` (from `vercel.json`), which runs `convex deploy` with `CONVEX_DEPLOY_KEY` and builds the front end against the production URL. Run it locally only with the user's go-ahead. |
 
 Environment: `.env.local` (git-ignored, written by `convex dev`) holds `CONVEX_DEPLOYMENT`, `VITE_CONVEX_URL` and `VITE_CONVEX_SITE_URL`. The dev deployment is `prestigious-iguana-83`. Never run `convex deploy`, or anything else that writes to production, without the user's explicit go-ahead. Secrets (OpenRouter key, Shortcut tokens) live in Convex env vars, never in the client or the repo.
 
@@ -82,6 +82,7 @@ Every screen ships for phone and desktop together (FEATURES.md 5.13 and 9). Ther
 - Schema is split per domain in `convex/schema/*.ts` and composed in `convex/schema.ts`. Enum validators come from `convex/lib/validators.ts`, which builds them from `shared/domain`.
 - Indexed reads only (`withIndex`), bounded results (`take`/`paginate`), no `.filter` scans, no `.collect()` on growing tables. Aggregates are materialized so tables are one indexed read.
 - Every function has argument validators; internal-only functions use `internal*`. Imports and recomputes are idempotent.
+- **The whole app is private.** From Sprint 1, every public query, mutation and action starts with `requireOwner(ctx)` (Sign in with Vercel identity checked against the owner allowlist). The only unauthenticated surface is the Shortcut HTTP endpoint, which checks its bearer token. Never ship a public function without the check.
 - Tests use `convex-test` under `convex/**/*.test.ts` (Vitest `convex` project, edge runtime).
 
 ## Testing and definition of done

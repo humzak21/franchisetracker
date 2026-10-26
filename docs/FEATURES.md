@@ -30,8 +30,8 @@ This document is the product source of truth. `SPRINTS.md` turns it into build o
 | Vision extraction | OpenRouter from a Convex action, structured output with a JSON schema per target, model fallback chain | Key stored as a Convex env var. Never on the client. |
 | External data | ESPN unofficial site API from Convex actions | Headshots, team logos and colors, real-player bios. Cached in Convex storage. |
 | Phone | The same web app as a home-screen PWA with full feature parity, plus an Apple Shortcut on the share sheet and home screen that posts images to a Convex HTTP endpoint with a bearer token for the fastest capture path. | Zero native code. |
-| Auth | Single-user: Convex Auth with password, or a signed secret for the Shortcut endpoint | Franchise data is private. |
-| Hosting | Vercel, Netlify or Convex hosting for the static front end; Convex cloud for the backend | Any device can open the URL. |
+| Auth | The entire app sits behind **Sign in with Vercel** (OIDC). Convex validates the Vercel ID token (`convex/auth.config.ts`) and every public function requires the signed-in user, checked against an allowlist of the owner's Vercel account. Nothing renders before sign-in except the sign-in screen. The Shortcut HTTP endpoint is the one exception and uses a revocable bearer token. | Franchise data is private. Hiding the front end is not enough on its own: the Convex URL is public, so the check lives in the backend. |
+| Hosting | Vercel for the static front end (production branch `main`; the build runs `convex deploy` against the production deployment), Convex cloud for the backend | Any device can open the URL, and signs in before seeing anything. |
 
 ### 2.1 Repository layout
 
@@ -349,3 +349,4 @@ Dense football data has to be as readable on a phone as on a 27 inch display. Th
 - Works offline for reading recently viewed screens (PWA cache); writes require connectivity except image captures, which queue locally.
 - Feature parity between desktop and phone is a release criterion for every sprint, not a later pass.
 - Secrets live in Convex env. The Shortcut token is revocable.
+- No unauthenticated reads or writes: every Convex query, mutation and action requires the signed-in owner (Sign in with Vercel), except the token-checked Shortcut endpoint.

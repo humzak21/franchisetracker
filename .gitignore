@@ -10,3 +10,4 @@ coverage/
 dev-dist/
 node_modules/.tmp/
 *.tsbuildinfo
+.vercel/

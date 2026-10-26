@@ -19,7 +19,7 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 - App shell: team-colored sidebar on desktop, bottom tab bar with a "More" sheet and floating capture button on phones, page header with back navigation and the season switcher, command palette stub, keyboard shortcut and gesture providers, theme tokens, light and dark, safe-area insets.
 - Primitive components built phone-first and scaled up: `Page`, `Section`, `SplitPane` (stacks or swipes on phones), `DataTable` with `StatCell` and the phone mode from `FEATURES.md` 9 (primary and secondary columns, expandable rows, column picker, toolbar sheet), `PlayerChip`, `TeamChip`, `TeamLogo`, `ScoreBug`, `RankBadge`, `Highlight`, `EmptyState`, `Sparkline`, `StatCard`, `RankRibbon`, `BottomSheet`.
 - Component gallery route (`/dev/components`) that renders every primitive at desktop and phone width side by side with fixture data.
-- PWA manifest, icons, standalone display. Deploy the front end and install it on the Mac and on the iPhone home screen.
+- PWA manifest, icons, standalone display. Deploy the front end to Vercel (production deploy key in `CONVEX_DEPLOY_KEY`) and install it on the Mac and on the iPhone home screen. The deployed shell holds only the seeded teams and empty seasons until the login gate below lands.
 
 **Done when:** the shell runs against Convex, every primitive is rendered in the gallery with fixture data in both themes at both widths, the app is installed on the phone, and `tsc`, lint and tests pass.
 
@@ -29,6 +29,7 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 **Goal:** all ten seasons from the spreadsheet in the database, viewable on the core read screens.
 
+- Login gate, before any franchise data reaches production: the whole app behind Sign in with Vercel. OIDC provider in `convex/auth.config.ts`, an owner allowlist, a `requireOwner` helper in `convex/lib/auth.ts` called by every public function, a sign-in screen that renders before the shell, and sign-out in Settings. Works the same in the installed PWA on the phone. `convex-test` covers signed-out and wrong-account calls being refused.
 - `scripts/import-xlsx`: parse Home, Reporting, Schedule, Roster, Player Stats, League Stats, Awards, Draft History. Resolve players into entities with alias handling (name variants, jersey changes). Parse the free-text stars into player references with the stat line kept as a caption. Split "27.3 - T-3rd" into value, rank and tie. Split acquisition strings. Idempotent: re-running updates rather than duplicates.
 - Season-level stats from the workbook land in `seasonPlayerStats` flagged `source: import` so they coexist with log-derived totals until games are backfilled.
 - Schedule screen: week list with results, byes, playoff rows, stars as chips, notes preview; season switcher wired.
