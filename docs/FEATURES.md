@@ -15,6 +15,7 @@ This document is the product source of truth. `SPRINTS.md` turns it into build o
 5. **Players are entities, not strings.** A player exists once league-wide with stable identity across seasons, teams, jersey changes and name typos. Rosters, stat lines, awards, draft picks, transactions and Hall of Fame entries reference the player id.
 6. **Review before commit.** Nothing parsed from an image lands in canonical tables without the user confirming it. Corrections are stored and reused as few-shot examples, which is how extraction improves over time.
 7. **Beauty is a requirement.** Dark broadcast-graphics aesthetic, team-color accents, tabular numerals, dense but breathable tables, meaningful motion, and purposeful charts. Every screen has an empty state and a loading state that look intentional.
+8. **Mobile is a full client, not a companion.** Every screen, table, chart and action in this document exists on the phone with the same data and the same capabilities. The phone is not just the camera. Legibility of dense data on a 390 px wide screen is a design problem solved per component (see section 9), never by hiding columns the user cares about or by pointing them at the desktop.
 
 ---
 
@@ -22,13 +23,13 @@ This document is the product source of truth. `SPRINTS.md` turns it into build o
 
 | Layer | Choice | Notes |
 |---|---|---|
-| Front end | Vite, React 19, TypeScript, TanStack Router, TanStack Table, TanStack Query is not needed (Convex handles data) | Installed as a PWA in Safari or Chrome on the Mac. Optional Tauri wrapper later. |
+| Front end | Vite, React 19, TypeScript, TanStack Router, TanStack Table, TanStack Query is not needed (Convex handles data) | One responsive codebase. Installed as a PWA on the Mac (Safari or Chrome) and on the iPhone home screen. Optional Tauri wrapper for the Mac later. |
 | Styling | Tailwind v4, shadcn/ui primitives, Radix, Lucide icons, Recharts | Design tokens in CSS variables; team colors injected at runtime. |
 | Backend | Convex: database, file storage, actions, HTTP endpoints, scheduled functions | Single deployment. Schema split by domain under `convex/`. |
 | Shared logic | `shared/` TypeScript package consumed by both `convex/` and `src/` | Stat registry, stat math (passer rating, averages, pace), formatters, validators, ingestion target registry. |
 | Vision extraction | OpenRouter from a Convex action, structured output with a JSON schema per target, model fallback chain | Key stored as a Convex env var. Never on the client. |
 | External data | ESPN unofficial site API from Convex actions | Headshots, team logos and colors, real-player bios. Cached in Convex storage. |
-| Phone companion | Apple Shortcut on the share sheet and home screen, posting to a Convex HTTP endpoint with a bearer token. The web app also works on the phone as a fallback uploader. | Zero native code. |
+| Phone | The same web app as a home-screen PWA with full feature parity, plus an Apple Shortcut on the share sheet and home screen that posts images to a Convex HTTP endpoint with a bearer token for the fastest capture path. | Zero native code. |
 | Auth | Single-user: Convex Auth with password, or a signed secret for the Shortcut endpoint | Franchise data is private. |
 | Hosting | Vercel, Netlify or Convex hosting for the static front end; Convex cloud for the backend | Any device can open the URL. |
 
@@ -97,6 +98,8 @@ Sidebar (team-colored), always visible:
 12. **Settings**
 
 Global: season switcher in the top bar (defaults to the active season, remembered per screen), command palette (`⌘K`) searching players, games, seasons, screens and actions, and a pending-prompt banner (preseason or postseason report due).
+
+On phones the sidebar becomes a bottom tab bar with Home, Schedule, Roster, Stats and a "More" sheet holding the rest, plus a floating capture button that opens the inbox uploader. The season switcher moves into the page header, and the command palette is reachable from a search icon and a pull-down gesture on the Home tab.
 
 ---
 
@@ -262,10 +265,24 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Data: import from the original workbook, export JSON and CSV, full backup, restore.
 - Appearance: team color intensity, density, reduced motion.
 
-### 5.13 Search and keyboard
+### 5.13 Mobile parity
 
-- `⌘K` command palette: players, games (by week or opponent), seasons, screens, and actions (new upload, open report).
-- Shortcuts: `[` `]` for previous and next week, `S` to switch season, `I` for the inbox, `?` for the shortcut sheet.
+Every feature in 5.1 through 5.12 ships on the phone with the same data, filters, sorting, editing, review and commit capabilities. Nothing is desktop-only. Specific behaviors:
+
+- **Navigation**: bottom tab bar, "More" sheet, page headers with back navigation and the season switcher, swipe between weeks on Schedule and between seasons on History.
+- **Tables**: `DataTable` has a phone layout mode (section 9) so stat tables stay complete and readable without horizontal panning across twenty columns.
+- **Split panes** (game detail, review, compare) become stacked segments or swipeable pages with a segmented control.
+- **Editing**: notes editors, needs checklist, roster grade notes, season reports and Hall of Fame induction all work with the on-screen keyboard; autosave on blur.
+- **Ingestion**: capture from the camera or photo library directly into the inbox, tag and set context on the phone, run extraction, and review and commit on the phone. The review screen shows the image and the draft as two swipeable panes with the image zoomable; low-confidence fields are listed first so a review can be finished with thumbs.
+- **Charts**: all charts render at phone width with touch tooltips and a reduced tick density; sparklines and rank ribbons are preferred in lists.
+- **Dashboard**: the same cards, stacked in one column, with the prompts card and inbox summary first.
+- **Offline**: recently viewed screens readable offline; captures queue locally and upload when back online.
+- **Install**: PWA manifest, home-screen icon, splash, standalone display, safe-area insets, and the Shortcut download from Settings.
+
+### 5.14 Search and keyboard
+
+- `⌘K` command palette: players, games (by week or opponent), seasons, screens, and actions (new upload, open report). On the phone the same palette opens from the search icon.
+- Shortcuts: `[` `]` for previous and next week, `S` to switch season, `I` for the inbox, `?` for the shortcut sheet. On the phone the equivalents are swipe gestures and the floating capture button.
 
 ---
 
@@ -302,6 +319,24 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - **Charts**: Recharts with a shared theme. Sparklines in tables, rank ribbons for team stats, OVR progression lines, radar for comparisons. Never a chart for a single number.
 - **Motion**: 150 to 250 ms eases on hover and reveal, number count-ups on score bugs, no motion on tables.
 - **Components are the vocabulary**: PlayerChip, TeamChip, ScoreBug, RankBadge, Highlight, Sparkline, Section, SplitPane, EmptyState. New screens compose these before adding anything new.
+- **Responsive by construction**: every primitive owns its phone behavior. A screen never branches on viewport; its components do. Breakpoints: phone under 640 px, tablet 640 to 1024 px, desktop above. Touch targets are 44 px minimum on touch devices.
+
+---
+
+## 9. Mobile legibility system
+
+Dense football data has to be as readable on a phone as on a 27 inch display. These are the component-level rules that make section 5.13 true.
+
+- **`DataTable` phone mode.** Each table declares a `primaryColumns` set (typically identity plus the three to five stats that define the view) and a `secondaryColumns` set. On phones the primary columns render as a compact table with the identity column pinned left and the stats scrolling horizontally within a bounded strip with a visible fade; every row expands with a tap into a card listing every secondary column as label and value pairs, two per row, with the same highlight styling. A column picker lets the user promote any column to primary and the choice is remembered per table. Sorting and filtering live in a toolbar sheet. Nothing is dropped.
+- **Stat cards over wide rows** where the data is per-entity rather than comparative: the player's season row on their own page, a team game stat line, a single award. Cards group stats by category with tabular numerals and inline sparklines.
+- **Rank ribbons** replace rank columns on phones for team stats: a horizontal bar with the rank and the value, colored by tier.
+- **Score bugs** are built at phone width first and scale up.
+- **Typography** uses 15 px minimum body on phones, 13 px minimum for table numerals with tabular figures, and condensed display type for headers to preserve width.
+- **Sticky context**: page header with season and week stays visible while scrolling long tables; section jump links on long pages (player page, season stats).
+- **Gestures**: swipe to change week or season where the header shows a sequence, pull to refresh is unnecessary (reactive data) and disabled to avoid accidental triggers, long press on a row for actions.
+- **Charts**: a phone variant per chart type with fewer ticks, larger touch tooltips and a legend that collapses into tappable chips.
+- **Review on phone**: two swipeable panes (image, draft), pinch to zoom on the image, field list ordered by confidence ascending, numeric keyboard for stat fields, player picker as a bottom sheet with roster search.
+- **Testing**: every screen is verified at 390 x 844 and 430 x 932 in both themes before a sprint closes, using the in-app browser's mobile preset, and the component gallery renders every primitive at phone width beside its desktop rendering.
 
 ---
 
@@ -311,5 +346,6 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Indexed reads only; no `.filter` scans in queries. Aggregates are materialized so tables are single reads.
 - Imports and recomputes are idempotent and run per season so a bad extraction can be re-committed safely.
 - Full export to JSON at any time; nightly Convex backup.
-- Works offline for reading recently viewed screens (PWA cache); writes require connectivity.
+- Works offline for reading recently viewed screens (PWA cache); writes require connectivity except image captures, which queue locally.
+- Feature parity between desktop and phone is a release criterion for every sprint, not a later pass.
 - Secrets live in Convex env. The Shortcut token is revocable.
