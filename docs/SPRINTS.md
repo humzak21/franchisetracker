@@ -190,6 +190,16 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 **Done when:** the League section answers "who won the AFC in 2029", awards and draft screens are populated for every played season, the cap view matches the roster, and each of these screens is complete on the phone.
 
+**As built:**
+
+- The bracket is rebuilt, not stored: `shared/league/standings.ts` pairs the seeds (seven since 2020 with one bye, six before with two), re-seeds the divisional round and reads each winner from where its run ended, so any season with seeded standings (imported, captured, or the user team's own record) gets a bracket and champions. League → Champions lists every season's AFC, NFC and Super Bowl winners; the all-time table can include real history. Team pages live at `/league/teams/$abbr`.
+- A franchise season with no standings screen still shows the user team, from its season record and games.
+- Draft grades (`shared/draft/grade.ts`) wait two completed seasons, then weigh the peak OVR on the user team's roster against the slot, playing time and honors. Real seasons before the franchise carry no OVR, so those picks are judged on playing time and honors alone.
+- The pick inventory stores only picks that changed hands; every other pick in the next three drafts is assumed to be the team's own. The draft board is a new `draftBoard` table, ordered by the owner; it shows the previous season report's needs and who the team took.
+- Transactions are written by the Sprint 6 screenshot targets; this sprint reads them (type chips, the trade tracker's hindsight notes, the injury report). Rosters show each player's latest injury; the player page gains awards, moves and injuries. The cap view sums contract APYs against the season's salary cap, which is set on the cap view.
+- Team awards are `awards` with `scope: "team"`, given from Awards → Team.
+- The planned-screen placeholder and the nav's `sprint` field went with the last planned screen.
+
 ---
 
 ## Sprint 8 — Dashboard and insights (M)

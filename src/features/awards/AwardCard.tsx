@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { AWARD_INFO } from "@shared/domain";
 import { PlayerChip } from "@/components/player/PlayerChip";
 import { TeamChip } from "@/components/team/TeamChip";
@@ -6,7 +7,16 @@ import { cn } from "@/lib/cn";
 import type { SeasonAward } from "./types";
 
 /** One winner: the award, the player (linked when known), their team and the stat line. User-team winners stand out. */
-export function AwardCard({ award, label }: { award: SeasonAward; label?: string }) {
+export function AwardCard({
+  award,
+  label,
+  action,
+}: {
+  award: SeasonAward;
+  label?: string;
+  /** A control in the card's header, after the team (removing a team award). */
+  action?: ReactNode;
+}) {
   const title = label ?? award.customName ?? AWARD_INFO[award.type].label;
   const who = award.player ? (
     <Link to="/players/$playerId" params={{ playerId: award.player._id }} className="min-w-0 hover:underline">
@@ -35,7 +45,10 @@ export function AwardCard({ award, label }: { award: SeasonAward; label?: string
         <span className="truncate text-[11px] font-semibold tracking-[0.08em] text-subtle-foreground uppercase">
           {title}
         </span>
-        {award.team && <TeamChip team={award.team} label="abbr" size="xs" className="shrink-0 text-xs" />}
+        <span className="flex shrink-0 items-center gap-1">
+          {award.team && <TeamChip team={award.team} label="abbr" size="xs" className="text-xs" />}
+          {action}
+        </span>
       </div>
       {who}
     </article>

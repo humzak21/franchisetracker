@@ -146,7 +146,8 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 
 - `awards`: season, weekKey or null, scope (league, conference, team), type (OPOW, DPOW, STPOW, ROW, MVP, OPOY, DPOY, OROY, DROY, CPOY, COY, SBMVP, ProBowl, AllPro1, AllPro2, BestK, BestP, BestKR, custom), conference, playerId or raw name plus teamId, statLine text, notes.
 - `draftPicks`: season, round, pick overall, pick in round, teamId, playerId, position, ovr at draft, college, notes, trade note, origin pick (acquired from), retrospective grade (computed later from OVR progression and starts).
-- `draftPickInventory`: future picks owned, with origin team and how acquired.
+- `draftPickInventory`: future picks that changed hands (acquired by the user team, or traded away), with origin team and how; any pick without a row is the team's own.
+- `draftBoard`: prospects noted for a draft, in the owner's order.
 - `transactions`: season, weekKey, type (sign, resign, release, trade, waiver claim, IR, activate, extension, restructure, retire), players in and out, picks in and out, counterpart team, contract terms, notes.
 - `injuries`: season, weekKey, playerId, type, length, IR flag.
 - `hofEntries`: playerId or staff name, role, jersey, inducted year, retired number flag, blurb, highlight seasons, career summary cache.
@@ -251,7 +252,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Draft history from the franchise start: per season, every user pick with round, overall, position, player, OVR at draft, college, note, trade origin.
 - Draft class retrospective: computed hit rating from OVR progression, starts and awards, shown as a grade after two seasons.
 - Pick inventory: future picks owned and owed, how acquired.
-- Draft board (lightweight): pre-draft needs from the season report, prospects the user noted, who they took.
+- Draft board (lightweight): pre-draft needs from the season report, prospects the user noted (in their own order, `draftBoard`), who they took.
 - League-wide first round import when available, so other teams' rookies get player entities.
 
 ### 5.10 Transactions and injuries

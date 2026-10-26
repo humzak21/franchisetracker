@@ -112,17 +112,20 @@ export function TeamAwards({ seasonId, awards }: { seasonId: Id<"seasons">; awar
       ) : (
         <ul className="grid gap-2 @tablet:grid-cols-2 @desktop:grid-cols-3">
           {own.map((a) => (
-            <li key={a._id} className="relative">
-              <AwardCard award={a} />
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                className="absolute top-1.5 right-1.5"
-                aria-label={`Remove ${a.customName ?? "award"}`}
-                onClick={() => void remove({ awardId: a._id })}
-              >
-                <Trash2 />
-              </Button>
+            <li key={a._id}>
+              <AwardCard
+                award={a}
+                action={
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    aria-label={`Remove ${a.customName ?? "award"}`}
+                    onClick={() => void remove({ awardId: a._id })}
+                  >
+                    <Trash2 />
+                  </Button>
+                }
+              />
             </li>
           ))}
         </ul>

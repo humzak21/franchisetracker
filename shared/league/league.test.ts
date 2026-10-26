@@ -98,6 +98,8 @@ describe("draft grades", () => {
     expect(gradePick({ ...base, ovrs: [92], honors: 2 })?.letter).toBe("A");
     expect(gradePick({ ...base, ovrs: [60], gamesPlayed: 2 })?.letter).toBe("F");
     expect(gradePick({ ...base, round: 7, ovrs: [74] })?.letter).toBe("B");
+    // No OVR on record (real seasons): a starter who played every game is a solid pick.
+    expect(gradePick({ ...base, ovrs: [], gamesPlayed: 29 })).toEqual({ score: 64, letter: "C" });
   });
   test("a class averages its graded picks", () => {
     expect(gradeClass([{ score: 90, letter: "A" }, null, { score: 50, letter: "D" }])).toEqual({

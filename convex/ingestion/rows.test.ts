@@ -185,7 +185,12 @@ describe("row targets", () => {
         .collect(),
     );
     // Only the screenshot's awards; the sample season's own have no printed name.
-    expect(awards.filter((a) => a.rawName).map((a) => [a.type, a.weekKey ?? null, a.rawName]).sort()).toEqual([
+    expect(
+      awards
+        .filter((a) => a.rawName)
+        .map((a) => [a.type, a.weekKey ?? null, a.rawName])
+        .sort(),
+    ).toEqual([
       ["AllPro1", null, "C. Gonzalez"],
       ["DPOW", "w6", "M. Parsons"],
       ["MVP", null, "D. Maye"],

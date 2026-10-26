@@ -10,7 +10,7 @@ type Row = Overview["champions"][number];
 
 const team = (key: "afc" | "nfc" | "superBowl") => (r: Row) =>
   r[key] ? (
-    <TeamLink team={r[key]} label="name" size="xs" />
+    <TeamLink team={r[key]} label="abbr" size="xs" />
   ) : (
     <span className="text-subtle-foreground">—</span>
   );
@@ -44,7 +44,7 @@ export function ChampionsView({ overview }: { overview: Overview }) {
       title: "AFC champion",
       value: (r) => r.afc?.name ?? "",
       cell: team("afc"),
-      minWidth: 150,
+      minWidth: 72,
     },
     {
       id: "nfc",
@@ -52,14 +52,14 @@ export function ChampionsView({ overview }: { overview: Overview }) {
       title: "NFC champion",
       value: (r) => r.nfc?.name ?? "",
       cell: team("nfc"),
-      minWidth: 150,
+      minWidth: 72,
     },
     {
       id: "sb",
       header: "Super Bowl",
       value: (r) => r.superBowl?.name ?? "",
       cell: team("superBowl"),
-      minWidth: 150,
+      minWidth: 72,
     },
   ];
   return (
@@ -69,7 +69,8 @@ export function ChampionsView({ overview }: { overview: Overview }) {
       columns={columns}
       getRowId={(r) => String(r.year)}
       identityColumn="year"
-      primaryColumns={["sb"]}
+      // "Who won the AFC in 2029" is the question: every champion stays in view on a phone.
+      primaryColumns={["afc", "nfc", "sb"]}
       columnOptions={false}
       caption="Champions"
     />

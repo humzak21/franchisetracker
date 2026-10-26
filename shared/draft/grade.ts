@@ -31,19 +31,19 @@ const LETTERS: [number, PickGrade["letter"]][] = [
 ];
 
 /**
- * 0 to 100: half from the peak OVR against the round's expectation, the rest from playing
- * time and honors. Null until enough seasons have been played to judge.
+ * 0 to 100: mostly the peak OVR against the round's expectation, then playing time and
+ * honors; with no OVR on record, playing time and honors alone. Null until enough seasons
+ * have been played to judge.
  */
 export function gradePick(outcome: PickOutcome): PickGrade | null {
   if (outcome.seasonsSince < GRADE_AFTER_SEASONS) return null;
   const expected = EXPECTED_PEAK[Math.min(Math.max(outcome.round, 1), EXPECTED_PEAK.length) - 1]!;
   const peak = Math.max(outcome.ovrAtDraft ?? 0, ...outcome.ovrs, 0);
-  const talent = peak === 0 ? 0 : 50 + (peak - expected) * 3;
-  const playing =
-    (Math.min(outcome.gamesPlayed, 17 * outcome.seasonsSince) / (17 * outcome.seasonsSince)) * 30;
-  const score = Math.round(
-    Math.min(100, Math.max(0, talent * 0.6 + playing + Math.min(outcome.honors, 3) * 8)),
-  );
+  const share = Math.min(outcome.gamesPlayed, 17 * outcome.seasonsSince) / (17 * outcome.seasonsSince);
+  const honors = Math.min(outcome.honors, 3) * 8;
+  // Real seasons before the franchise carry no OVR: judge those picks on playing time alone.
+  const raw = peak === 0 ? share * 75 + honors : (50 + (peak - expected) * 3) * 0.6 + share * 30 + honors;
+  const score = Math.round(Math.min(100, Math.max(0, raw)));
   const letter = LETTERS.find(([min]) => score >= min)?.[1] ?? "F";
   return { score, letter };
 }
