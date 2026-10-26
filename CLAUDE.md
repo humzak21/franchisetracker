@@ -28,7 +28,7 @@ Environments:
 - **Cloud dev (`prestigious-iguana-83`):** shared staging, reachable from the phone. Switch with `npm run use:cloud`.
 - **Production:** Vercel plus the Convex production deployment, deployed only from `main`.
 
-`.env.local` (git-ignored, rewritten by `convex dev`) selects the backend for `npm run dev`. Playwright never reads it: it starts its own local backend and runs Vite in `e2e` mode (`.env.e2e`, committed) on port 5174, so tests cannot touch cloud data. Never run `convex deploy`, or anything else that writes to production, without the user's explicit go-ahead. Secrets (OpenRouter key, Shortcut tokens, OAuth client secrets) live in Convex env vars, never in the client or the repo.
+`.env.local` (git-ignored, rewritten by `convex dev`) selects the backend for `npm run dev`. Playwright never reads it: it starts its own local backend, builds the app in `e2e` mode (`.env.e2e`, committed) and serves the build on port 5174, so tests cannot touch cloud data. Each signed-in test gets its own test-owner session (`e2e/ownerSession.ts`); never share one saved session across tests, because Convex Auth revokes a session whose refresh token is replayed. CI runs one Playwright job per project inside the official Playwright image. Never run `convex deploy`, or anything else that writes to production, without the user's explicit go-ahead. Secrets (OpenRouter key, Shortcut tokens, OAuth client secrets) live in Convex env vars, never in the client or the repo.
 
 ## Architecture and layering
 

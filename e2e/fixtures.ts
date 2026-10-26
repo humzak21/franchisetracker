@@ -1,4 +1,5 @@
 import { test as base, expect, type Page } from "@playwright/test";
+import { ownerSession } from "./ownerSession";
 
 export type Theme = "dark" | "light";
 
@@ -19,17 +20,21 @@ export async function signInAsTestOwner(page: Page) {
 /**
  * `page` that fails the test on any console error or uncaught exception, starts in the
  * requested theme (the app reads `ft.theme` before first paint), and is signed in unless
- * the test opts out with `test.use({ signedIn: false })`.
+ * the test opts out with `test.use({ signedIn: false })`. Tests start on a blank page, so
+ * each one navigates where it needs to.
  */
 export const test = base.extend<{ theme: Theme; signedIn: boolean }>({
   theme: ["dark", { option: true }],
   signedIn: [true, { option: true }],
-  page: async ({ page, theme, signedIn }, use) => {
+  storageState: async ({ signedIn, baseURL }, use) => {
+    if (!baseURL) throw new Error("playwright.config.ts must set baseURL");
+    await use(signedIn ? await ownerSession(baseURL) : undefined);
+  },
+  page: async ({ page, theme }, use) => {
     const errors: string[] = [];
     page.on("console", (msg) => msg.type() === "error" && errors.push(msg.text()));
     page.on("pageerror", (err) => errors.push(err.message));
     await page.addInitScript((t) => localStorage.setItem("ft.theme", JSON.stringify(t)), theme);
-    if (signedIn) await signInAsTestOwner(page);
     await use(page);
     expect(errors, "console errors").toEqual([]);
   },

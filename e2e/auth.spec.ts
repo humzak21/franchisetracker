@@ -16,11 +16,16 @@ test.describe("signed out", () => {
   test("Sign in with Vercel leaves for vercel.com with PKCE", async ({ page }) => {
     await page.goto("/");
     const request = page.waitForRequest((req) => req.url().startsWith("https://vercel.com/oauth/authorize"));
-    // Abort instead of loading Vercel: the test only checks the outgoing request. The aborted
-    // navigation logs a network error, which is expected here, so stop collecting errors.
+    // Answer with a blank page instead of loading Vercel: the test only checks the outgoing
+    // request. WebKit does not route the redirected navigation and loads the real page, whose
+    // console is not ours, so stop collecting errors. Closing the page mid-navigation stalls
+    // Chromium for 5 s, so wait for it to land.
     page.removeAllListeners("console");
-    await page.route("https://vercel.com/**", (route) => route.abort());
+    await page.route("https://vercel.com/**", (route) =>
+      route.fulfill({ contentType: "text/html", body: "" }),
+    );
     await page.getByRole("button", { name: "Sign in with Vercel" }).click();
+    await expect(page).toHaveURL(/^https:\/\/vercel\.com\/oauth\/authorize/);
     const url = new URL((await request).url());
     expect(url.searchParams.get("response_type")).toBe("code");
     expect(url.searchParams.get("code_challenge_method")).toBe("S256");

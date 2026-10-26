@@ -5,7 +5,7 @@ const E2E_PORT = 5174;
 
 /**
  * Smoke tests against a fully local stack: an anonymous local Convex backend (pushed and
- * seeded on start) and Vite in `e2e` mode, which points the client at that backend.
+ * seeded on start) and the app built in `e2e` mode, which points the client at that backend.
  * Phones run in WebKit (the iPhone engine) at the two sizes FEATURES.md 9 requires.
  */
 export default defineConfig({
@@ -19,6 +19,8 @@ export default defineConfig({
     baseURL: `http://localhost:${E2E_PORT}`,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    // The PWA service worker only caches the build; it has nothing to do with what these test.
+    serviceWorkers: "block",
   },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
@@ -42,10 +44,15 @@ export default defineConfig({
       stdout: "pipe",
     },
     {
-      command: `npx vite --mode e2e --port ${E2E_PORT} --strictPort`,
+      // A bundled build instead of the dev server: every test opens a fresh browser context, and
+      // the dev server would make each one fetch hundreds of modules (and re-optimize deps
+      // mid-test). NODE_ENV=development keeps React's dev warnings, which fail tests as console
+      // errors. A few seconds to build; rerun the tests to pick up app changes.
+      command: `npx vite build --mode e2e --outDir dist/e2e && npx vite preview --outDir dist/e2e --port ${E2E_PORT} --strictPort`,
+      env: { NODE_ENV: "development" },
       url: `http://localhost:${E2E_PORT}`,
       reuseExistingServer: !CI,
-      timeout: 60_000,
+      timeout: 120_000,
     },
   ],
 });
