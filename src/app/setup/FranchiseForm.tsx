@@ -21,7 +21,8 @@ type FranchiseFormProps = {
   actions: ReactNode;
   /** The submit bar sticks to the bottom of the viewport (first run, where no tab bar covers it). */
   stickyBar?: boolean;
-  onCreated?: (franchiseId: Id<"franchises">) => void;
+  /** Runs once the franchise exists, which is now the active one. */
+  onCreated: (franchiseId: Id<"franchises">) => void;
   className?: string;
 };
 
@@ -51,7 +52,8 @@ export function FranchiseForm({ header, actions, stickyBar, onCreated, className
     setBusy(true);
     setError(null);
     try {
-      onCreated?.(await create({ name, teamAbbr: team.abbr, startYear: year }));
+      const franchiseId = await create({ name, teamAbbr: team.abbr, startYear: year });
+      onCreated(franchiseId);
     } catch (err) {
       setError(errorMessage(err, "Could not create the franchise."));
       setBusy(false);
