@@ -68,7 +68,7 @@ test("search palette navigates to a screen", async ({ page }, info) => {
   if (isPhone(info.project.name))
     await page.getByRole("button", { name: "Search", exact: true }).first().click();
   else await page.keyboard.press("ControlOrMeta+k");
-  const input = page.getByPlaceholder("Search screens, seasons and actions");
+  const input = page.getByPlaceholder("Search players, games, screens and actions");
   await expect(input).toBeVisible();
   await input.fill("Roster");
   await page.keyboard.press("Enter");

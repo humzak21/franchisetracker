@@ -90,7 +90,7 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 - Everything counts the user team's log-derived season rows only; imported real history (Sprint 4) never mixes in. Single-game rankings take each player-season's best game, so a player's second-best game in a season is not on the single-game top ten (the record itself is exact).
 - After every commit a scheduled mutation (`stats/refresh:afterGame`) rebuilds the records book (writing only changed rows), refreshes team and affected players' streaks, and syncs that game's milestones by stable key: recommitting never duplicates one, and an acknowledged milestone stays acknowledged.
 - A record "falls" only to a bigger number; a correction that lowers the holder's value rewrites the record without a milestone. Win streak milestones fire at 3, 5, 8, 10, 13 and 16.
-- Milestones: threshold games (except 5-catch games, which are box-score highlights only), career highs once a player has three earlier games, first season past a tier-1 threshold, franchise records and win streaks. The feed is on Home ahead of the full dashboard in Sprint 8.
+- Milestones: threshold games (except 5-catch games, which are box-score highlights only), career highs once a player has three earlier games, first season past a tier-1 threshold, franchise records and win streaks. The feed is on Home.
 - The sample franchise is now built from box scores (`convex/dev/fixtureLines.ts`) rather than imported season totals, so every sample number goes through the same derivation as a real game.
 
 ---
@@ -214,6 +214,18 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 - Phone: dashboard cards in one column with prompts and inbox first, phone chart variants for pulse and rank ribbons, calendar as a vertical month list, search from the header icon, the franchise switcher and "New franchise" in the More sheet.
 
 **Done when:** the dashboard is the screen you want to leave open on the second monitor and the first thing you check on your phone, and a second franchise can be created and switched to on either device without touching the first one's data.
+
+**As built:**
+
+- Home is composed from one DOM order: on desktop a main column (season header, last and next game, the pulse, milestones, the franchise record) beside a side column (inbox, the season card, team ranks, recent moves); on narrower widths the columns dissolve (`display: contents`) and `order` stacks the cards with the prompts and inbox first. `dashboard/home.season` gives the header line, last and next game with the head-to-head so far, and the week points; `dashboard/activity.recent` the user team's latest moves and injuries.
+- Week points (`shared/games/insights.ts`) carry the margin and the running streak; the same rows feed the dashboard pulse and Schedule → Charts (points by week, margin of victory, streak), through `PointsChart` and `DivergingBars`, both with phone variants chosen from their own width.
+- Team rank ribbons across seasons (`RankTrend`) read the captured team stats screen (`league/teamStats.trends`): Stats → Team shows every stat, Home the five pulse stats, each with its move since the season before.
+- Rivals are built from captured games (`shared/games/insights.ts` `rivalries`): League → Rivals, the next-game card and team pages, which chart the margin of every meeting.
+- Schedule → Calendar places each week on the Sunday the NFL plays it (`shared/games/dates.ts`: Week 1 is the Sunday after Labor Day, the Pro Bowl takes the open Sunday before the Super Bowl), with free agency and the draft after the season. Month grids when wide, a vertical list of game days per month on the phone.
+- The palette searches players by name on the server and every franchise game by year, week or opponent once something is typed, and switches franchises. `⌘K`, `/` and the header search icon open it; the shortcut sheet lists what is registered, `[` `]` on game detail included.
+- Several franchises: creating one deactivates the current one (`franchise/create.ts`), and `franchise/franchises.activate` switches. Every query already read the active franchise, so screens, the inbox and the Shortcut follow; Shortcut tokens are listed account-wide. A switch goes Home and forgets the seasons remembered for the old franchise. The switcher is the sidebar's franchise header, the More sheet on the phone, Settings → Franchises and the palette; "New franchise" opens the setup form at `/franchises/new`.
+- The sample adds a scheduled rematch, team ranks for two seasons and an inactive second franchise, so the dashboard and the switcher have data in tests. Playwright never switches (all projects share one backend); `convex/franchise/switch.test.ts` covers switching.
+- `Segmented` scrolls within its own width when its options do not fit, so five views fit a 390 px phone.
 
 ---
 

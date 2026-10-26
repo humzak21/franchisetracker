@@ -37,7 +37,7 @@ export function InboxSummary() {
         </span>
         <ChevronRight className="size-4 shrink-0 text-subtle-foreground" />
       </Link>
-      <Button variant="outline" size="icon" aria-label="Capture screenshots" onClick={() => capture.open()}>
+      <Button variant="outline" size="icon" aria-label="New capture" onClick={() => capture.open()}>
         <Camera />
       </Button>
     </div>

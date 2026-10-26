@@ -101,7 +101,9 @@ Sidebar (team-colored), always visible:
 
 Global: season switcher in the top bar (defaults to the active season, remembered per screen), command palette (`⌘K`) searching players, games, seasons, screens and actions, and a pending-prompt banner (preseason or postseason report due).
 
-On phones the sidebar becomes a bottom tab bar with Home, Schedule, Roster, Stats and a "More" sheet holding the rest, plus a floating capture button that opens the inbox uploader. The season switcher moves into the page header, and the command palette is reachable from a search icon and a pull-down gesture on the Home tab.
+The sidebar's header is the franchise switcher: every franchise with its team and current season, and "New franchise".
+
+On phones the sidebar becomes a bottom tab bar with Home, Schedule, Roster, Stats and a "More" sheet holding the franchise switcher and the rest, plus a floating capture button that opens the inbox uploader. The season switcher moves into the page header, and the command palette is reachable from the search icon in every page header (no pull-down gesture: section 9 keeps pull gestures off to avoid accidental triggers).
 
 ---
 
@@ -111,7 +113,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 
 ### 4.1 Franchise and seasons
 
-- `franchises`: name, userTeamId, startYear (the real NFL season the franchise begins in), settings (games per season, playoff teams, elite thresholds overrides), active flag. Created by the setup flow (5.0); its first season is created with it and later seasons when the user advances.
+- `franchises`: name, userTeamId, startYear (the real NFL season the franchise begins in), settings (games per season, playoff teams, elite thresholds overrides), active flag. Created by the setup flow (5.0); its first season is created with it and later seasons when the user advances. Exactly one franchise is active; every screen, the inbox and the Shortcut endpoint read the active one, and switching never touches another franchise's data.
 - `seasons`: year, status (`upcoming`, `regular`, `postseason`, `complete`), userTeam record cache (w, l, t, divisionRank, seed, playoffResult), coaching staff (head coach, OC, DC, offensive scheme, defensive scheme), salary cap, notes.
 - `seasonReports`: pre-season thoughts, post-season thoughts, around-the-league notes, status of each prompt (pending or answered with timestamp, plus when the banner was last dismissed), `needs[]` (position, priority, note, resolved by a transaction or draft pick id, or by hand with a note). Created on first write.
 
@@ -157,7 +159,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - `uploads`: storage id, mime, width, height, source (shortcut, web, dragdrop), target key or null, season, weekKey, status (`queued`, `extracting`, `review`, `committed`, `rejected`, `failed`), error, createdAt.
 - `extractions`: upload id, target key, model used, raw JSON, normalized draft, confidence per field, warnings from validators, token usage, latency.
 - `corrections`: target key, field path, extracted value, corrected value, image crop reference, used-as-example flag. Feeds few-shot prompts.
-- `ingestionTokens`: hashed bearer tokens for the Shortcut.
+- `ingestionTokens`: hashed bearer tokens for the Shortcut. They belong to the owner rather than a franchise: uploads land in the active franchise.
 
 ---
 
@@ -174,6 +176,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Shown in place of every screen until a franchise exists (after sign-in).
 - Name the franchise, pick the user team from the 32 (grouped by division, in team colors), and choose the first season, defaulting to the current real NFL season.
 - Creating it seeds that first season and starts the real NFL history import for the seasons before it (4.8). Works the same on the phone.
+- Another franchise is created with the same form from Settings, the franchise switcher or the command palette; it becomes the active franchise with its own history import, and the others keep their data.
 
 ### 5.1 Home (dashboard)
 
@@ -231,6 +234,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Standings per season by conference and division, imported from screenshot, with the user team highlighted. Playoff seeds and bracket per season.
 - Any team's history inside the franchise: record by season, playoff results, titles, their players we have seen, draft picks.
 - Cumulative league table across the franchise: wins, playoff record, division titles, conference titles, Super Bowls.
+- Rivals: the user team's head-to-head line against every opponent met (record, playoff record, point differential, streak, margins, last meeting); a team's page charts the margin of every meeting.
 
 ### 5.7 History
 
@@ -276,6 +280,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 
 ### 5.12 Settings
 
+- Franchises: every franchise with its team and current season, switching the active one, and "New franchise".
 - Franchise: team, start year, season length, playoff format.
 - Thresholds: edit elite highlight thresholds per stat.
 - Models: OpenRouter primary and fallback model, temperature, token budget.
