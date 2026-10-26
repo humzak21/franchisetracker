@@ -3,6 +3,7 @@ import { positionGroupOf, type Position, type PositionGroup } from "@shared/doma
 import {
   aggregateLines,
   CATEGORY_GROUPS,
+  preferLogs,
   STAT_CATEGORIES,
   STAT_CATEGORY_LABELS,
   STAT_REGISTRY,
@@ -19,14 +20,10 @@ export type CareerRow = { id: string; year: number | null; teamAbbr: string; gam
 
 /** One row per season (log-derived totals win over imported ones), regular season only. */
 export function careerRows(seasons: PlayerPage["seasons"]): CareerRow[] {
-  const byKey = new Map<string, PlayerPage["seasons"][number]>();
-  for (const s of seasons) {
-    if (s.stats.split !== "regular") continue;
-    const key = `${s.year}-${s.team._id}`;
-    const existing = byKey.get(key);
-    if (!existing || (existing.stats.source === "import" && s.stats.source === "logs")) byKey.set(key, s);
-  }
-  return [...byKey.values()].map((s) => ({
+  const regular = seasons
+    .filter((s) => s.stats.split === "regular")
+    .map((s) => ({ ...s, teamKey: s.team._id, source: s.stats.source }));
+  return preferLogs(regular).map((s) => ({
     id: `${s.year}-${s.team.abbr}`,
     year: s.year,
     teamAbbr: s.team.abbr,

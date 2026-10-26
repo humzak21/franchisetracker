@@ -273,8 +273,8 @@ export function statsInCategory(category: StatCategory): StatKey[] {
   return STAT_KEYS.filter((key) => STAT_REGISTRY[key].category === category);
 }
 
-/** The JSON field name extraction schemas use for a raw stat (`passYds` → `pass_yds`). */
-export function extractionField(key: RawStatKey): string {
+/** The JSON field name extraction schemas use for a stat key (`passYds` → `pass_yds`). */
+export function extractionField(key: string): string {
   return key
     .replace(/([A-Z])/g, "_$1")
     .replace(/(\d+)/g, "_$1")
