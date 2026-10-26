@@ -29,7 +29,7 @@ function People({
             key={i}
             to="/players/$playerId"
             params={{ playerId: p.playerId }}
-            className="block hover:underline"
+            className="block hover:underline pointer-coarse:touch-target"
           >
             <PlayerChip
               player={{ displayName: p.name, position: p.position ?? "", headshotUrl: p.headshotUrl }}

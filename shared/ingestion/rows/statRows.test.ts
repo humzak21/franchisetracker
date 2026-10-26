@@ -1,7 +1,7 @@
 /** Extraction validators for the stat screens: league leaders, team season stats and standings. */
 import { describe, expect, test } from "vitest";
-import { normalizeFor, validateDraft } from "../targets";
-import type { RowTargetDraft, RowTargetKey } from "../types";
+import { normalizeFor, validateDraft, type RowTargetKey } from "../targets";
+import type { RowTargetDraft } from "../types";
 
 const sure = { confidence: 0.95, unclear_fields: [] };
 const read = (target: RowTargetKey, raw: unknown) => normalizeFor(target, raw).draft as RowTargetDraft;

@@ -19,7 +19,11 @@ export function AwardCard({
 }) {
   const title = label ?? award.customName ?? AWARD_INFO[award.type].label;
   const who = award.player ? (
-    <Link to="/players/$playerId" params={{ playerId: award.player._id }} className="min-w-0 hover:underline">
+    <Link
+      to="/players/$playerId"
+      params={{ playerId: award.player._id }}
+      className="min-w-0 hover:underline pointer-coarse:touch-target"
+    >
       <PlayerChip
         player={{ ...award.player, team: award.team ?? undefined }}
         size="sm"

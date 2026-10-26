@@ -24,7 +24,10 @@ export function RankPulse({ year }: { year: number }) {
   return (
     <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
       <RankTrend rows={rows} year={year} />
-      <Link to="/stats" className="block text-sm font-medium text-primary hover:underline">
+      <Link
+        to="/stats"
+        className="flex min-h-11 items-center text-sm font-medium text-primary hover:underline"
+      >
         Every team stat in Stats → Team
       </Link>
     </div>

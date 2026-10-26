@@ -95,7 +95,7 @@ export function TableGrid<T>(props: TableGridProps<T>) {
             type="button"
             onClick={() => onSort(col.id)}
             className={cn(
-              "inline-flex items-center gap-1 hover:text-foreground",
+              "inline-flex items-center gap-1 hover:text-foreground pointer-coarse:touch-target",
               col.align === "right" && "flex-row-reverse",
             )}
           >

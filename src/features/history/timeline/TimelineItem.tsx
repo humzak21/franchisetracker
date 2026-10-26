@@ -34,18 +34,26 @@ export function TimelineItem({ entry }: { entry: Entry }) {
         </div>
         <div className="mt-0.5 text-[15px]">
           {entry.gameId ? (
-            <Link to="/games/$gameId" params={{ gameId: entry.gameId }} className="hover:underline">
+            <Link
+              to="/games/$gameId"
+              params={{ gameId: entry.gameId }}
+              className="hover:underline pointer-coarse:touch-target"
+            >
               {title}
             </Link>
           ) : entry.playerId ? (
-            <Link to="/players/$playerId" params={{ playerId: entry.playerId }} className="hover:underline">
+            <Link
+              to="/players/$playerId"
+              params={{ playerId: entry.playerId }}
+              className="hover:underline pointer-coarse:touch-target"
+            >
               {title}
             </Link>
           ) : entry.kind === "season" ? (
             <Link
               to="/history/reports/$year"
               params={{ year: String(entry.year) }}
-              className="hover:underline"
+              className="hover:underline pointer-coarse:touch-target"
             >
               {title}
             </Link>

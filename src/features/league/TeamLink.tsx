@@ -9,7 +9,7 @@ export function TeamLink({ team, className, ...chip }: ComponentProps<typeof Tea
     <Link
       to="/league/teams/$abbr"
       params={{ abbr: team.abbr.toLowerCase() }}
-      className={cn("min-w-0 rounded hover:underline", className)}
+      className={cn("min-w-0 rounded hover:underline pointer-coarse:touch-target", className)}
     >
       <TeamChip team={team} {...chip} />
     </Link>

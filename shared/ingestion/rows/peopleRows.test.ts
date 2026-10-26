@@ -1,7 +1,7 @@
 /** Extraction normalizers and validators for the people screens: awards, the draft, moves, injuries, rosters. */
 import { describe, expect, test } from "vitest";
-import { mergeFor, normalizeFor, validateDraft } from "../targets";
-import type { RowTargetDraft, RowTargetKey } from "../types";
+import { mergeFor, normalizeFor, validateDraft, type RowTargetKey } from "../targets";
+import type { RowTargetDraft } from "../types";
 
 const sure = { confidence: 0.95, unclear_fields: [] };
 const read = (target: RowTargetKey, raw: unknown) => normalizeFor(target, raw).draft as RowTargetDraft;

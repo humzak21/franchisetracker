@@ -49,7 +49,7 @@ export function MilestoneFeed() {
                   <Link
                     to="/games/$gameId"
                     params={{ gameId: m.gameId }}
-                    className="text-xs text-muted-foreground hover:underline"
+                    className="text-xs text-muted-foreground hover:underline pointer-coarse:touch-target"
                   >
                     {when}
                   </Link>

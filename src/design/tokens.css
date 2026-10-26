@@ -191,6 +191,33 @@
   }
 }
 
+/*
+ * Touch targets (FEATURES.md 9): a control smaller than a fingertip gets a 44 px hit area centred
+ * on it, without changing how it looks. Use as `pointer-coarse:touch-target` on small links and
+ * buttons; links and buttons in table cells get it on touch screens automatically.
+ */
+@utility touch-target {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+
+@layer base {
+  @media (pointer: coarse) {
+    td a,
+    td button {
+      @apply touch-target;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

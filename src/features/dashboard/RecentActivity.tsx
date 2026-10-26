@@ -17,7 +17,11 @@ function Name({ player }: { player: { playerId?: Id<"players">; name: string; po
     </span>
   );
   return player.playerId ? (
-    <Link to="/players/$playerId" params={{ playerId: player.playerId }} className="min-w-0 hover:underline">
+    <Link
+      to="/players/$playerId"
+      params={{ playerId: player.playerId }}
+      className="min-w-0 hover:underline pointer-coarse:touch-target"
+    >
       {label}
     </Link>
   ) : (
@@ -74,7 +78,7 @@ export function RecentActivity({ seasonId }: { seasonId: Id<"seasons"> }) {
       )}
       <Link
         to="/transactions"
-        className="block border-t border-border px-4 py-2.5 text-sm font-medium text-primary hover:bg-surface-2"
+        className="flex min-h-11 items-center border-t border-border px-4 text-sm font-medium text-primary hover:bg-surface-2"
       >
         All transactions and injuries
       </Link>
