@@ -17,6 +17,7 @@ import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as DevComponentsRouteImport } from './routes/dev/components'
+import { Route as FranchisesNewRouteImport } from './routes/franchises.new'
 import { Route as GamesGameIdRouteImport } from './routes/games.$gameId'
 import { Route as HistoryIndexRouteImport } from './routes/history.index'
 import { Route as HistoryHallOfFameRouteImport } from './routes/history.hall-of-fame'
@@ -71,6 +72,11 @@ const TransactionsRoute = TransactionsRouteImport.update({
 const DevComponentsRoute = DevComponentsRouteImport.update({
   id: '/dev/components',
   path: '/dev/components',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FranchisesNewRoute = FranchisesNewRouteImport.update({
+  id: '/franchises/new',
+  path: '/franchises/new',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GamesGameIdRoute = GamesGameIdRouteImport.update({
@@ -158,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
   '/dev/components': typeof DevComponentsRoute
+  '/franchises/new': typeof FranchisesNewRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/history/hall-of-fame': typeof HistoryHallOfFameRoute
   '/history/timeline': typeof HistoryTimelineRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
   '/dev/components': typeof DevComponentsRoute
+  '/franchises/new': typeof FranchisesNewRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/history/hall-of-fame': typeof HistoryHallOfFameRoute
   '/history/timeline': typeof HistoryTimelineRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
   '/dev/components': typeof DevComponentsRoute
+  '/franchises/new': typeof FranchisesNewRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/history/hall-of-fame': typeof HistoryHallOfFameRoute
   '/history/timeline': typeof HistoryTimelineRoute
@@ -236,6 +245,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/transactions'
     | '/dev/components'
+    | '/franchises/new'
     | '/games/$gameId'
     | '/history/hall-of-fame'
     | '/history/timeline'
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/transactions'
     | '/dev/components'
+    | '/franchises/new'
     | '/games/$gameId'
     | '/history/hall-of-fame'
     | '/history/timeline'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/transactions'
     | '/dev/components'
+    | '/franchises/new'
     | '/games/$gameId'
     | '/history/hall-of-fame'
     | '/history/timeline'
@@ -312,6 +324,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   TransactionsRoute: typeof TransactionsRoute
   DevComponentsRoute: typeof DevComponentsRoute
+  FranchisesNewRoute: typeof FranchisesNewRoute
   GamesGameIdRoute: typeof GamesGameIdRoute
   HistoryHallOfFameRoute: typeof HistoryHallOfFameRoute
   HistoryTimelineRoute: typeof HistoryTimelineRoute
@@ -385,6 +398,13 @@ declare module '@tanstack/react-router' {
       path: '/dev/components'
       fullPath: '/dev/components'
       preLoaderRoute: typeof DevComponentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/franchises/new': {
+      id: '/franchises/new'
+      path: '/franchises/new'
+      fullPath: '/franchises/new'
+      preLoaderRoute: typeof FranchisesNewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/games/$gameId': {
@@ -504,6 +524,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   TransactionsRoute: TransactionsRoute,
   DevComponentsRoute: DevComponentsRoute,
+  FranchisesNewRoute: FranchisesNewRoute,
   GamesGameIdRoute: GamesGameIdRoute,
   HistoryHallOfFameRoute: HistoryHallOfFameRoute,
   HistoryTimelineRoute: HistoryTimelineRoute,

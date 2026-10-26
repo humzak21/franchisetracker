@@ -24,7 +24,7 @@ describe("several franchises", () => {
       [SAMPLE_FRANCHISE_NAME, true, "NE"],
       [SECOND_FRANCHISE_NAME, false, "KC"],
     ]);
-    expect(list[0]!.latest).toMatchObject({ year: SAMPLE_START_YEAR + 1, status: "upcoming" });
+    expect(list[0]!.current).toMatchObject({ year: SAMPLE_START_YEAR, status: "regular", w: 4, l: 1 });
   });
 
   test("switching moves every screen to the other franchise and back, leaving data alone", async () => {

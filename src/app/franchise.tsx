@@ -1,7 +1,9 @@
-import { useQuery } from "convex/react";
+import { useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useCallback, useContext, type ReactNode } from "react";
 import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 
 export type ActiveFranchise = NonNullable<FunctionReturnType<typeof api.franchise.franchises.getActive>>;
 export type Season = ActiveFranchise["seasons"][number];
@@ -23,4 +25,22 @@ export function useFranchise(): FranchiseState {
 /** The season the franchise is currently playing: the first not yet complete, else the latest. */
 export function currentSeason(seasons: readonly Season[]): Season | undefined {
   return seasons.find((s) => s.status !== "complete") ?? seasons[seasons.length - 1];
+}
+
+/**
+ * Makes another franchise the active one and goes Home: whatever screen was open (a game, a
+ * player) belongs to the franchise being left. Needs the router, so only screens call it.
+ */
+export function useSwitchFranchise(): (franchiseId: Id<"franchises">) => Promise<void> {
+  const activate = useMutation(api.franchise.franchises.activate);
+  const navigate = useNavigate();
+  return useCallback(
+    async (franchiseId) => {
+      await activate({ franchiseId });
+      await navigate({ to: "/" });
+      // Already on Home, the navigation is a no-op; the new franchise still starts at the top.
+      window.scrollTo({ top: 0 });
+    },
+    [activate, navigate],
+  );
 }

@@ -12,8 +12,8 @@ import { mutation, query, type QueryCtx } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { must } from "../lib/errors";
 import { activeFranchise, playersById, teamsById } from "../lib/franchise";
-import { vGameRow, vHeadToHeadGame, vSeasonSummary, vStarView, vWlt } from "./validators";
-import { gameRow, starPlayerIds, starViews } from "./views";
+import { vGameRow, vHeadToHeadGame, vSeasonSummary, vStarView, vWeekPoint, vWlt } from "./validators";
+import { gameRow, starPlayerIds, starViews, weekPointRows } from "./views";
 import schema from "../schema";
 
 /** Preseason, 18 weeks, four playoff rounds, Pro Bowl: well under this. */
@@ -30,15 +30,19 @@ async function seasonGames(ctx: QueryCtx, seasonId: Id<"seasons">) {
   return sortByWeek(games);
 }
 
-/** The season's schedule in calendar order, with opponents and three stars resolved, plus a summary. */
+/** The season's schedule in calendar order, with opponents and three stars resolved, a summary and the chart points. */
 export const bySeason = query({
   args: { seasonId: v.id("seasons") },
-  returns: v.object({ games: v.array(vGameRow), summary: vSeasonSummary }),
+  returns: v.object({ games: v.array(vGameRow), summary: vSeasonSummary, points: v.array(vWeekPoint) }),
   handler: async (ctx, { seasonId }) => {
     await requireOwner(ctx);
     const games = await seasonGames(ctx, seasonId);
     const [teams, players] = await Promise.all([teamsById(ctx), playersById(ctx, starPlayerIds(games))]);
-    return { games: games.map((game) => gameRow(game, teams, players)), summary: seasonSummary(games) };
+    return {
+      games: games.map((game) => gameRow(game, teams, players)),
+      summary: seasonSummary(games),
+      points: weekPointRows(games, teams),
+    };
   },
 });
 

@@ -1,5 +1,11 @@
 /** A team's league ranks per stat across seasons (team rank ribbons, FEATURES.md 5.1 and 7). */
-import { isTeamSeasonStatKey, TEAM_SEASON_STAT_KEYS, type TeamSeasonStatKey } from "./teamSeasonRegistry";
+import {
+  formatTeamSeasonStat,
+  isTeamSeasonStatKey,
+  TEAM_SEASON_STAT_KEYS,
+  TEAM_SEASON_STATS,
+  type TeamSeasonStatKey,
+} from "./teamSeasonRegistry";
 
 export type TeamSeasonRow = { year: number; statKey: string; value: number; rank?: number; tied?: boolean };
 
@@ -29,9 +35,29 @@ export function rankTrends(rows: readonly TeamSeasonRow[]): StatTrend[] {
   });
 }
 
-/** Rank movement from the previous season to the latest: positive is better (12th → 5th is +7). */
-export function rankChange(points: readonly RankPoint[]): number | null {
-  const [before, latest] = points.filter((p) => p.rank !== null).slice(-2);
-  if (!before || !latest || before.rank === null || latest.rank === null) return null;
-  return before.rank - latest.rank;
+/**
+ * Rank movement into a season from the previous ranked one: positive is better (12th → 5th is
+ * a climb of 7). Null when that season or an earlier one has no rank.
+ */
+export function rankChange(
+  points: readonly { year: number; rank: number | null }[],
+  year: number,
+): { climb: number; from: number } | null {
+  const ranked = points.filter((p) => p.rank !== null && p.year <= year);
+  const [before, current] = ranked.slice(-2);
+  if (!before || !current || current.year !== year || before.rank === null || current.rank === null) {
+    return null;
+  }
+  return { climb: before.rank - current.rank, from: before.year };
+}
+
+/** Trends as labelled rows with registry-formatted values, for `RankTrend`; optionally only some stats. */
+export function trendRows(trends: readonly StatTrend[], only?: readonly TeamSeasonStatKey[]) {
+  return trends
+    .filter((t) => !only || only.includes(t.statKey))
+    .map((t) => ({
+      key: t.statKey,
+      label: TEAM_SEASON_STATS[t.statKey].label,
+      points: t.points.map((p) => ({ ...p, value: formatTeamSeasonStat(t.statKey, p.value) })),
+    }));
 }

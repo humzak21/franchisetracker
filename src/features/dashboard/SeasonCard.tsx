@@ -64,7 +64,7 @@ export function SeasonCard({ active }: { active: ActiveFranchise }) {
       </div>
       <StaffLine staff={season.coaching} className="mt-2" />
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <p className="min-w-0 flex-1 text-sm text-muted-foreground">{HINT[season.status]}</p>
+        <p className="min-w-48 flex-1 text-sm text-muted-foreground">{HINT[season.status]}</p>
         {action === "finish" && (
           <Button variant="outline" size="sm" onClick={() => setConfirming(true)}>
             <Flag /> Super Bowl week done

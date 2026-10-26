@@ -45,7 +45,7 @@ export const getActive = query({
   },
 });
 
-/** Every franchise for the switcher, active first, then newest. */
+/** Every franchise for the switcher with the season it is playing, active first, then newest. */
 export const list = query({
   args: {},
   returns: v.array(
@@ -55,7 +55,8 @@ export const list = query({
       startYear: v.number(),
       isActive: v.boolean(),
       userTeam: vTeamRef,
-      latest: v.union(
+      /** The season being played: the first not complete, else the latest. */
+      current: v.union(
         v.null(),
         v.object({
           year: v.number(),
@@ -73,24 +74,26 @@ export const list = query({
     const rows = await Promise.all(
       franchises.map(async (franchise) => {
         const team = must(await ctx.db.get("teams", franchise.userTeamId), "User team");
-        // Imported real seasons all come before startYear, so the latest season is the franchise's own.
-        const latest = await ctx.db
+        const seasons = await ctx.db
           .query("seasons")
-          .withIndex("by_franchiseId_and_year", (q) => q.eq("franchiseId", franchise._id))
-          .order("desc")
-          .first();
+          .withIndex("by_franchiseId_and_year", (q) =>
+            q.eq("franchiseId", franchise._id).gte("year", franchise.startYear),
+          )
+          .take(MAX_SEASONS);
+        // The season being played, as the app picks it: the first not complete, else the latest.
+        const current = seasons.find((s) => s.status !== "complete") ?? seasons.at(-1) ?? null;
         return {
           _id: franchise._id,
           name: franchise.name,
           startYear: franchise.startYear,
           isActive: franchise.isActive,
           userTeam: toTeamRef(team),
-          latest: latest && {
-            year: latest.year,
-            status: latest.status,
-            w: latest.userRecord?.w ?? 0,
-            l: latest.userRecord?.l ?? 0,
-            t: latest.userRecord?.t ?? 0,
+          current: current && {
+            year: current.year,
+            status: current.status,
+            w: current.userRecord?.w ?? 0,
+            l: current.userRecord?.l ?? 0,
+            t: current.userRecord?.t ?? 0,
           },
         };
       }),

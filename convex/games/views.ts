@@ -1,4 +1,5 @@
 /** Shapes the schedule and game queries return. Kept separate so both queries build them the same way. */
+import { weekPoints } from "../../shared/games/insights";
 import { resultOf, userScore } from "../../shared/games/summary";
 import type { Doc, Id } from "../_generated/dataModel";
 
@@ -51,3 +52,11 @@ export function gameRow(
 }
 
 export type GameRow = ReturnType<typeof gameRow>;
+
+/** The season's week points (pulse, margin and streak charts), each with its opponent's abbreviation. */
+export function weekPointRows(games: readonly Doc<"games">[], teams: Map<Id<"teams">, Doc<"teams">>) {
+  return weekPoints(games).map((point) => {
+    const opponentId = games.find((g) => g.weekKey === point.weekKey)?.opponentTeamId;
+    return { ...point, opponentAbbr: (opponentId && teams.get(opponentId)?.abbr) ?? null };
+  });
+}

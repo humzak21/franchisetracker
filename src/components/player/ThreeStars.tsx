@@ -1,12 +1,15 @@
 import { Link } from "@tanstack/react-router";
 import { Star } from "lucide-react";
-import type { FunctionReturnType } from "convex/server";
-import type { api } from "@convex/_generated/api";
-import type { TeamLike } from "@/components/team/TeamLogo";
-import { EmptyState } from "@/components/data/EmptyState";
-import { PlayerChip } from "@/components/player/PlayerChip";
+import { EmptyState } from "../data/EmptyState";
+import type { TeamLike } from "../team/TeamLogo";
+import { PlayerChip } from "./PlayerChip";
 
-type StarView = FunctionReturnType<typeof api.games.schedule.get>["stars"][number];
+export type StarView = {
+  playerId: string | null;
+  name: string;
+  position: string | null;
+  caption: string | null;
+};
 
 /** The game's three stars in order, each linking to the player page when resolved. */
 export function ThreeStars({ stars, team }: { stars: StarView[]; team: TeamLike }) {

@@ -1,5 +1,5 @@
 import { useRouterState } from "@tanstack/react-router";
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import { currentSeason, useFranchise, type Season } from "./franchise";
 import { sectionOf } from "./nav";
@@ -22,7 +22,16 @@ export function SeasonProvider({ children }: { children: ReactNode }) {
   const active = useFranchise();
   const section = useRouterState({ select: (s) => sectionOf(s.location.pathname) });
   const [bySection, setBySection] = useLocalStorage<Record<string, number>>("ft.season-by-screen", {});
+  const [rememberedFor, setRememberedFor] = useLocalStorage<string | null>("ft.season-franchise", null);
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  // Remembered seasons belong to the franchise they were picked in; a switch starts fresh.
+  const franchiseId = active?.franchise._id ?? null;
+  useEffect(() => {
+    if (franchiseId === null || franchiseId === rememberedFor) return;
+    if (rememberedFor !== null) setBySection({});
+    setRememberedFor(franchiseId);
+  }, [franchiseId, rememberedFor, setBySection, setRememberedFor]);
 
   const seasons = useMemo(() => active?.seasons ?? [], [active]);
   const remembered = bySection[section];

@@ -5,12 +5,13 @@ import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { useTheme } from "@/design/theme";
 import { cn } from "@/lib/cn";
 import { MORE_ITEMS, PHONE_TABS, sectionOf } from "../nav";
+import { FranchiseList } from "./FranchiseList";
 import { NavBadge, useNavCount } from "./NavBadge";
 
 const tabClass =
   "flex min-h-14 flex-1 flex-col items-center justify-center gap-1 text-[10px] font-semibold tracking-wide uppercase";
 
-/** Phone navigation: four primary tabs plus a More sheet holding every other screen. */
+/** Phone navigation: four primary tabs plus a More sheet with the franchise switcher and every other screen. */
 export function BottomTabBar({ onSearch }: { onSearch: () => void }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const section = useRouterState({ select: (s) => sectionOf(s.location.pathname) });
@@ -54,6 +55,9 @@ export function BottomTabBar({ onSearch }: { onSearch: () => void }) {
       </nav>
 
       <BottomSheet open={moreOpen} onOpenChange={setMoreOpen} title="More">
+        <section aria-label="Franchise" className="mb-4 rounded-xl border border-border p-1.5">
+          <FranchiseList onDone={() => setMoreOpen(false)} />
+        </section>
         <ul className="grid grid-cols-3 gap-2">
           {MORE_ITEMS.map((item) => (
             <li key={item.id}>

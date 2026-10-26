@@ -4,7 +4,7 @@
  * Day, the playoffs follow Week 18, the Pro Bowl takes the open Sunday and the Super Bowl the
  * one after. Dates are UTC midnights so they never shift with the viewer's time zone.
  */
-import { WEEK_KEYS, weekIndex, type WeekKey } from "../domain/calendar";
+import { weekIndex, type WeekKey } from "../domain/calendar";
 
 const DAY = 86_400_000;
 const WEEK = 7 * DAY;
@@ -36,12 +36,7 @@ export function weekDate(year: number, week: WeekKey): Date {
   return new Date(weekOneSunday(year).getTime() + offset * WEEK);
 }
 
-/** The week played on a given UTC date, if any. */
-export function weekOn(year: number, date: Date): WeekKey | null {
-  return WEEK_KEYS.find((week) => weekDate(year, week).getTime() === date.getTime()) ?? null;
-}
-
-export type OffseasonMarker = { key: "free_agency" | "draft"; label: string; date: Date };
+export type OffseasonMarker = { key: "free_agency" | "draft"; date: Date };
 
 /** The offseason dates after a season: free agency opens mid-March, the draft is the last Thursday of April. */
 export function offseasonMarkers(year: number): OffseasonMarker[] {
@@ -52,8 +47,8 @@ export function offseasonMarkers(year: number): OffseasonMarker[] {
   const april30 = new Date(Date.UTC(next, 3, 30));
   const lastThursday = 30 - ((april30.getUTCDay() - 4 + 7) % 7);
   return [
-    { key: "free_agency", label: "Free agency", date: new Date(Date.UTC(next, 2, firstWednesday + 7)) },
-    { key: "draft", label: "Draft", date: new Date(Date.UTC(next, 3, lastThursday)) },
+    { key: "free_agency", date: new Date(Date.UTC(next, 2, firstWednesday + 7)) },
+    { key: "draft", date: new Date(Date.UTC(next, 3, lastThursday)) },
   ];
 }
 

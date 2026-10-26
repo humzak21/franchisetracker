@@ -1,15 +1,21 @@
 import { describe, expect, test } from "vitest";
 import type { WeekKey } from "../domain/calendar";
-import { dayKey, monthGrid, offseasonMarkers, seasonMonths, weekDate, weekOn, weekOneSunday } from "./dates";
+import { dayKey, monthGrid, offseasonMarkers, seasonMonths, weekDate, weekOneSunday } from "./dates";
+import { marginBars, meetingBars, pointsWeeks, streakBars } from "./charts";
 import { rivalries, streakLabel, weekPoints } from "./insights";
+import { calendarEntries } from "./seasonCalendar";
 
-const game = (weekKey: WeekKey, us: number, them: number, extra: Record<string, unknown> = {}) => ({
+const game = (weekKey: WeekKey, us: number, them: number) => ({
   weekKey,
   status: "played" as const,
   userIsHome: true,
   homeScore: us,
   awayScore: them,
-  ...extra,
+});
+const meeting = (weekKey: WeekKey, us: number, them: number, year: number, opponentTeamId?: string) => ({
+  ...game(weekKey, us, them),
+  year,
+  opponentTeamId,
 });
 
 describe("weekPoints", () => {
@@ -40,12 +46,12 @@ describe("weekPoints", () => {
 describe("rivalries", () => {
   test("one line per opponent across seasons, most meetings first", () => {
     const lines = rivalries([
-      game("w2", 17, 20, { opponentTeamId: "BUF", year: 2026 }),
-      game("w9", 27, 24, { opponentTeamId: "BUF", year: 2026 }),
-      game("div", 30, 10, { opponentTeamId: "BUF", year: 2027 }),
-      game("w1", 14, 21, { opponentTeamId: "KC", year: 2027 }),
-      game("pre1", 14, 21, { opponentTeamId: "NYG", year: 2027 }),
-      game("w3", 14, 21, { year: 2027 }),
+      meeting("w2", 17, 20, 2026, "BUF"),
+      meeting("w9", 27, 24, 2026, "BUF"),
+      meeting("div", 30, 10, 2027, "BUF"),
+      meeting("w1", 14, 21, 2027, "KC"),
+      meeting("pre1", 14, 21, 2027, "NYG"),
+      meeting("w3", 14, 21, 2027),
     ]);
     expect(lines.map((r) => r.opponentTeamId)).toEqual(["BUF", "KC"]);
     expect(lines[0]).toMatchObject({
@@ -71,11 +77,6 @@ describe("week dates", () => {
     expect(dayKey(weekDate(2026, "pre1"))).toBe("2026-08-23");
   });
 
-  test("finds the week on a date", () => {
-    expect(weekOn(2026, weekDate(2026, "w7"))).toBe("w7");
-    expect(weekOn(2026, new Date(Date.UTC(2026, 9, 1)))).toBeNull();
-  });
-
   test("offseason markers fall in March and April of the next year", () => {
     expect(offseasonMarkers(2024).map((m) => [m.key, dayKey(m.date)])).toEqual([
       ["free_agency", "2025-03-12"],
@@ -99,5 +100,72 @@ describe("week dates", () => {
       "2027-3",
       "2027-4",
     ]);
+  });
+});
+
+describe("chart points", () => {
+  test("label weeks with the opponent and format the values", () => {
+    const points = weekPoints([game("w1", 24, 17), game("w2", 10, 13)]);
+    const withOpponent = points.map((p) => ({ ...p, opponentAbbr: p.weekKey === "w1" ? "LV" : null }));
+    expect(marginBars(withOpponent)[0]).toEqual({
+      key: "w1",
+      short: "W1",
+      label: "Week 1 vs LV",
+      value: 7,
+      display: "+7 (24-17)",
+    });
+    expect(streakBars(points)[1]).toMatchObject({ label: "Week 2", value: -1, display: "L1" });
+    expect(pointsWeeks(points)[1]).toMatchObject({ pointsFor: 10, pointsAgainst: 13 });
+    expect(
+      meetingBars([
+        { id: "b", year: 2027, weekKey: "w2", us: 10, them: 20 },
+        { id: "a", year: 2026, weekKey: "w9", us: 27, them: 24 },
+      ]).map((m) => [m.key, m.short, m.value]),
+    ).toEqual([
+      ["a", "'26 W9", 3],
+      ["b", "'27 W2", -10],
+    ]);
+  });
+});
+
+describe("calendarEntries", () => {
+  test("places games on their Sundays with results, byes and the offseason", () => {
+    const base = { us: null, them: null, result: null, userIsHome: null, opponentAbbr: null };
+    const entries = calendarEntries(2026, [
+      {
+        ...base,
+        _id: "g1",
+        weekKey: "w1",
+        status: "played",
+        result: "W",
+        us: 31,
+        them: 17,
+        userIsHome: true,
+        opponentAbbr: "LV",
+      },
+      {
+        ...base,
+        _id: "g3",
+        weekKey: "w3",
+        status: "played",
+        result: "L",
+        us: 20,
+        them: 23,
+        userIsHome: false,
+        opponentAbbr: "PIT",
+      },
+      { ...base, _id: "g4", weekKey: "w4", status: "bye" },
+      { ...base, _id: "g9", weekKey: "wc", status: "scheduled", opponentAbbr: "BUF" },
+    ]);
+    expect(entries.get("2026-09-13")).toMatchObject({
+      tag: "W1",
+      detail: "vs LV · W 31-17",
+      tone: "win",
+      gameId: "g1",
+    });
+    expect(entries.get("2026-09-27")).toMatchObject({ detail: "at PIT · L 20-23", tone: "loss" });
+    expect(entries.get("2026-10-04")).toMatchObject({ detail: "Bye week", tone: "bye", gameId: undefined });
+    expect(entries.get("2027-01-17")).toMatchObject({ tag: "WC", tone: "upcoming", playoff: true });
+    expect(entries.get("2027-04-29")).toMatchObject({ tag: "Draft", tone: "marker" });
   });
 });

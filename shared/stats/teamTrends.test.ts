@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { rankChange, rankTrends } from "./teamTrends";
+import { rankChange, rankTrends, trendRows } from "./teamTrends";
 
 describe("rankTrends", () => {
   test("groups rows per stat in registry order, seasons ascending, dropping unknown keys", () => {
@@ -22,7 +22,22 @@ describe("rankTrends", () => {
       { year: 2027, statKey: "pointsPg", value: 24 },
       { year: 2028, statKey: "pointsPg", value: 27, rank: 5 },
     ]);
-    expect(rankChange(points!.points)).toBe(7);
-    expect(rankChange(points!.points.slice(0, 1))).toBeNull();
+    expect(rankChange(points!.points, 2028)).toEqual({ climb: 7, from: 2026 });
+    expect(rankChange(points!.points, 2027)).toBeNull();
+    expect(rankChange(points!.points, 2026)).toBeNull();
+  });
+
+  test("rows carry the registry label and formatting", () => {
+    const trends = rankTrends([
+      { year: 2026, statKey: "pointsPg", value: 21, rank: 12 },
+      { year: 2026, statKey: "sacks", value: 41, rank: 9 },
+    ]);
+    expect(trendRows(trends, ["pointsPg"])).toEqual([
+      {
+        key: "pointsPg",
+        label: "Points per game",
+        points: [{ year: 2026, value: "21.0", rank: 12, tied: false }],
+      },
+    ]);
   });
 });

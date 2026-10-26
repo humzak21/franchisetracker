@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { CorrectionsSettings } from "./CorrectionsSettings";
 import { ExtractionSettings } from "./ExtractionSettings";
+import { FranchiseSettings } from "./FranchiseSettings";
 import { HighlightSettings } from "./HighlightSettings";
 import { HistorySettings } from "./HistorySettings";
 import { IdentitySettings } from "./IdentitySettings";
@@ -44,6 +45,7 @@ export function SettingsScreen() {
     <Page title="Settings">
       <div className="mx-auto max-w-3xl space-y-8">
         <Account />
+        <FranchiseSettings />
         <HistorySettings />
         <IdentitySettings />
         <HighlightSettings />

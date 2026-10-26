@@ -3,12 +3,12 @@
  * opponent with the head-to-head so far, and the week-by-week pulse.
  */
 import { v } from "convex/values";
-import { rivalries, weekPoints } from "../../shared/games/insights";
+import { rivalries } from "../../shared/games/insights";
 import { seasonSummary, sortByWeek, userScore } from "../../shared/games/summary";
 import type { Doc, Id } from "../_generated/dataModel";
 import { query, type QueryCtx } from "../_generated/server";
-import { vGameRow, vSeasonSummary, vWlt } from "../games/validators";
-import { gameRow, starPlayerIds } from "../games/views";
+import { vGameRow, vSeasonSummary, vWeekPoint, vWlt } from "../games/validators";
+import { gameRow, starPlayerIds, weekPointRows } from "../games/views";
 import { requireOwner } from "../lib/auth";
 import { activeFranchise, playersById, teamsById } from "../lib/franchise";
 import { franchiseSeasonList, seasonGames } from "../lib/reports";
@@ -16,15 +16,6 @@ import { vGameResult, vWeekKey } from "../lib/validators";
 
 /** Every meeting with one opponent across the franchise. */
 const MAX_MEETINGS = 100;
-
-const vWeekPoint = v.object({
-  weekKey: vWeekKey,
-  pointsFor: v.number(),
-  pointsAgainst: v.number(),
-  margin: v.number(),
-  result: vGameResult,
-  streak: v.number(),
-});
 
 const vMeeting = v.object({
   year: v.number(),
@@ -113,7 +104,7 @@ export const season = query({
 
     return {
       summary: seasonSummary(games),
-      pulse: weekPoints(games),
+      pulse: weekPointRows(games, teams),
       divisionRank: standing?.divisionRank ?? season.userRecord?.divisionRank ?? null,
       seed: standing?.seed ?? season.userRecord?.seed ?? null,
       lastGame: last ? gameRow(last, teams, players) : null,
