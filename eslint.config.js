@@ -28,6 +28,12 @@ export default tseslint.config(
     },
   },
   {
+    // Playwright fixtures pass a `use` callback that is not a React hook.
+    files: ["e2e/**/*.ts", "playwright.config.ts"],
+    languageOptions: { globals: globals.node },
+    rules: { "react-hooks/rules-of-hooks": "off" },
+  },
+  {
     // Layering rule from FEATURES.md 2.1: features never import from each other.
     files: ["src/features/**/*.{ts,tsx}"],
     rules: {

@@ -9,16 +9,26 @@ A Football Manager style front end for a Madden franchise. Single user, Convex b
 
 | Task | Command |
 |---|---|
-| Install | `npm install` |
-| Dev (Convex + Vite together) | `npm run dev` (Vite on http://localhost:5173, `convex dev` pushes functions on save) |
+| Install | `npm install`, then `npx playwright install chromium webkit` once |
+| Point this checkout at the local backend (default) | `npm run use:local` (anonymous local Convex on 127.0.0.1:3210, pushed and seeded) |
+| Point it at the shared cloud dev deployment | `npm run use:cloud` (use this to try the app on the phone) |
+| Dev (Convex + Vite together) | `npm run dev` (Vite on http://localhost:5173, `convex dev` pushes to whichever backend `.env.local` selects) |
 | Front end only (backend already pushed) | `npm run dev:frontend` |
-| Seed a fresh deployment | `npm run seed` (idempotent) |
-| Everything a PR must pass | `npm run check` (typecheck app + Convex, lint, tests) |
+| Seed the selected deployment | `npm run seed` (idempotent) |
+| Fast checks | `npm run check` (typecheck app + Convex + e2e, lint, unit and Convex tests) |
+| Browser smoke tests | `npm run test:e2e` (Playwright, desktop Chrome plus WebKit at 390 x 844 and 430 x 932, both themes) |
+| Everything a PR must pass | `npm run check:all` (CI runs the same, plus `format:check` and `build`) |
 | Format | `npm run format` (Prettier with the Tailwind class sorter) |
 | Production build, served locally | `npm run build && npm run preview` |
 | Deploy production | Push to `main`. Vercel builds with `npm run deploy` (from `vercel.json`), which runs `convex deploy` with `CONVEX_DEPLOY_KEY` and builds the front end against the production URL. Run it locally only with the user's go-ahead. |
 
-Environment: `.env.local` (git-ignored, written by `convex dev`) holds `CONVEX_DEPLOYMENT`, `VITE_CONVEX_URL` and `VITE_CONVEX_SITE_URL`. The dev deployment is `prestigious-iguana-83`. Never run `convex deploy`, or anything else that writes to production, without the user's explicit go-ahead. Secrets (OpenRouter key, Shortcut tokens) live in Convex env vars, never in the client or the repo.
+Environments:
+
+- **Local (default for development and all automated tests):** an anonymous Convex backend on this machine, no account needed. Its data lives in `.convex/` (git-ignored); delete that folder to start clean, then `npm run use:local`.
+- **Cloud dev (`prestigious-iguana-83`):** shared staging, reachable from the phone. Switch with `npm run use:cloud`.
+- **Production:** Vercel plus the Convex production deployment, deployed only from `main`.
+
+`.env.local` (git-ignored, rewritten by `convex dev`) selects the backend for `npm run dev`. Playwright never reads it: it starts its own local backend and runs Vite in `e2e` mode (`.env.e2e`, committed) on port 5174, so tests cannot touch cloud data. Never run `convex deploy`, or anything else that writes to production, without the user's explicit go-ahead. Secrets (OpenRouter key, Shortcut tokens, OAuth client secrets) live in Convex env vars, never in the client or the repo.
 
 ## Architecture and layering
 
@@ -87,9 +97,10 @@ Every screen ships for phone and desktop together (FEATURES.md 5.13 and 9). Ther
 
 ## Testing and definition of done
 
-- `npm run check` passes: `tsc` for app and Convex, ESLint, Vitest.
+- `npm run check:all` passes locally and CI is green on the PR (GitHub Actions: format, typecheck, lint, Vitest, build, Playwright).
 - New `shared/` logic has unit tests next to it (`*.test.ts`). New Convex mutations and queries have `convex-test` coverage of the happy path and the idempotency or authorization edge.
-- UI changes are verified in the running app (`.claude/launch.json` config `web`) at phone and desktop widths, not only by typecheck.
+- Every new screen gets a Playwright smoke test in `e2e/`: it loads in both themes at desktop and both phone sizes with no console errors and no horizontal overflow, and its main interaction works. Use the fixtures in `e2e/fixtures.ts`.
+- UI changes are also looked at in the running app (`.claude/launch.json` config `web`) at phone and desktop widths, not only by tests.
 - Each sprint's "Done when" in `docs/SPRINTS.md` is the bar for closing it.
 
 ## Git
