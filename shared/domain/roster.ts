@@ -39,5 +39,18 @@ export const TRANSACTION_TYPES = [
 ] as const;
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 
+export const TRANSACTION_LABELS: Record<TransactionType, string> = {
+  sign: "Signed",
+  resign: "Re-signed",
+  release: "Released",
+  trade: "Trade",
+  waiver_claim: "Waiver claim",
+  ir: "Placed on IR",
+  activate: "Activated",
+  extension: "Extension",
+  restructure: "Restructure",
+  retire: "Retired",
+};
+
 export const NEED_PRIORITIES = ["high", "medium", "low"] as const;
 export type NeedPriority = (typeof NEED_PRIORITIES)[number];

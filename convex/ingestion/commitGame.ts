@@ -1,12 +1,12 @@
 /** Finds or creates the game a committed screenshot belongs to, and keeps the season record cache current. */
 import { isPlayoffRound } from "../../shared/domain";
 import { resultOf, seasonSummary } from "../../shared/games/summary";
+import { laterStatus, playoffResultFromGames, statusFromGames } from "../../shared/seasons/lifecycle";
 import type { GameHeader } from "../../shared/ingestion/types";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { invalid, must } from "../lib/errors";
-
-const MAX_GAMES_PER_SEASON = 40;
+import { seasonGames } from "../lib/reports";
 
 export async function teamByAbbr(ctx: MutationCtx, abbr: string | null): Promise<Doc<"teams">> {
   const team = abbr
@@ -89,13 +89,19 @@ export async function upsertGame(
   return { ...game, result };
 }
 
-/** Refreshes `seasons.userRecord` (regular season W-L-T) from the season's games. */
+/**
+ * Refreshes `seasons.userRecord` (regular season W-L-T and where the playoff run ended) and moves
+ * the season along its lifecycle: the first regular-season result starts it, a playoff game
+ * makes it the postseason, and a played Super Bowl completes it, which makes the post-season
+ * report due. Status only moves forward.
+ */
 export async function refreshSeasonRecord(ctx: MutationCtx, seasonId: Id<"seasons">): Promise<void> {
   const season = must(await ctx.db.get("seasons", seasonId), "Season");
-  const games = await ctx.db
-    .query("games")
-    .withIndex("by_seasonId_and_weekKey", (q) => q.eq("seasonId", seasonId))
-    .take(MAX_GAMES_PER_SEASON);
+  const games = await seasonGames(ctx, seasonId);
   const { regular } = seasonSummary(games);
-  await ctx.db.patch("seasons", seasonId, { userRecord: { ...season.userRecord, ...regular } });
+  const playoffResult = playoffResultFromGames(games) ?? season.userRecord?.playoffResult;
+  await ctx.db.patch("seasons", seasonId, {
+    userRecord: { ...season.userRecord, ...regular, ...(playoffResult ? { playoffResult } : {}) },
+    status: laterStatus(season.status, statusFromGames(games)),
+  });
 }

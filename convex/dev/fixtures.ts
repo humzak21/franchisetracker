@@ -138,8 +138,20 @@ export const seedFixtures = internalMutation({
         teamAbbr: "NE",
         startYear: SAMPLE_START_YEAR,
       });
-      await ctx.db.patch("seasons", seasonId, { status: "regular" });
-      await ctx.db.insert("seasons", { franchiseId, year: SAMPLE_START_YEAR + 1, status: "upcoming" });
+      const coaching = {
+        headCoach: "Mike Vrabel",
+        offensiveCoordinator: "Josh McDaniels",
+        defensiveCoordinator: "Terrell Williams",
+        offensiveScheme: "West Coast",
+        defensiveScheme: "4-3",
+      };
+      await ctx.db.patch("seasons", seasonId, { status: "regular", coaching });
+      await ctx.db.insert("seasons", {
+        franchiseId,
+        year: SAMPLE_START_YEAR + 1,
+        status: "upcoming",
+        coaching,
+      });
       franchise = must(await ctx.db.get("franchises", franchiseId), "Sample franchise");
     }
     // Never add sample data to a franchise the owner made.
