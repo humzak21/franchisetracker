@@ -9,6 +9,7 @@ import { Headshot } from "@/components/player/Headshot";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { CorrectionsSettings } from "./CorrectionsSettings";
+import { ErrorSettings } from "./ErrorSettings";
 import { ExtractionSettings } from "./ExtractionSettings";
 import { FranchiseSettings } from "./FranchiseSettings";
 import { HighlightSettings } from "./HighlightSettings";
@@ -54,6 +55,7 @@ export function SettingsScreen() {
         {/* Below the Shortcut: their lists load late and would push everything under them down. */}
         <UsageSettings />
         <CorrectionsSettings />
+        <ErrorSettings />
         <EmptyState
           icon={SlidersHorizontal}
           title="More settings arrive with their sprints"

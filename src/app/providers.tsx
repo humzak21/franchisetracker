@@ -6,6 +6,7 @@ import { TeamLogosProvider } from "@/components/team/TeamLogos";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/design/theme";
 import { AuthGate } from "./auth/AuthGate";
+import { ErrorReporter } from "./errors/ErrorReporter";
 import { FranchiseProvider, useFranchise } from "./franchise";
 import { KeyboardProvider } from "./keyboard";
 import { FranchiseGate } from "./setup/FranchiseGate";
@@ -36,6 +37,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <ConvexAuthProvider client={convex}>
       <AuthGate>
+        <ErrorReporter />
         <FranchiseProvider>
           <TeamTheme>
             <TeamLogos>
