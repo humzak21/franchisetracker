@@ -20,7 +20,7 @@ A Football Manager style front end for a Madden franchise. Single user, Convex b
 | Everything a PR must pass | `npm run check:all` (CI runs the same, plus `format:check` and `build`) |
 | Format | `npm run format` (Prettier with the Tailwind class sorter) |
 | Production build, served locally | `npm run build && npm run preview` |
-| Deploy production | Push to `main`. Vercel builds with `npm run deploy` (from `vercel.json`), which runs `convex deploy` with `CONVEX_DEPLOY_KEY` and builds the front end against the production URL. Run it locally only with the user's go-ahead. |
+| Deploy production | Push to `main`. Vercel runs `scripts/vercel-build.mjs`: on Production it deploys Convex with `CONVEX_DEPLOY_KEY` and builds against the production URL; preview builds without a Convex key only build the front end against the cloud dev deployment (`.env.preview`) and show the sign-in screen. Run deploys locally only with the user's go-ahead. |
 
 Environments:
 
