@@ -10,7 +10,7 @@ you create in Settings. Tokens are stored hashed and can be revoked at any time.
 | Endpoint | Method | What it does |
 |---|---|---|
 | `<site>/shortcut/targets` | GET | The menu: `targetLabels`, `targetByLabel`, `asksWeekByLabel`, `weekLabels`, `weekByLabel`, `season`, `suggestedWeek` |
-| `<site>/shortcut/upload` | POST | Multipart form: one or more `image` files, plus `target`, optional `week` and `season` (year) |
+| `<site>/shortcut/upload` | POST | Multipart form: one or more `image` files, plus `target`, optional `week`, `season` (year), and `batch` with `batchSize` |
 
 `<site>` is the deployment's site URL (`https://<deployment>.convex.site`). Settings shows the full
 upload URL under **Apple Shortcut → Endpoint**; the targets URL is the same with `/targets` in place
@@ -38,36 +38,48 @@ actions in order. Text in `code` is typed exactly; `[Token]` is the token from s
    with key = `Chosen Item` from step 4. Rename the result to `Target`.
 6. **Get Dictionary Value** → `weekLabels` in `Menu`, then **Choose from List**, prompt `Which week?`.
    (`suggestedWeek` in `Menu` is the week after your latest result if you want to show it in the
-   prompt.) Season screens (standings, leaders, season stats, the draft) have no week: wrap steps 6
-   and 7 in **If** `asksWeekByLabel` → `Chosen Item` from step 4 is true. Or skip the week
+   prompt.) Season screens (standings, leaders, season stats, the draft) have no week: before step
+   6, add **Get Dictionary Value** → `asksWeekByLabel` in `Menu`, then **Get Dictionary Value** with
+   key = `Chosen Item` from step 4, and wrap steps 6 and 7 in **If** that value is `1` (tap the
+   variable and set its type to **Number**: a Boolean condition does not save). Or skip the week
    altogether: the endpoint infers it (the next game for a box score, the week just played for
    weekly awards and the injury report).
 7. **Get Dictionary Value** → `weekByLabel` in `Menu`, then **Get Dictionary Value** with key =
    `Chosen Item` from step 6. Rename the result to `Week`.
-8. **Get Contents of URL** → `<site>/shortcut/upload`
-   - Method: POST. Headers: `Authorization` = `Bearer ` + `Token`.
-   - Request Body: **Form**. Add fields:
-     - `image` (File) = **Shortcut Input**. Several photos send as several `image` fields.
-     - `target` (Text) = `Target`
-     - `week` (Text) = `Week`
-9. **Show Notification** → `Sent to FranchiseTracker` (the response is `{ "ok": true, "images": N }`).
+8. **Count** → Items in **Shortcut Input**. Rename the result to `Batch Size`.
+9. **Get Random Number** between `100000000` and `999999999`. Rename the result to `Batch`.
+10. **Repeat with Each** → **Shortcut Input**, and inside it:
+    **Get Contents of URL** → `<site>/shortcut/upload`
+    - Method: POST. Headers: `Authorization` = `Bearer ` + `Token`.
+    - Request Body: **Form**. Add fields:
+      - `image` (File) = **Repeat Item**
+      - `target` (Text) = `Target`
+      - `week` (Text) = `Week`
+      - `batch` (Text) = `Batch`
+      - `batchSize` (Text) = `Batch Size`
+11. After **End Repeat**, **Show Notification** → `Sent to FranchiseTracker` (each response is
+    `{ "ok": true, "images": 1 }`).
 
 A box score spread across several screens is sent in one go: select all of them in Photos, then
-share. They are grouped into one set and read together. The same goes for a list that needs
-several screenshots (standings, leaders, a roster, the draft): they are read one by one and merged
-into one list, so send the whole batch at once.
+share. A form field in Shortcuts holds only the first of several photos, so step 10 sends one
+photo per request, and the shared `batch` tells the endpoint they belong together: they land in
+one set, which is read once all `batchSize` screenshots have arrived. The same goes for a list that
+needs several screenshots (standings, leaders, a roster, the draft): they are read one by one and
+merged into one list, so send the whole batch at once. Screens read one at a time (team game stats)
+ignore the batch and become a set each. A batch that is already being read refuses more
+screenshots; share again to start a new one.
 
 The menu is generated from the target registry, so a new screen type appears in it without
 touching the Shortcut.
 
-To skip the menus, leave out steps 3 to 7 and the `target`/`week` fields: the screenshots arrive
+To skip the menus, leave out steps 3 to 7 and the `target`, `week` and batch fields: the screenshots arrive
 untagged and wait in the inbox for you to tag them.
 
 ## 3. Add it to the home screen (optional)
 
 From the shortcut's details choose **Add to Home Screen**. Started from the home screen, Shortcut
 Input is empty, so add a **Select Photos** action (Select Multiple on) at the top and use its
-result for the `image` field instead.
+result in place of Shortcut Input in steps 8 and 10.
 
 ## Share it with your other devices
 
@@ -82,4 +94,7 @@ like a password and revoke the token in Settings if it leaks.
 | `401 Invalid or revoked token` | The token is wrong, or it was revoked in Settings. Create a new one. |
 | `400 Unknown target` / `Unknown week` | The Shortcut sent a label instead of a key; check steps 5 and 7. |
 | `400 Attach between 1 and 20 images` | No photos reached the request, or more than 20. |
+| `400 Send batch … with batchSize …` | `batch` is empty or not letters, digits, `-` or `_`, or `batchSize` is not 1 to 20; check steps 8 and 9. |
+| `400 The batch holds N screenshots` | More photos arrived under one `batch` than its `batchSize`. |
+| `400 This batch was already read` | A request reused a batch that is complete; each share needs a new random `Batch`. |
 | Set shows **Failed** in the inbox | The backend could not read the screenshots; open it to see why and retry. Extraction needs `OPENROUTER_API_KEY` on the deployment. |
