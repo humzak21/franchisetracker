@@ -268,7 +268,9 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - **Review**: side-by-side image and editable draft. Low-confidence and warned fields are highlighted. Player names resolve to roster chips with a picker for ambiguous matches. One keystroke to commit, reject, or re-run with a different model. Duplicate detection if the same game or week already has data.
 - **Commit**: writes canonical rows, recomputes the affected season and career aggregates, records, streaks and milestones, and stores any corrections.
 - **Targets (v1)**: game result and box score (one or several screenshots), team game stats. Team game stats are keyed by a team stat registry (`shared/stats/teamRegistry.ts`) the way player stats are keyed by the stat registry. **Targets (v2)**: season player stats per position group, league leaders top 20, team season stats, standings, weekly awards, yearly awards, draft results, roster page, transactions, injury report, player card.
-- Multi-image targets: a box score split across screenshots is grouped into one upload set and merged.
+- Every target has a scope: one game, one week or the season. A set extracts once it has the context its scope needs; capture paths infer the season and week when they are not picked.
+- Multi-image targets: a box score split across screenshots is grouped into one upload set and read together; a list (standings, leaders, a roster, the draft) is read a screenshot at a time and merged as the union of its rows. List rows are reviewed as cards and accepted one by one; only accepted rows commit.
+- **Reconciliation**: season totals from a season stats screenshot are checked against the totals derived from game logs (never replacing them). Each difference is settled by accepting the log number or flagging a missing game, with the weeks that lack a box score listed.
 - Cost and latency panel in Settings with per-model usage.
 
 ### 5.12 Settings

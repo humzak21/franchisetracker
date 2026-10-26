@@ -15,6 +15,7 @@ import { BoxScoreEditor } from "./BoxScoreEditor";
 import { GameHeaderFields } from "./GameHeaderFields";
 import { ReviewActions } from "./ReviewActions";
 import { ReviewDraftProvider } from "./reviewDraft";
+import { RowsEditor } from "./RowsEditor";
 import { StatusBanner } from "./StatusBanner";
 import { TeamStatsEditor } from "./TeamStatsEditor";
 
@@ -35,9 +36,9 @@ export function ReviewScreen({ setKey }: { setKey: string }) {
   }
 
   const target = data.targetKey && isTargetKey(data.targetKey) ? INGESTION_TARGETS[data.targetKey] : null;
-  const eyebrow = [data.season?.year, data.weekKey ? weekLabel(data.weekKey, "long") : null]
-    .filter(Boolean)
-    .join(" · ");
+  // A season screen is filed under the season alone, whatever week it was tagged in.
+  const week = data.weekKey && target?.scope !== "season" ? weekLabel(data.weekKey, "long") : null;
+  const eyebrow = [data.season?.year, week].filter(Boolean).join(" · ");
   const extraction = data.extraction;
   const images = (
     <ImageViewer
@@ -71,18 +72,24 @@ export function ReviewScreen({ setKey }: { setKey: string }) {
                   content: (
                     <div className="space-y-5">
                       <AttentionList />
-                      <Section title="Final score" variant="card">
-                        <GameHeaderFields />
-                      </Section>
-                      <Section
-                        title={extraction.draft.target === "game_box_score" ? "Players" : "Team stats"}
-                      >
-                        {extraction.draft.target === "game_box_score" ? (
-                          <BoxScoreEditor />
-                        ) : (
-                          <TeamStatsEditor />
-                        )}
-                      </Section>
+                      {"rows" in extraction.draft ? (
+                        <RowsEditor />
+                      ) : (
+                        <>
+                          <Section title="Final score" variant="card">
+                            <GameHeaderFields />
+                          </Section>
+                          <Section
+                            title={extraction.draft.target === "game_box_score" ? "Players" : "Team stats"}
+                          >
+                            {extraction.draft.target === "game_box_score" ? (
+                              <BoxScoreEditor />
+                            ) : (
+                              <TeamStatsEditor />
+                            )}
+                          </Section>
+                        </>
+                      )}
                       <p className="text-xs text-subtle-foreground">
                         Read by {extraction.model}
                         {extraction.latencyMs ? ` in ${(extraction.latencyMs / 1000).toFixed(1)}s` : ""}

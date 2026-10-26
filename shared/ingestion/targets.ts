@@ -5,6 +5,8 @@
  * one (`./rows`). Commit functions (`convex`) are keyed by `TargetKey` in an exhaustive record,
  * so a new target does not typecheck until it can be committed.
  */
+import type { WeekKey } from "../domain/calendar";
+import { lastPlayedWeek, nextWeek, type GameLike } from "../games/summary";
 import { boxScoreSchema, teamStatsSchema, type JsonSchema } from "./schema";
 import { normalizeBoxScore, normalizeTeamStats, type Normalized } from "./normalize";
 import { mergeRowDrafts, normalizeRows, rowsSchema, validateRows } from "./rows/engine";
@@ -113,4 +115,15 @@ export function mergeFor(
 export function validateDraft(draft: Draft): DraftWarning[] {
   if (isRowDraft(draft)) return validateRows(ROW_TARGETS[draft.target].spec, draft);
   return draft.target === "game_box_score" ? validateBoxScore(draft) : validateTeamStats(draft);
+}
+
+/**
+ * Context inference: the week a capture most likely belongs to when none was picked. A game
+ * screen is the next game; a weekly screen (awards, injuries) the week just played; a season
+ * screen has no week.
+ */
+export function suggestedWeek(target: TargetKey, games: readonly GameLike[]): WeekKey | null {
+  const { scope } = INGESTION_TARGETS[target];
+  if (scope === "season") return null;
+  return scope === "week" ? (lastPlayedWeek(games) ?? nextWeek(games)) : nextWeek(games);
 }

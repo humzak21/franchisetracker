@@ -1,5 +1,8 @@
+import { Link } from "@tanstack/react-router";
+import { ScanSearch } from "lucide-react";
 import { useSeason } from "@/app/season";
 import { Page } from "@/components/layout/Page";
+import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import { LeadersBoard } from "./LeadersBoard";
@@ -28,6 +31,13 @@ export function StatsScreen() {
       title="Stats"
       eyebrow={view === "season" && season ? `${season.year} season` : "All seasons"}
       season={view === "season"}
+      actions={
+        <Button asChild variant="outline" size="sm">
+          <Link to="/stats/reconcile">
+            <ScanSearch /> <span className="max-sm:sr-only">Reconcile</span>
+          </Link>
+        </Button>
+      }
     >
       <div className="@container space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">

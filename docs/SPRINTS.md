@@ -165,6 +165,16 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 **Done when:** an end-of-season pass is a batch of photos, a review session on whichever device is in hand, and nothing else.
 
+**As built:**
+
+- Every new target is a **row target** (`shared/ingestion/rows`): a list screen declared as screen fields plus row fields, with one generated JSON schema, normalizer, validator, merge and review editor for all of them. Each target has a small commit function in `convex/ingestion/commit*Rows.ts`, keyed by target so a new one does not typecheck until it commits. The team season stat registry (`shared/stats/teamSeasonRegistry.ts`) keys `teamSeasonStats`.
+- Targets carry a **scope**: game (box score, team game stats), week (weekly awards, injury report) or season (everything else). A set extracts once it has the context its scope needs. The capture and tag sheets drop the week for season screens, and both the Shortcut endpoint and the capture sheet infer it otherwise (the next game for a game screen, the week just played for a weekly one).
+- **Multi-image merge**: a row set is read one screenshot at a time (four at once) and merged as the union of its rows by row identity, with a warning wherever two shots disagree. Box scores are still read in one call. Rows the model was unsure of start unaccepted; only accepted rows commit, and accepting is not stored as a correction.
+- Committing a list moves the review on to the next set waiting, so an end-of-season pass runs set to set; a player card lands on the player and season stats on the reconciliation view. Committed names resolve to players like box score lines (new players get partial roster entries); standings also set the user team's division finish and seed on the season.
+- **Reconciliation** (`/stats/reconcile`): season stats screenshots land in `reportedSeasonStats`, never in the log-derived tables. Each difference is settled by accepting the log number or flagging a missing game; the view lists weeks with a result but no box score. A re-read with a changed number reopens its difference.
+- **Correction memory** and **usage and cost** are panels in Settings: corrections per target can be kept out of the prompt, deleted or cleared; usage sums tokens, cost and time per model over the last 300 extractions.
+- Transactions and injuries are written as logged; their screens are Sprint 7. Without an OpenRouter key, a local deployment answers every target from `convex/ingestion/fixtureRows.ts`.
+
 ---
 
 ## Sprint 7 — League, awards, draft, transactions (M)

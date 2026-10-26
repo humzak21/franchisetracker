@@ -8,11 +8,13 @@ import { Section } from "@/components/layout/Section";
 import { Headshot } from "@/components/player/Headshot";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
+import { CorrectionsSettings } from "./CorrectionsSettings";
 import { ExtractionSettings } from "./ExtractionSettings";
 import { HighlightSettings } from "./HighlightSettings";
 import { HistorySettings } from "./HistorySettings";
 import { IdentitySettings } from "./IdentitySettings";
 import { ShortcutSettings } from "./ShortcutSettings";
+import { UsageSettings } from "./UsageSettings";
 
 function Account() {
   const me = useQuery(api.account.me, {});
@@ -47,6 +49,9 @@ export function SettingsScreen() {
         <HighlightSettings />
         <ExtractionSettings />
         <ShortcutSettings />
+        {/* Below the Shortcut: their lists load late and would push everything under them down. */}
+        <UsageSettings />
+        <CorrectionsSettings />
         <EmptyState
           icon={SlidersHorizontal}
           title="More settings arrive with their sprints"

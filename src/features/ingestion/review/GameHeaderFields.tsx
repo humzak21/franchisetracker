@@ -9,9 +9,10 @@ const TEAM_OPTIONS = [...NFL_TEAMS]
 
 const labelClass = "block text-[11px] text-muted-foreground";
 
-/** The final score header both targets carry: teams, scores and overtime. */
+/** The final score header both game targets carry: teams, scores and overtime. */
 export function GameHeaderFields() {
   const { draft, set, flag } = useReviewDraft();
+  if (!("game" in draft)) return null;
   const { game } = draft;
   const teamField = (side: "home" | "away") => {
     const path = `game.${side}Abbr`;

@@ -8,7 +8,7 @@
  */
 import { v } from "convex/values";
 import { WEEK_KEYS, isWeekKey, weekLabel } from "../../shared/domain";
-import { nextWeek, sortByWeek, userScore } from "../../shared/games/summary";
+import { lastPlayedWeek, nextWeek } from "../../shared/games/summary";
 import { INGESTION_TARGETS, TARGET_KEYS, isTargetKey } from "../../shared/ingestion/targets";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -56,8 +56,7 @@ export const season = internalQuery({
       .withIndex("by_seasonId_and_weekKey", (q) => q.eq("seasonId", found._id))
       .take(MAX_GAMES_PER_SEASON);
     const next = nextWeek(games);
-    const played = sortByWeek(games.filter((g) => userScore(g) !== null)).at(-1);
-    return { _id: found._id, year: found.year, nextWeek: next, lastWeek: played?.weekKey ?? next };
+    return { _id: found._id, year: found.year, nextWeek: next, lastWeek: lastPlayedWeek(games) ?? next };
   },
 });
 

@@ -16,7 +16,6 @@ import { Route as LeagueRouteImport } from './routes/league'
 import { Route as RosterRouteImport } from './routes/roster'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as StatsRouteImport } from './routes/stats'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as DevComponentsRouteImport } from './routes/dev/components'
 import { Route as GamesGameIdRouteImport } from './routes/games.$gameId'
@@ -28,6 +27,8 @@ import { Route as InboxSetKeyRouteImport } from './routes/inbox.$setKey'
 import { Route as PlayersIndexRouteImport } from './routes/players.index'
 import { Route as PlayersPlayerIdRouteImport } from './routes/players.$playerId'
 import { Route as PlayersCompareRouteImport } from './routes/players.compare'
+import { Route as StatsIndexRouteImport } from './routes/stats.index'
+import { Route as StatsReconcileRouteImport } from './routes/stats.reconcile'
 import { Route as HistoryReportsIndexRouteImport } from './routes/history.reports.index'
 import { Route as HistoryReportsYearRouteImport } from './routes/history.reports.$year'
 
@@ -64,11 +65,6 @@ const ScheduleRoute = ScheduleRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StatsRoute = StatsRouteImport.update({
-  id: '/stats',
-  path: '/stats',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TransactionsRoute = TransactionsRouteImport.update({
@@ -126,6 +122,16 @@ const PlayersCompareRoute = PlayersCompareRouteImport.update({
   path: '/players/compare',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StatsIndexRoute = StatsIndexRouteImport.update({
+  id: '/stats/',
+  path: '/stats/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatsReconcileRoute = StatsReconcileRouteImport.update({
+  id: '/stats/reconcile',
+  path: '/stats/reconcile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HistoryReportsIndexRoute = HistoryReportsIndexRouteImport.update({
   id: '/history/reports/',
   path: '/history/reports/',
@@ -145,7 +151,6 @@ export interface FileRoutesByFullPath {
   '/roster': typeof RosterRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
-  '/stats': typeof StatsRoute
   '/transactions': typeof TransactionsRoute
   '/dev/components': typeof DevComponentsRoute
   '/games/$gameId': typeof GamesGameIdRoute
@@ -154,9 +159,11 @@ export interface FileRoutesByFullPath {
   '/inbox/$setKey': typeof InboxSetKeyRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/players/compare': typeof PlayersCompareRoute
+  '/stats/reconcile': typeof StatsReconcileRoute
   '/history/': typeof HistoryIndexRoute
   '/inbox/': typeof InboxIndexRoute
   '/players/': typeof PlayersIndexRoute
+  '/stats/': typeof StatsIndexRoute
   '/history/reports/$year': typeof HistoryReportsYearRoute
   '/history/reports/': typeof HistoryReportsIndexRoute
 }
@@ -168,7 +175,6 @@ export interface FileRoutesByTo {
   '/roster': typeof RosterRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
-  '/stats': typeof StatsRoute
   '/transactions': typeof TransactionsRoute
   '/dev/components': typeof DevComponentsRoute
   '/games/$gameId': typeof GamesGameIdRoute
@@ -177,9 +183,11 @@ export interface FileRoutesByTo {
   '/inbox/$setKey': typeof InboxSetKeyRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/players/compare': typeof PlayersCompareRoute
+  '/stats/reconcile': typeof StatsReconcileRoute
   '/history': typeof HistoryIndexRoute
   '/inbox': typeof InboxIndexRoute
   '/players': typeof PlayersIndexRoute
+  '/stats': typeof StatsIndexRoute
   '/history/reports/$year': typeof HistoryReportsYearRoute
   '/history/reports': typeof HistoryReportsIndexRoute
 }
@@ -192,7 +200,6 @@ export interface FileRoutesById {
   '/roster': typeof RosterRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
-  '/stats': typeof StatsRoute
   '/transactions': typeof TransactionsRoute
   '/dev/components': typeof DevComponentsRoute
   '/games/$gameId': typeof GamesGameIdRoute
@@ -201,9 +208,11 @@ export interface FileRoutesById {
   '/inbox/$setKey': typeof InboxSetKeyRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/players/compare': typeof PlayersCompareRoute
+  '/stats/reconcile': typeof StatsReconcileRoute
   '/history/': typeof HistoryIndexRoute
   '/inbox/': typeof InboxIndexRoute
   '/players/': typeof PlayersIndexRoute
+  '/stats/': typeof StatsIndexRoute
   '/history/reports/$year': typeof HistoryReportsYearRoute
   '/history/reports/': typeof HistoryReportsIndexRoute
 }
@@ -217,7 +226,6 @@ export interface FileRouteTypes {
     | '/roster'
     | '/schedule'
     | '/settings'
-    | '/stats'
     | '/transactions'
     | '/dev/components'
     | '/games/$gameId'
@@ -226,9 +234,11 @@ export interface FileRouteTypes {
     | '/inbox/$setKey'
     | '/players/$playerId'
     | '/players/compare'
+    | '/stats/reconcile'
     | '/history/'
     | '/inbox/'
     | '/players/'
+    | '/stats/'
     | '/history/reports/$year'
     | '/history/reports/'
   fileRoutesByTo: FileRoutesByTo
@@ -240,7 +250,6 @@ export interface FileRouteTypes {
     | '/roster'
     | '/schedule'
     | '/settings'
-    | '/stats'
     | '/transactions'
     | '/dev/components'
     | '/games/$gameId'
@@ -249,9 +258,11 @@ export interface FileRouteTypes {
     | '/inbox/$setKey'
     | '/players/$playerId'
     | '/players/compare'
+    | '/stats/reconcile'
     | '/history'
     | '/inbox'
     | '/players'
+    | '/stats'
     | '/history/reports/$year'
     | '/history/reports'
   id:
@@ -263,7 +274,6 @@ export interface FileRouteTypes {
     | '/roster'
     | '/schedule'
     | '/settings'
-    | '/stats'
     | '/transactions'
     | '/dev/components'
     | '/games/$gameId'
@@ -272,9 +282,11 @@ export interface FileRouteTypes {
     | '/inbox/$setKey'
     | '/players/$playerId'
     | '/players/compare'
+    | '/stats/reconcile'
     | '/history/'
     | '/inbox/'
     | '/players/'
+    | '/stats/'
     | '/history/reports/$year'
     | '/history/reports/'
   fileRoutesById: FileRoutesById
@@ -287,7 +299,6 @@ export interface RootRouteChildren {
   RosterRoute: typeof RosterRoute
   ScheduleRoute: typeof ScheduleRoute
   SettingsRoute: typeof SettingsRoute
-  StatsRoute: typeof StatsRoute
   TransactionsRoute: typeof TransactionsRoute
   DevComponentsRoute: typeof DevComponentsRoute
   GamesGameIdRoute: typeof GamesGameIdRoute
@@ -296,9 +307,11 @@ export interface RootRouteChildren {
   InboxSetKeyRoute: typeof InboxSetKeyRoute
   PlayersPlayerIdRoute: typeof PlayersPlayerIdRoute
   PlayersCompareRoute: typeof PlayersCompareRoute
+  StatsReconcileRoute: typeof StatsReconcileRoute
   HistoryIndexRoute: typeof HistoryIndexRoute
   InboxIndexRoute: typeof InboxIndexRoute
   PlayersIndexRoute: typeof PlayersIndexRoute
+  StatsIndexRoute: typeof StatsIndexRoute
   HistoryReportsYearRoute: typeof HistoryReportsYearRoute
   HistoryReportsIndexRoute: typeof HistoryReportsIndexRoute
 }
@@ -352,13 +365,6 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/stats': {
-      id: '/stats'
-      path: '/stats'
-      fullPath: '/stats'
-      preLoaderRoute: typeof StatsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/transactions': {
@@ -438,6 +444,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayersCompareRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/stats/': {
+      id: '/stats/'
+      path: '/stats'
+      fullPath: '/stats/'
+      preLoaderRoute: typeof StatsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stats/reconcile': {
+      id: '/stats/reconcile'
+      path: '/stats/reconcile'
+      fullPath: '/stats/reconcile'
+      preLoaderRoute: typeof StatsReconcileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/history/reports/': {
       id: '/history/reports/'
       path: '/history/reports'
@@ -463,7 +483,6 @@ const rootRouteChildren: RootRouteChildren = {
   RosterRoute: RosterRoute,
   ScheduleRoute: ScheduleRoute,
   SettingsRoute: SettingsRoute,
-  StatsRoute: StatsRoute,
   TransactionsRoute: TransactionsRoute,
   DevComponentsRoute: DevComponentsRoute,
   GamesGameIdRoute: GamesGameIdRoute,
@@ -472,9 +491,11 @@ const rootRouteChildren: RootRouteChildren = {
   InboxSetKeyRoute: InboxSetKeyRoute,
   PlayersPlayerIdRoute: PlayersPlayerIdRoute,
   PlayersCompareRoute: PlayersCompareRoute,
+  StatsReconcileRoute: StatsReconcileRoute,
   HistoryIndexRoute: HistoryIndexRoute,
   InboxIndexRoute: InboxIndexRoute,
   PlayersIndexRoute: PlayersIndexRoute,
+  StatsIndexRoute: StatsIndexRoute,
   HistoryReportsYearRoute: HistoryReportsYearRoute,
   HistoryReportsIndexRoute: HistoryReportsIndexRoute,
 }

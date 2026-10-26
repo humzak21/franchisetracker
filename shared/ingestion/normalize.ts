@@ -35,6 +35,11 @@ export const clamp01 = (value: number | null) => (value === null ? 0.5 : Math.mi
 export const UNCLEAR_CONFIDENCE = 0.35;
 /** Fields below this confidence are listed for a look before commit; rows below it start unaccepted. */
 export const CHECK_BELOW = 0.8;
+/**
+ * In a list, a doubtful row already starts unaccepted, so only the fields the model called
+ * unclear are singled out within it.
+ */
+export const ROW_CHECK_BELOW = 0.5;
 
 function header(raw: Obj, warnings: DraftWarning[]): GameHeader {
   const team = (field: "home_team" | "away_team", path: string) => {

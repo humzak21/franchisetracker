@@ -61,8 +61,11 @@ test("milestones can be acknowledged from Home", async ({ page }) => {
     return;
   }
   const label = (await first.getAttribute("aria-label")) ?? "";
+  // Other projects' box scores raise the same milestone for other weeks, so count down by one.
+  const same = page.getByRole("button", { name: label, exact: true });
+  const before = await same.count();
   await first.click();
-  await expect(page.getByRole("button", { name: label, exact: true })).toHaveCount(0);
+  await expect(same).toHaveCount(before - 1);
   await expectNoHorizontalOverflow(page);
 });
 

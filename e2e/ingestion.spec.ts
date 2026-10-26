@@ -71,8 +71,8 @@ test("a box score goes from capture to review to the game's box score", async ({
 });
 
 test("untagged screenshots wait in the inbox and can be deleted", async ({ page }, info) => {
-  await openCapture(page, info);
-  await page.getByRole("radio", { name: "Tag later" }).click();
+  const sheet = await openCapture(page, info);
+  await sheet.getByLabel("Screen", { exact: true }).selectOption("later");
   await page
     .getByLabel("Choose screenshots")
     .setInputFiles({ name: "later.png", mimeType: "image/png", buffer: PNG });

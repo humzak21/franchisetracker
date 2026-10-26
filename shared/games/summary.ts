@@ -107,3 +107,11 @@ export function nextWeek(games: readonly GameLike[]): WeekKey {
   if (!last) return "w1";
   return adjacentWeek(last.weekKey, 1) ?? last.weekKey;
 }
+
+/** The latest regular-season or playoff week with a final score, or null before any. */
+export function lastPlayedWeek(games: readonly GameLike[]): WeekKey | null {
+  const played = games.filter(
+    (g) => userScore(g) !== null && ["regular", "postseason"].includes(weekPhase(g.weekKey)),
+  );
+  return sortByWeek(played).at(-1)?.weekKey ?? null;
+}

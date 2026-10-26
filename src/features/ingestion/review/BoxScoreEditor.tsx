@@ -8,7 +8,8 @@ const UNASSIGNED = "?";
 /** Every player line, one team at a time so a phone screen is never two rosters long. */
 export function BoxScoreEditor() {
   const { draft } = useReviewDraft();
-  const teams = [draft.game.awayAbbr, draft.game.homeAbbr].filter((t): t is string => t !== null);
+  const header = "game" in draft ? [draft.game.awayAbbr, draft.game.homeAbbr] : [];
+  const teams = header.filter((t): t is string => t !== null);
   const [team, setTeam] = useState<string>(teams[0] ?? UNASSIGNED);
   if (draft.target !== "game_box_score") return null;
 

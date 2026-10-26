@@ -52,8 +52,8 @@ function ModelsForm({ settings }: { settings: FunctionReturnType<typeof api.inge
           <>
             <FlaskConical className="mt-0.5 size-4 shrink-0 text-warn" />
             <span>
-              No OpenRouter key on this local backend: extraction answers with a built-in sample box score.
-              Set <code className="text-xs">OPENROUTER_API_KEY</code> to read real screenshots.
+              No OpenRouter key on this local backend: extraction answers with a built-in sample for each
+              screen. Set <code className="text-xs">OPENROUTER_API_KEY</code> to read real screenshots.
             </span>
           </>
         ) : (
