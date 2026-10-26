@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { ChevronLeft, ChevronRight, ImageUp } from "lucide-react";
 import { useRef } from "react";
@@ -6,8 +6,8 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { weekLabel, weekPhase } from "@shared/domain";
 import { formatRecord } from "@shared/stats";
+import { useCapture } from "@/app/capture/CaptureProvider";
 import { useShortcut } from "@/app/keyboard";
-import { EmptyState } from "@/components/data/EmptyState";
 import { NotesEditor } from "@/components/forms/NotesEditor";
 import { Page } from "@/components/layout/Page";
 import { Section } from "@/components/layout/Section";
@@ -16,13 +16,16 @@ import { ScoreBug } from "@/components/team/ScoreBug";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { useSwipe } from "@/lib/hooks/useSwipe";
+import { BoxScore } from "./BoxScore";
 import { HeadToHead } from "./HeadToHead";
+import { TeamStatsCompare } from "./TeamStatsCompare";
 import { ThreeStars } from "./ThreeStars";
 
-/** Game detail v1: score bug, three stars, notes, head-to-head; the box score arrives in Sprint 2. */
+/** Game detail: score bug, three stars, team stats, notes, head-to-head, and the full box score. */
 export function GameDetailScreen({ gameId }: { gameId: string }) {
   const data = useQuery(api.games.schedule.get, { gameId: gameId as Id<"games"> });
   const saveNotes = useMutation(api.games.schedule.updateNotes);
+  const capture = useCapture();
   const navigate = useNavigate();
   const swipeArea = useRef<HTMLDivElement>(null);
 
@@ -64,6 +67,8 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
   const postseason = weekPhase(game.weekKey) === "postseason";
   // Short week labels keep the title on one line on phones; playoff rounds read better in full.
   const title = `${weekLabel(game.weekKey, postseason ? "long" : "short")} ${game.userIsHome ? "vs" : "at"} ${opponent?.name ?? "TBD"}`;
+  const importScreenshot = (targetKey: "game_box_score" | "team_game_stats") =>
+    capture.open({ gameId: game._id, targetKey, gameLabel: `${season.year} · ${title}` });
 
   const nav = (
     <>
@@ -114,16 +119,10 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
                   <Section title="Three stars">
                     <ThreeStars stars={data.stars} team={userTeam} />
                   </Section>
-                  <Section title="Box score">
-                    <EmptyState
-                      icon={ImageUp}
-                      title="No box score yet"
-                      description="Snap the box score screens and import them; passing, rushing, receiving and defense fill in here."
-                      action={
-                        <Button asChild variant="primary">
-                          <Link to="/inbox">Import screenshot</Link>
-                        </Button>
-                      }
+                  <Section title="Team stats">
+                    <TeamStatsCompare
+                      gameId={game._id}
+                      onImport={() => importScreenshot("team_game_stats")}
                     />
                   </Section>
                 </div>
@@ -150,6 +149,16 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
             },
           ]}
         />
+        <Section
+          title="Box score"
+          actions={
+            <Button size="sm" variant="outline" onClick={() => importScreenshot("game_box_score")}>
+              <ImageUp /> Import screenshot
+            </Button>
+          }
+        >
+          <BoxScore gameId={game._id} onImport={() => importScreenshot("game_box_score")} />
+        </Section>
       </div>
     </Page>
   );

@@ -2,6 +2,7 @@ import { Outlet, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { PageChromeProvider } from "@/components/layout/PageChrome";
 import { useTheme } from "@/design/theme";
+import { CaptureProvider } from "../capture/CaptureProvider";
 import { useShortcut } from "../keyboard";
 import { useSeason } from "../season";
 import { BottomTabBar } from "./BottomTabBar";
@@ -52,21 +53,23 @@ export function AppShell() {
   );
 
   return (
-    <PageChromeProvider value={chrome}>
-      <div className="flex min-h-dvh">
-        <Sidebar />
-        <div className="pr-safe max-sm:pl-safe min-w-0 flex-1">
-          <Outlet />
+    <CaptureProvider>
+      <PageChromeProvider value={chrome}>
+        <div className="flex min-h-dvh">
+          <Sidebar />
+          <div className="pr-safe max-sm:pl-safe min-w-0 flex-1">
+            <Outlet />
+          </div>
         </div>
-      </div>
-      <BottomTabBar onSearch={() => setPaletteOpen(true)} />
-      <CaptureFab />
-      <CommandPalette
-        open={paletteOpen}
-        onOpenChange={setPaletteOpen}
-        onShowShortcuts={() => setShortcutsOpen(true)}
-      />
-      <ShortcutSheet open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
-    </PageChromeProvider>
+        <BottomTabBar onSearch={() => setPaletteOpen(true)} />
+        <CaptureFab />
+        <CommandPalette
+          open={paletteOpen}
+          onOpenChange={setPaletteOpen}
+          onShowShortcuts={() => setShortcutsOpen(true)}
+        />
+        <ShortcutSheet open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      </PageChromeProvider>
+    </CaptureProvider>
   );
 }

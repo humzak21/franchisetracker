@@ -7,13 +7,17 @@
  */
 import { v } from "convex/values";
 import { WEEK_KEYS, isWeekKey, weekLabel } from "../../shared/domain";
+import { nextWeek } from "../../shared/games/summary";
 import { INGESTION_TARGETS, TARGET_KEYS, isTargetKey } from "../../shared/ingestion/targets";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { httpAction, internalQuery, type ActionCtx } from "../_generated/server";
 import { activeFranchise } from "../lib/franchise";
+import { vWeekKey } from "../lib/validators";
 import { MAX_SET_SIZE } from "./sets";
 import { sha256Hex } from "./tokens";
+
+const MAX_GAMES_PER_SEASON = 40;
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -24,10 +28,10 @@ async function authorized(ctx: ActionCtx, request: Request): Promise<boolean> {
   return await ctx.runMutation(internal.ingestion.tokens.verify, { tokenHash: await sha256Hex(token) });
 }
 
-/** The season a capture belongs to: the requested year, else the one being played. */
+/** The season a capture belongs to (the requested year, else the one being played) and its next week. */
 export const season = internalQuery({
   args: { year: v.optional(v.number()) },
-  returns: v.union(v.object({ _id: v.id("seasons"), year: v.number() }), v.null()),
+  returns: v.union(v.object({ _id: v.id("seasons"), year: v.number(), nextWeek: vWeekKey }), v.null()),
   handler: async (ctx, { year }) => {
     const franchise = await activeFranchise(ctx);
     const seasons = await ctx.db
@@ -38,21 +42,28 @@ export const season = internalQuery({
       year !== undefined
         ? seasons.find((s) => s.year === year)
         : (seasons.find((s) => s.status !== "complete") ?? seasons.at(-1));
-    return found ? { _id: found._id, year: found.year } : null;
+    if (!found) return null;
+    const games = await ctx.db
+      .query("games")
+      .withIndex("by_seasonId_and_weekKey", (q) => q.eq("seasonId", found._id))
+      .take(MAX_GAMES_PER_SEASON);
+    return { _id: found._id, year: found.year, nextWeek: nextWeek(games) };
   },
 });
 
 export const targets = httpAction(async (ctx, request) => {
   if (!(await authorized(ctx, request))) return json({ error: "Invalid or revoked token" }, 401);
   const current = await ctx.runQuery(internal.ingestion.shortcut.season, {});
+  // Shortcuts' "Choose from List" shows a list of strings; the dictionaries map a label back to its key.
+  const targetLabels = TARGET_KEYS.map((key) => INGESTION_TARGETS[key].label);
+  const weekLabels = WEEK_KEYS.map((key) => weekLabel(key, "long"));
   return json({
     season: current?.year ?? null,
-    targets: TARGET_KEYS.map((key) => ({
-      key,
-      label: INGESTION_TARGETS[key].label,
-      multiImage: INGESTION_TARGETS[key].multiImage,
-    })),
-    weeks: WEEK_KEYS.map((key) => ({ key, label: weekLabel(key, "long") })),
+    suggestedWeek: current ? weekLabel(current.nextWeek, "long") : null,
+    targetLabels,
+    targetByLabel: Object.fromEntries(TARGET_KEYS.map((key, i) => [targetLabels[i], key])),
+    weekLabels,
+    weekByLabel: Object.fromEntries(WEEK_KEYS.map((key, i) => [weekLabels[i], key])),
   });
 });
 

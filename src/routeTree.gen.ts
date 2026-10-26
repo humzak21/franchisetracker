@@ -13,7 +13,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AwardsRouteImport } from './routes/awards'
 import { Route as DraftRouteImport } from './routes/draft'
 import { Route as HistoryRouteImport } from './routes/history'
-import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as LeagueRouteImport } from './routes/league'
 import { Route as RosterRouteImport } from './routes/roster'
 import { Route as ScheduleRouteImport } from './routes/schedule'
@@ -22,6 +21,8 @@ import { Route as StatsRouteImport } from './routes/stats'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as DevComponentsRouteImport } from './routes/dev/components'
 import { Route as GamesGameIdRouteImport } from './routes/games.$gameId'
+import { Route as InboxIndexRouteImport } from './routes/inbox.index'
+import { Route as InboxSetKeyRouteImport } from './routes/inbox.$setKey'
 import { Route as PlayersIndexRouteImport } from './routes/players.index'
 import { Route as PlayersPlayerIdRouteImport } from './routes/players.$playerId'
 
@@ -43,11 +44,6 @@ const DraftRoute = DraftRouteImport.update({
 const HistoryRoute = HistoryRouteImport.update({
   id: '/history',
   path: '/history',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InboxRoute = InboxRouteImport.update({
-  id: '/inbox',
-  path: '/inbox',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LeagueRoute = LeagueRouteImport.update({
@@ -90,6 +86,16 @@ const GamesGameIdRoute = GamesGameIdRouteImport.update({
   path: '/games/$gameId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InboxIndexRoute = InboxIndexRouteImport.update({
+  id: '/inbox/',
+  path: '/inbox/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InboxSetKeyRoute = InboxSetKeyRouteImport.update({
+  id: '/inbox/$setKey',
+  path: '/inbox/$setKey',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlayersIndexRoute = PlayersIndexRouteImport.update({
   id: '/players/',
   path: '/players/',
@@ -106,7 +112,6 @@ export interface FileRoutesByFullPath {
   '/awards': typeof AwardsRoute
   '/draft': typeof DraftRoute
   '/history': typeof HistoryRoute
-  '/inbox': typeof InboxRoute
   '/league': typeof LeagueRoute
   '/roster': typeof RosterRoute
   '/schedule': typeof ScheduleRoute
@@ -115,7 +120,9 @@ export interface FileRoutesByFullPath {
   '/transactions': typeof TransactionsRoute
   '/dev/components': typeof DevComponentsRoute
   '/games/$gameId': typeof GamesGameIdRoute
+  '/inbox/$setKey': typeof InboxSetKeyRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
+  '/inbox/': typeof InboxIndexRoute
   '/players/': typeof PlayersIndexRoute
 }
 export interface FileRoutesByTo {
@@ -123,7 +130,6 @@ export interface FileRoutesByTo {
   '/awards': typeof AwardsRoute
   '/draft': typeof DraftRoute
   '/history': typeof HistoryRoute
-  '/inbox': typeof InboxRoute
   '/league': typeof LeagueRoute
   '/roster': typeof RosterRoute
   '/schedule': typeof ScheduleRoute
@@ -132,7 +138,9 @@ export interface FileRoutesByTo {
   '/transactions': typeof TransactionsRoute
   '/dev/components': typeof DevComponentsRoute
   '/games/$gameId': typeof GamesGameIdRoute
+  '/inbox/$setKey': typeof InboxSetKeyRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
+  '/inbox': typeof InboxIndexRoute
   '/players': typeof PlayersIndexRoute
 }
 export interface FileRoutesById {
@@ -141,7 +149,6 @@ export interface FileRoutesById {
   '/awards': typeof AwardsRoute
   '/draft': typeof DraftRoute
   '/history': typeof HistoryRoute
-  '/inbox': typeof InboxRoute
   '/league': typeof LeagueRoute
   '/roster': typeof RosterRoute
   '/schedule': typeof ScheduleRoute
@@ -150,7 +157,9 @@ export interface FileRoutesById {
   '/transactions': typeof TransactionsRoute
   '/dev/components': typeof DevComponentsRoute
   '/games/$gameId': typeof GamesGameIdRoute
+  '/inbox/$setKey': typeof InboxSetKeyRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
+  '/inbox/': typeof InboxIndexRoute
   '/players/': typeof PlayersIndexRoute
 }
 export interface FileRouteTypes {
@@ -160,7 +169,6 @@ export interface FileRouteTypes {
     | '/awards'
     | '/draft'
     | '/history'
-    | '/inbox'
     | '/league'
     | '/roster'
     | '/schedule'
@@ -169,7 +177,9 @@ export interface FileRouteTypes {
     | '/transactions'
     | '/dev/components'
     | '/games/$gameId'
+    | '/inbox/$setKey'
     | '/players/$playerId'
+    | '/inbox/'
     | '/players/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -177,7 +187,6 @@ export interface FileRouteTypes {
     | '/awards'
     | '/draft'
     | '/history'
-    | '/inbox'
     | '/league'
     | '/roster'
     | '/schedule'
@@ -186,7 +195,9 @@ export interface FileRouteTypes {
     | '/transactions'
     | '/dev/components'
     | '/games/$gameId'
+    | '/inbox/$setKey'
     | '/players/$playerId'
+    | '/inbox'
     | '/players'
   id:
     | '__root__'
@@ -194,7 +205,6 @@ export interface FileRouteTypes {
     | '/awards'
     | '/draft'
     | '/history'
-    | '/inbox'
     | '/league'
     | '/roster'
     | '/schedule'
@@ -203,7 +213,9 @@ export interface FileRouteTypes {
     | '/transactions'
     | '/dev/components'
     | '/games/$gameId'
+    | '/inbox/$setKey'
     | '/players/$playerId'
+    | '/inbox/'
     | '/players/'
   fileRoutesById: FileRoutesById
 }
@@ -212,7 +224,6 @@ export interface RootRouteChildren {
   AwardsRoute: typeof AwardsRoute
   DraftRoute: typeof DraftRoute
   HistoryRoute: typeof HistoryRoute
-  InboxRoute: typeof InboxRoute
   LeagueRoute: typeof LeagueRoute
   RosterRoute: typeof RosterRoute
   ScheduleRoute: typeof ScheduleRoute
@@ -221,7 +232,9 @@ export interface RootRouteChildren {
   TransactionsRoute: typeof TransactionsRoute
   DevComponentsRoute: typeof DevComponentsRoute
   GamesGameIdRoute: typeof GamesGameIdRoute
+  InboxSetKeyRoute: typeof InboxSetKeyRoute
   PlayersPlayerIdRoute: typeof PlayersPlayerIdRoute
+  InboxIndexRoute: typeof InboxIndexRoute
   PlayersIndexRoute: typeof PlayersIndexRoute
 }
 
@@ -253,13 +266,6 @@ declare module '@tanstack/react-router' {
       path: '/history'
       fullPath: '/history'
       preLoaderRoute: typeof HistoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/inbox': {
-      id: '/inbox'
-      path: '/inbox'
-      fullPath: '/inbox'
-      preLoaderRoute: typeof InboxRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/league': {
@@ -318,6 +324,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GamesGameIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inbox/': {
+      id: '/inbox/'
+      path: '/inbox'
+      fullPath: '/inbox/'
+      preLoaderRoute: typeof InboxIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inbox/$setKey': {
+      id: '/inbox/$setKey'
+      path: '/inbox/$setKey'
+      fullPath: '/inbox/$setKey'
+      preLoaderRoute: typeof InboxSetKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/players/': {
       id: '/players/'
       path: '/players'
@@ -340,7 +360,6 @@ const rootRouteChildren: RootRouteChildren = {
   AwardsRoute: AwardsRoute,
   DraftRoute: DraftRoute,
   HistoryRoute: HistoryRoute,
-  InboxRoute: InboxRoute,
   LeagueRoute: LeagueRoute,
   RosterRoute: RosterRoute,
   ScheduleRoute: ScheduleRoute,
@@ -349,7 +368,9 @@ const rootRouteChildren: RootRouteChildren = {
   TransactionsRoute: TransactionsRoute,
   DevComponentsRoute: DevComponentsRoute,
   GamesGameIdRoute: GamesGameIdRoute,
+  InboxSetKeyRoute: InboxSetKeyRoute,
   PlayersPlayerIdRoute: PlayersPlayerIdRoute,
+  InboxIndexRoute: InboxIndexRoute,
   PlayersIndexRoute: PlayersIndexRoute,
 }
 export const routeTree = rootRouteImport

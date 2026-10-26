@@ -145,6 +145,8 @@ export type DerivedStatDef = BaseDef & {
   kind: "derived";
   dependsOn: readonly RawStatKey[];
   compute: (line: StatLine, ctx: DeriveContext) => number | null;
+  /** A per-game rate: meaningful across games, just a copy of the total inside one box score. */
+  perGame?: true;
 };
 
 const v = (line: StatLine, key: RawStatKey) => line[key] ?? 0;
@@ -167,6 +169,11 @@ const derived = (
   compute,
 });
 
+const perGameStat = (label: string, category: StatCategory, total: RawStatKey): DerivedStatDef => ({
+  ...derived(label, "Y/G", category, "decimal", [total], (s, ctx) => perGame(v(s, total), ctx.games)),
+  perGame: true,
+});
+
 export const DERIVED_STATS = {
   passCmpPct: derived("Completion percentage", "CMP%", "passing", "pct", ["passCmp", "passAtt"], (s) =>
     pct(v(s, "passCmp"), v(s, "passAtt")),
@@ -174,9 +181,7 @@ export const DERIVED_STATS = {
   passYpa: derived("Yards per attempt", "Y/A", "passing", "decimal", ["passYds", "passAtt"], (s) =>
     safeDiv(v(s, "passYds"), v(s, "passAtt")),
   ),
-  passYpg: derived("Passing yards per game", "Y/G", "passing", "decimal", ["passYds"], (s, ctx) =>
-    perGame(v(s, "passYds"), ctx.games),
-  ),
+  passYpg: perGameStat("Passing yards per game", "passing", "passYds"),
   passRating: derived(
     "Passer rating",
     "RTG",
@@ -195,15 +200,11 @@ export const DERIVED_STATS = {
   rushAvg: derived("Yards per carry", "AVG", "rushing", "decimal", ["rushYds", "rushAtt"], (s) =>
     safeDiv(v(s, "rushYds"), v(s, "rushAtt")),
   ),
-  rushYpg: derived("Rushing yards per game", "Y/G", "rushing", "decimal", ["rushYds"], (s, ctx) =>
-    perGame(v(s, "rushYds"), ctx.games),
-  ),
+  rushYpg: perGameStat("Rushing yards per game", "rushing", "rushYds"),
   recAvg: derived("Yards per reception", "AVG", "receiving", "decimal", ["recYds", "rec"], (s) =>
     safeDiv(v(s, "recYds"), v(s, "rec")),
   ),
-  recYpg: derived("Receiving yards per game", "Y/G", "receiving", "decimal", ["recYds"], (s, ctx) =>
-    perGame(v(s, "recYds"), ctx.games),
-  ),
+  recYpg: perGameStat("Receiving yards per game", "receiving", "recYds"),
   scrimmageYds: derived(
     "Scrimmage yards",
     "SCRM",

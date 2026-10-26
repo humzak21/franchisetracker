@@ -8,6 +8,8 @@ import { Section } from "@/components/layout/Section";
 import { Headshot } from "@/components/player/Headshot";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
+import { ExtractionSettings } from "./ExtractionSettings";
+import { ShortcutSettings } from "./ShortcutSettings";
 
 function Account() {
   const me = useQuery(api.account.me, {});
@@ -37,10 +39,12 @@ export function SettingsScreen() {
     <Page title="Settings">
       <div className="mx-auto max-w-3xl space-y-8">
         <Account />
+        <ExtractionSettings />
+        <ShortcutSettings />
         <EmptyState
           icon={SlidersHorizontal}
-          title="More settings arrive in Sprint 2"
-          description="Franchise options, highlight thresholds, extraction models, Shortcut tokens, and data import and export."
+          title="More settings arrive with their sprints"
+          description="Highlight thresholds (Sprint 3), the real NFL history refresh (Sprint 4), and export and backup (Sprint 9)."
         />
       </div>
     </Page>

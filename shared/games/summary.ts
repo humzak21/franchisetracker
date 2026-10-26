@@ -1,5 +1,12 @@
 /** Game and season arithmetic from the user team's point of view. Pure; used by Convex and the UI. */
-import { weekIndex, weekPhase, type GameResult, type GameStatus, type WeekKey } from "../domain/calendar";
+import {
+  adjacentWeek,
+  weekIndex,
+  weekPhase,
+  type GameResult,
+  type GameStatus,
+  type WeekKey,
+} from "../domain/calendar";
 
 export type GameLike = {
   weekKey: WeekKey;
@@ -86,4 +93,17 @@ export function recordBefore(games: readonly GameLike[], week: WeekKey): WLT {
   return record(
     games.filter((g) => weekPhase(g.weekKey) !== "preseason" && weekIndex(g.weekKey) < weekIndex(week)),
   );
+}
+
+/**
+ * The week a new capture most likely belongs to: the one after the latest game with a final
+ * score, or Week 1 before any. Preseason and the Pro Bowl never advance it.
+ */
+export function nextWeek(games: readonly GameLike[]): WeekKey {
+  const played = games.filter(
+    (g) => userScore(g) !== null && ["regular", "postseason"].includes(weekPhase(g.weekKey)),
+  );
+  const last = sortByWeek(played).at(-1);
+  if (!last) return "w1";
+  return adjacentWeek(last.weekKey, 1) ?? last.weekKey;
 }

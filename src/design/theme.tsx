@@ -17,10 +17,15 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+/** The team color that reads on the page background: the user's accent, or an opponent's in comparisons. */
+export function teamAccent(team: TeamColors, resolved: "light" | "dark"): string {
+  const candidates = [team.primaryColor, team.secondaryColor].filter((c) => !isNeutral(c));
+  return readableAccent(candidates.length ? candidates : [team.primaryColor], BACKGROUNDS[resolved]);
+}
+
 /** CSS variables for a team, resolved for the current theme. Pure so the gallery can preview any team. */
 export function teamCssVars(team: TeamColors, resolved: "light" | "dark"): Record<string, string> {
-  const candidates = [team.primaryColor, team.secondaryColor].filter((c) => !isNeutral(c));
-  const accent = readableAccent(candidates.length ? candidates : [team.primaryColor], BACKGROUNDS[resolved]);
+  const accent = teamAccent(team, resolved);
   return {
     "--team-primary": team.primaryColor,
     "--team-secondary": team.secondaryColor,

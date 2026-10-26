@@ -7,7 +7,7 @@ import {
   STAT_CATEGORIES,
   STAT_CATEGORY_LABELS,
   STAT_REGISTRY,
-  statsInCategory,
+  statsWithData,
   statValue,
   type StatKey,
   type StatLine,
@@ -42,12 +42,6 @@ export function totalsRow(rows: readonly CareerRow[]): CareerRow {
   };
 }
 
-const hasValue = (rows: readonly CareerRow[], key: StatKey) =>
-  rows.some((r) => {
-    const v = statValue(key, r.line, { games: r.games });
-    return v !== null && v !== 0;
-  });
-
 /**
  * Stats worth a column: recorded raw stats, plus derived stats whose inputs were all recorded.
  * Categories for the player's own position group come first.
@@ -56,11 +50,9 @@ export function visibleStats(position: Position, rows: readonly CareerRow[]): St
   const group = positionGroupOf(position);
   const own = STAT_CATEGORIES.filter((c) => CATEGORY_GROUPS[c].includes(group));
   const rest = STAT_CATEGORIES.filter((c) => !own.includes(c));
-  return [...own, ...rest].flatMap((category) =>
-    statsInCategory(category).filter((key) => {
-      const def = STAT_REGISTRY[key];
-      return def.kind === "raw" ? hasValue(rows, key) : def.dependsOn.every((dep) => hasValue(rows, dep));
-    }),
+  return statsWithData(
+    [...own, ...rest],
+    rows.map((r) => ({ line: r.line, games: r.games })),
   );
 }
 

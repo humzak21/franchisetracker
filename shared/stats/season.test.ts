@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { categoriesWithData, statsWithData } from "./categories";
 import { preferLogs, summarizeGames, summarizeSeasons } from "./season";
 import { formatTeamRow, formatTeamStat, parseClock, TEAM_STAT_ROWS } from "./teamRegistry";
 
@@ -53,5 +54,21 @@ describe("team stats", () => {
     expect(formatTeamRow(third, { thirdDownConv: 5, thirdDownAtt: 12 })).toBe("5/12");
     const penalties = TEAM_STAT_ROWS.find((r) => r.id === "penalties")!;
     expect(formatTeamRow(penalties, { penalties: 6, penaltyYds: 45 })).toBe("6-45");
+  });
+});
+
+describe("statsWithData", () => {
+  test("keeps recorded raw stats and derived stats whose inputs exist", () => {
+    const rows = [{ line: { rushAtt: 10, rushYds: 50, recYds: 0 } }];
+    expect(statsWithData(["rushing"], rows)).toEqual([
+      "rushAtt",
+      "rushYds",
+      "rushAvg",
+      "rushYpg",
+      "scrimmageYds",
+    ]);
+    expect(statsWithData(["rushing"], rows, { singleGame: true })).not.toContain("rushYpg");
+    expect(statsWithData(["receiving"], rows)).toEqual(["recYds", "recYpg"]);
+    expect(categoriesWithData(["passing", "rushing", "receiving"], rows)).toEqual(["rushing"]);
   });
 });

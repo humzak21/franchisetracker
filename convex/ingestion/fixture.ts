@@ -17,7 +17,7 @@ const row = (
   team,
   name,
   position,
-  confidence: unclear.length > 0 ? 0.6 : 0.95,
+  confidence: unclear.length > 0 ? 0.85 : 0.95,
   unclear_fields: unclear,
   ...stats,
 });

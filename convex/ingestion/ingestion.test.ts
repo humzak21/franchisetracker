@@ -54,7 +54,7 @@ describe("ingestion", () => {
     const seasonId = season(SAMPLE_START_YEAR + 1);
     const setKey = await capture({ targetKey: "game_box_score", seasonId, weekKey: "w1" });
 
-    const [inbox] = await owner.query(api.ingestion.uploads.list, {});
+    const [inbox] = await owner.query(api.ingestion.inbox.list, {});
     expect(inbox).toMatchObject({ setKey, status: "review", images: [{}, {}] });
     const review = await owner.query(api.ingestion.review.get, { setKey });
     const draft = review.extraction!.draft;
@@ -162,9 +162,9 @@ describe("ingestion", () => {
     // Without a multi-image target, each screenshot is its own set.
     await capture({});
     await capture({});
-    const untagged = await owner.query(api.ingestion.uploads.list, {});
+    const untagged = await owner.query(api.ingestion.inbox.list, {});
     expect(untagged.map((s) => s.status)).toEqual(["queued", "queued", "queued", "queued"]);
-    expect(await owner.query(api.ingestion.uploads.pendingCount, {})).toBe(4);
+    expect(await owner.query(api.ingestion.inbox.pendingCount, {})).toBe(4);
     await owner.mutation(api.ingestion.uploads.tag, {
       setKeys: untagged.map((s) => s.setKey),
       merge: true,
@@ -173,7 +173,7 @@ describe("ingestion", () => {
       weekKey: "w1",
     });
     await vi.runAllTimersAsync();
-    const sets = await owner.query(api.ingestion.uploads.list, {});
+    const sets = await owner.query(api.ingestion.inbox.list, {});
     expect(sets).toHaveLength(1);
     expect(sets[0]!.images).toHaveLength(4);
   });
@@ -220,7 +220,7 @@ describe("ingestion", () => {
   test("strangers and signed-out callers are refused", async () => {
     const { t, image } = await setup();
     const stranger = await asStranger(t);
-    await expect(stranger.query(api.ingestion.uploads.list, {})).rejects.toThrow(/Not the owner/);
+    await expect(stranger.query(api.ingestion.inbox.list, {})).rejects.toThrow(/Not the owner/);
     await expect(
       t.mutation(api.ingestion.uploads.create, { storageIds: [await image()], source: "web" }),
     ).rejects.toThrow(/Sign in required/);
@@ -245,13 +245,16 @@ describe("shortcut endpoint", () => {
     const menu = await t.fetch("/shortcut/targets", { headers });
     expect(await menu.json()).toMatchObject({
       season: SAMPLE_START_YEAR,
-      targets: [{ key: "game_box_score" }, {}],
+      suggestedWeek: "Week 7",
+      targetLabels: ["Box score", "Team game stats"],
+      targetByLabel: { "Box score": "game_box_score" },
+      weekByLabel: { "Week 1": "w1" },
     });
     const bad = await t.fetch("/shortcut/upload", { method: "POST", headers, body: form("nonsense") });
     expect(bad.status).toBe(400);
     const ok = await t.fetch("/shortcut/upload", { method: "POST", headers, body: form() });
     expect(await ok.json()).toMatchObject({ ok: true, images: 1 });
-    const [set] = await owner.query(api.ingestion.uploads.list, {});
+    const [set] = await owner.query(api.ingestion.inbox.list, {});
     expect(set).toMatchObject({ status: "queued", weekKey: "w1", year: SAMPLE_START_YEAR });
 
     const [listed] = await owner.query(api.ingestion.tokens.list, {});

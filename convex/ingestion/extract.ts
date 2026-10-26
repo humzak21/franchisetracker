@@ -100,7 +100,7 @@ async function resolvePlayers(
   const teamAbbrs = [draft.game.homeAbbr, draft.game.awayAbbr, ...draft.lines.map((l) => l.teamAbbr)].filter(
     (t): t is string => t !== null,
   );
-  const candidates = await ctx.runQuery(internal.ingestion.jobs.candidates, {
+  const candidates = await ctx.runQuery(internal.ingestion.candidates.forNames, {
     seasonId: job.seasonId,
     teamAbbrs: [...new Set(teamAbbrs)],
     names: draft.lines.map((l) => l.name),

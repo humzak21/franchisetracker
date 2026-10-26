@@ -1,6 +1,5 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useMutation, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { useMemo, useState, type FormEvent } from "react";
 import { api } from "@convex/_generated/api";
 import { currentNflSeason, FIRST_SEASON_RANGE } from "@shared/domain";
@@ -10,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/misc";
 import { teamCssVars, useTheme } from "@/design/theme";
+import { errorMessage } from "@/lib/errors";
 
 const labelClass = "text-[11px] font-semibold tracking-[0.08em] text-subtle-foreground uppercase";
 
@@ -42,11 +42,7 @@ export function FranchiseSetup() {
     try {
       await create({ name, teamAbbr: team.abbr, startYear: year });
     } catch (err) {
-      setError(
-        err instanceof ConvexError
-          ? String((err.data as { message?: string }).message)
-          : "Could not create the franchise.",
-      );
+      setError(errorMessage(err, "Could not create the franchise."));
       setBusy(false);
     }
   };
