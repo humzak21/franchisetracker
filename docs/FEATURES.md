@@ -2,16 +2,18 @@
 
 A Football Manager style front end for a Madden franchise, minus the game. One user, one franchise at a time (the model supports several), fed by photos and screenshots the user takes during and after each game, parsed into structured data, and reviewed before commit.
 
+It is built for **new franchises**. A franchise starts in the current real-life NFL season. Everything before that (real team records, standings, playoff results, real players' careers) is imported from an external NFL data source; everything from the first franchise season on is captured as the user plays. There is no spreadsheet or workbook import, and there never will be.
+
 This document is the product source of truth. `SPRINTS.md` turns it into build order.
 
 ---
 
 ## 1. Principles
 
-1. **Game logs are the source of truth.** Every season total, career total, record, streak, highlight and leaderboard is derived from per-game stat lines. The user never types a season total. Season-level imports exist only to backfill history or reconcile a missed game.
-2. **One definition per stat.** A single stat registry (`shared/stats/registry.ts`) declares every stat once: key, label, abbreviation, position group, formatter, aggregation (sum, max, rate), elite threshold, sort direction, and the extraction field it maps to. Tables, highlights, leaderboards, records, player pages, extraction JSON schemas and the spreadsheet importer all read from it. Adding a stat is one registry entry.
+1. **Game logs are the source of truth.** Every season total, career total, record, streak, highlight and leaderboard is derived from per-game stat lines. The user never types a season total. Season-level totals are imported only for real NFL seasons before the franchise began (section 4.8) or to reconcile a missed game.
+2. **One definition per stat.** A single stat registry (`shared/stats/registry.ts`) declares every stat once: key, label, abbreviation, position group, formatter, aggregation (sum, max, rate), elite threshold, sort direction, and the extraction field it maps to. Tables, highlights, leaderboards, records, player pages, extraction JSON schemas and the real-history importer all read from it. Adding a stat is one registry entry.
 3. **One definition per ingestion target.** An ingestion target registry declares each kind of screenshot once: name, which season/week context it needs, its JSON schema, prompt template, review form, and commit mutation. The Shortcut menu, the inbox tag list, the extraction action and the review UI are all generated from it.
-4. **Structured first, prose alongside.** Everything the spreadsheet stored as text with numbers inside ("Maye - 20/26, 203 yds, 2 TD", "27.3 - T-3rd", "Raiders (0-0)", "D 2024") becomes typed fields. Free-text notes stay, as their own field, everywhere the user wants to write.
+4. **Structured first, prose alongside.** Nothing is stored as text with numbers inside ("Maye - 20/26, 203 yds, 2 TD", "27.3 - T-3rd", "Raiders (0-0)", "D 2024"); those are typed fields (section 6). Free-text notes stay, as their own field, everywhere the user wants to write.
 5. **Players are entities, not strings.** A player exists once league-wide with stable identity across seasons, teams, jersey changes and name typos. Rosters, stat lines, awards, draft picks, transactions and Hall of Fame entries reference the player id.
 6. **Review before commit.** Nothing parsed from an image lands in canonical tables without the user confirming it. Corrections are stored and reused as few-shot examples, which is how extraction improves over time.
 7. **Beauty is a requirement.** Dark broadcast-graphics aesthetic, team-color accents, tabular numerals, dense but breathable tables, meaningful motion, and purposeful charts. Every screen has an empty state and a loading state that look intentional.
@@ -28,7 +30,7 @@ This document is the product source of truth. `SPRINTS.md` turns it into build o
 | Backend | Convex: database, file storage, actions, HTTP endpoints, scheduled functions | Single deployment. Schema split by domain under `convex/`. |
 | Shared logic | `shared/` TypeScript package consumed by both `convex/` and `src/` | Stat registry, stat math (passer rating, averages, pace), formatters, validators, ingestion target registry. |
 | Vision extraction | OpenRouter from a Convex action, structured output with a JSON schema per target, model fallback chain | Key stored as a Convex env var. Never on the client. |
-| External data | ESPN unofficial site API from Convex actions | Headshots, team logos and colors, real-player bios. Cached in Convex storage. |
+| External data | ESPN unofficial site API from Convex actions, plus a real NFL history source (4.8) | Headshots, team logos and colors, real-player bios, and every season before the franchise began. Cached in Convex. |
 | Phone | The same web app as a home-screen PWA with full feature parity, plus an Apple Shortcut on the share sheet and home screen that posts images to a Convex HTTP endpoint with a bearer token for the fastest capture path. | Zero native code. |
 | Auth | The entire app sits behind **Sign in with Vercel** (OIDC). Convex validates the Vercel ID token (`convex/auth.config.ts`) and every public function requires the signed-in user, checked against an allowlist of the owner's Vercel account. Nothing renders before sign-in except the sign-in screen. The Shortcut HTTP endpoint is the one exception and uses a revocable bearer token. | Franchise data is private. Hiding the front end is not enough on its own: the Convex URL is public, so the check lives in the backend. |
 | Hosting | Vercel for the static front end (production branch `main`; the build runs `convex deploy` against the production deployment), Convex cloud for the backend | Any device can open the URL, and signs in before seeing anything. |
@@ -72,7 +74,7 @@ franchisetracker/
       reporting/  awards/  draft/  transactions/  hof/  ingestion/  settings/  search/
     lib/               hooks, formatting, keyboard, convex client
   scripts/
-    import-xlsx/       one-time migration from the original workbook
+    (dev and ops scripts: local auth setup, Vercel build)
   docs/
 ```
 
@@ -109,7 +111,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 
 ### 4.1 Franchise and seasons
 
-- `franchises`: name, userTeamId, startYear, settings (games per season, playoff teams, elite thresholds overrides), active flag.
+- `franchises`: name, userTeamId, startYear (the real NFL season the franchise begins in), settings (games per season, playoff teams, elite thresholds overrides), active flag. Created by the setup flow (5.0); its first season is created with it and later seasons when the user advances.
 - `seasons`: year, status (`upcoming`, `regular`, `postseason`, `complete`), userTeam record cache (w, l, t, divisionRank, seed, playoffResult), coaching staff (head coach, OC, DC, offensive scheme, defensive scheme), salary cap, notes.
 - `seasonReports`: pre-season thoughts, post-season thoughts, around-the-league notes, status of each prompt (pending or answered with timestamp), `needs[]` (position, priority, note, resolvedBy transaction or draft pick id).
 
@@ -158,7 +160,19 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 
 ---
 
+### 4.8 Real NFL history (before the franchise)
+
+- Imported once when a franchise is created, refreshable from Settings: for every season before `startYear` that the source covers, all 32 teams' records, standings, playoff results and titles; real players with their careers and season totals up to the franchise start; draft history.
+- Lands in the same tables as franchise data (`seasons` for the user team, `standings`, `seasonPlayerStats` with `source: "import"`, `players` with `isReal`, `trophyEntries` for pre-franchise titles), so history screens, player pages and records read one model. Pre-franchise seasons are marked as such and never mix with captured game logs.
+- Source to be chosen in Sprint 4. Candidates: the nflverse public data releases (schedules, standings, weekly and season player stats as CSV or Parquet) and the ESPN site API already used for headshots and logos. Fetched by Convex actions; never a spreadsheet the user supplies.
+
 ## 5. Features by area
+
+### 5.0 Franchise setup
+
+- Shown in place of every screen until a franchise exists (after sign-in).
+- Name the franchise, pick the user team from the 32 (grouped by division, in team colors), and choose the first season, defaulting to the current real NFL season.
+- Creating it seeds that first season and starts the real NFL history import for the seasons before it (4.8). Works the same on the phone.
 
 ### 5.1 Home (dashboard)
 
@@ -218,8 +232,8 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 
 ### 5.7 History
 
-- Franchise history home: decade grids (year, W, L, T, division rank, seed and playoff result, coach, note) exactly like the spreadsheet but generated. Totals per decade and all time.
-- Trophy room: Super Bowl wins, conference titles, division titles, playoff appearances, with years, real-history pre-franchise entries editable so the Patriots' real history can sit alongside franchise results.
+- Franchise history home: decade grids (year, W, L, T, division rank, seed and playoff result, coach, note) generated from `seasons`. Totals per decade and all time.
+- Trophy room: Super Bowl wins, conference titles, division titles, playoff appearances, with years, real pre-franchise history from the external import (4.8) and editable entries, so the team's real history sits alongside franchise results.
 - Season reports archive: for each season, pre-season thoughts, post-season thoughts, around the league, needs with resolution status, and the computed season summary next to them.
 - Hall of Fame: wall of hanging jerseys in team colors with number, name, position, years, induction year, retired-number flag and a blurb; click to the player page. Add from any player page.
 - Narrative timeline: every note across games, seasons, transactions and awards in one scrollable story, filterable by season and type.
@@ -262,7 +276,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Thresholds: edit elite highlight thresholds per stat.
 - Models: OpenRouter primary and fallback model, temperature, token budget.
 - Shortcut: generate and revoke tokens, download the Shortcut file, test endpoint.
-- Data: import from the original workbook, export JSON and CSV, full backup, restore.
+- Data: refresh the real NFL history import, export JSON and CSV, full backup, restore.
 - Appearance: team color intensity, density, reduced motion.
 
 ### 5.13 Mobile parity
@@ -286,10 +300,28 @@ Every feature in 5.1 through 5.12 ships on the phone with the same data, filters
 
 ---
 
-## 6. Spreadsheet shortcuts and their fixes
+## 6. Structured data rules
 
-| In the workbook | In the app |
+| Instead of | The app stores |
 |---|---|
+| Three stars as free text with stats inside | Ordered `stars[]` of player ids on the game, with the stat line rendered from the box score |
+| Season totals typed by hand with "highest game" columns | Derived from `gameStatLines`; best-game columns computed |
+| Team stats as "27.3 - T-3rd" strings | `teamSeasonStats` with value, rank, tie flag, attempts |
+| Opponent record inside the team name | `opponentRecordAtKickoff` field |
+| Acquisition as "D 2024" or "Signed '25 off" | Typed acquisition (type, year, phase, detail) |
+| A roster copied per season | One `players` row, one `rosterEntries` row per season |
+| Decade grids maintained by hand | Generated from `seasons` |
+| Hall of Fame as a grid of names and jerseys | `hofEntries` linked to players with a jersey wall UI |
+| Award winners as names with stat strings | Player links where known, raw name fallback, structured stat line |
+| Draft notes with no retrospective | Draft grades computed from OVR progression and awards |
+| Standings as a running cumulative table | Per-season `standings` plus a computed cumulative table |
+| Needs for next year as a sentence | `needs[]` checklist with priority and resolution tracking into the offseason |
+| Coaching changes buried in notes | Staff and scheme fields on the season |
+| No contract or cap tracking | Contract on roster entries, cap view, expiring list |
+| Only the user team's stats | Both teams' lines captured from the box score |
+| Notes and numbers in the same field | Separate structured fields plus a notes field |
+
+---|---|
 | Three stars as free text with stats inside | Ordered `stars[]` of player ids on the game, with the stat line rendered from the box score |
 | Season totals typed by hand with "highest game" columns | Derived from `gameStatLines`; best-game columns computed |
 | Team stats as "27.3 - T-3rd" strings | `teamSeasonStats` with value, rank, tie flag, attempts |

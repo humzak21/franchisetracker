@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { NFL_TEAMS } from "@shared/domain";
 import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { PlayerChip } from "@/components/player/PlayerChip";
+import { TeamPicker } from "@/components/team/TeamPicker";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
 import { PLAYERS } from "./fixtures";
@@ -53,4 +55,9 @@ export function SegmentedDemo() {
       ]}
     />
   );
+}
+
+export function TeamPickerDemo() {
+  const [abbr, setAbbr] = useState<string | null>("NE");
+  return <TeamPicker teams={NFL_TEAMS} value={abbr} onChange={setAbbr} />;
 }

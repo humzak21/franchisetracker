@@ -1,6 +1,7 @@
+import { useAuthActions } from "@convex-dev/auth/react";
 import { useNavigate } from "@tanstack/react-router";
 import { Command } from "cmdk";
-import { Calendar, Camera, Keyboard, LayoutGrid, Moon, Search } from "lucide-react";
+import { Calendar, Camera, Keyboard, LayoutGrid, LogOut, Moon, Search } from "lucide-react";
 import type { ReactNode } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Kbd } from "@/components/ui/misc";
@@ -48,6 +49,7 @@ export function CommandPalette({ open, onOpenChange, onShowShortcuts }: CommandP
   const navigate = useNavigate();
   const { seasons, setYear } = useSeason();
   const { toggle } = useTheme();
+  const { signOut } = useAuthActions();
   const run = (fn: () => void) => () => {
     onOpenChange(false);
     fn();
@@ -105,6 +107,9 @@ export function CommandPalette({ open, onOpenChange, onShowShortcuts }: CommandP
               </Item>
               <Item icon={<LayoutGrid />} onSelect={run(() => navigate({ to: "/dev/components" }))}>
                 Component gallery
+              </Item>
+              <Item icon={<LogOut />} onSelect={run(() => void signOut())}>
+                Sign out
               </Item>
             </Command.Group>
           </Command.List>

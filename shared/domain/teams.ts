@@ -57,8 +57,6 @@ export const NFL_TEAMS: readonly TeamSeed[] = [
   { abbr: "SEA", city: "Seattle", name: "Seahawks", conference: "NFC", division: "West", primaryColor: "#002244", secondaryColor: "#69BE28", espnId: 26 },
 ];
 
-export const USER_TEAM_ABBR = "NE";
-
 export function findTeamSeed(abbr: string): TeamSeed | undefined {
   return NFL_TEAMS.find((team) => team.abbr === abbr.toUpperCase());
 }

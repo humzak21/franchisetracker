@@ -1,4 +1,4 @@
-/** Gallery fixtures, taken from the 2025 season of the workbook so components are judged on real shapes. */
+/** Gallery fixtures from real 2025 Patriots lines, so components are judged on realistic shapes. */
 import { NFL_TEAMS, type TeamSeed } from "@shared/domain";
 import type { StatLine } from "@shared/stats";
 import type { PlayerLike } from "@/components/player/PlayerChip";
@@ -96,7 +96,7 @@ export const MAYE_2025: StatLine = {
   rushTd: 5,
 };
 
-/** League Stats tab, 2025: "27.3 - T-3rd" and friends, structured. */
+/** 2025 team stats with ranks: the "27.3 - T-3rd" style values as structured data. */
 export const TEAM_STATS_2025 = [
   { label: "Points per game", value: "27.3", rank: 3, tied: true },
   { label: "Total offense", value: "5,570", rank: 7 },

@@ -29,7 +29,7 @@ import {
   PLAYERS,
   TEAM_STATS_2025,
 } from "./fixtures";
-import { SegmentedDemo, SheetDemo } from "./demos";
+import { SegmentedDemo, SheetDemo, TeamPickerDemo } from "./demos";
 import { TABLE_SPECIMENS } from "./tableSpecimens";
 
 export type Specimen = { id: string; name: string; note?: string; render: () => ReactNode };
@@ -124,7 +124,7 @@ export const SPECIMENS: Specimen[] = [
   {
     id: "rank",
     name: "RankRibbon · RankBadge",
-    note: 'Team stats as rank ribbons, replacing the workbook\'s "27.3 - T-3rd" strings.',
+    note: 'Team stats as rank ribbons instead of "27.3 - T-3rd" strings.',
     render: () => (
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2">
@@ -195,6 +195,12 @@ export const SPECIMENS: Specimen[] = [
         </div>
       </div>
     ),
+  },
+  {
+    id: "teampicker",
+    name: "TeamPicker",
+    note: "Franchise setup's team choice: grouped by division, the pick shown in its colors.",
+    render: () => <TeamPickerDemo />,
   },
   {
     id: "splitpane",

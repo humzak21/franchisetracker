@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
+import { requireOwner } from "../lib/auth";
 import { must } from "../lib/errors";
 import schema from "../schema";
 
@@ -21,6 +22,7 @@ export const getActive = query({
     }),
   ),
   handler: async (ctx) => {
+    await requireOwner(ctx);
     const franchise = await ctx.db
       .query("franchises")
       .withIndex("by_isActive", (q) => q.eq("isActive", true))

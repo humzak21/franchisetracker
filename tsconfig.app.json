@@ -23,5 +23,5 @@
       "@convex/*": ["./convex/*"]
     }
   },
-  "include": ["src", "shared"]
+  "include": ["src", "shared", "convex/env.d.ts"]
 }

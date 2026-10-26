@@ -12,18 +12,21 @@ Stack: Vite + React 19 + TypeScript, TanStack Router and Table, Tailwind v4 with
 
 ```bash
 npm install
-npm run dev        # Convex dev deployment + Vite on http://localhost:5173
-npm run seed       # first run only: 32 teams, the franchise, seasons 2025 to 2034
+npx playwright install chromium webkit   # once, for the browser tests
+npm run use:local  # local Convex backend on this machine, pushed and seeded
+npm run dev        # Convex + Vite on http://localhost:5173
 ```
 
-`npx convex dev` creates `.env.local` on first run. Open `/dev/components` for the component gallery.
+`npm run use:cloud` switches to the shared cloud dev deployment (for trying the app on a phone). Open `/dev/components` for the component gallery.
 
 ## Scripts
 
 | Script | What it does |
 |---|---|
 | `npm run dev` | Convex dev and Vite together |
-| `npm run check` | Typecheck app and Convex, lint, run all tests |
+| `npm run check` | Typecheck, lint, unit and Convex tests |
+| `npm run test:e2e` | Playwright smoke tests against a local stack, desktop and two phone sizes |
+| `npm run check:all` | Both of the above; what CI runs on every PR |
 | `npm run build` | Typecheck and build the PWA into `dist/` |
 | `npm run preview` | Serve the production build locally |
 | `npm run deploy` | Deploy Convex to production and build the front end against it |

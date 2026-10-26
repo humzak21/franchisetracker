@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
+import { requireOwner } from "../lib/auth";
 import schema from "../schema";
 
 /** 32 teams today; headroom for expansion without becoming unbounded. */
@@ -10,6 +11,7 @@ export const list = query({
   args: {},
   returns: v.array(schema.doc("teams")),
   handler: async (ctx) => {
+    await requireOwner(ctx);
     return await ctx.db.query("teams").withIndex("by_conference_and_division_and_city").take(MAX_TEAMS);
   },
 });

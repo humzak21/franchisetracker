@@ -9,6 +9,8 @@ type SeasonContextValue = {
   /** Selected season for the current screen; defaults to the franchise's current season. */
   season: Season | undefined;
   setYear: (year: number) => void;
+  /** Sets the remembered season for another screen, e.g. before jumping from History to Schedule. */
+  setYearFor: (section: string, year: number) => void;
   pickerOpen: boolean;
   setPickerOpen: (open: boolean) => void;
 };
@@ -26,14 +28,15 @@ export function SeasonProvider({ children }: { children: ReactNode }) {
   const remembered = bySection[section];
   const season = seasons.find((s) => s.year === remembered) ?? currentSeason(seasons);
 
-  const setYear = useCallback(
-    (year: number) => setBySection((prev) => ({ ...prev, [section]: year })),
-    [section, setBySection],
+  const setYearFor = useCallback(
+    (target: string, year: number) => setBySection((prev) => ({ ...prev, [target]: year })),
+    [setBySection],
   );
+  const setYear = useCallback((year: number) => setYearFor(section, year), [section, setYearFor]);
 
   const value = useMemo(
-    () => ({ seasons, season, setYear, pickerOpen, setPickerOpen }),
-    [seasons, season, setYear, pickerOpen],
+    () => ({ seasons, season, setYear, setYearFor, pickerOpen, setPickerOpen }),
+    [seasons, season, setYear, setYearFor, pickerOpen],
   );
   return <SeasonContext.Provider value={value}>{children}</SeasonContext.Provider>;
 }

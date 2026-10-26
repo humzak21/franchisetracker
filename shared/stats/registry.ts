@@ -3,7 +3,7 @@
  *
  * Raw stats are stored per player per game in `gameStatLines.stats` and aggregate with
  * `sum` or `max`. Derived stats are computed from raw totals and never stored on a game line.
- * Tables, highlights, leaderboards, extraction schemas and the workbook importer all read
+ * Tables, highlights, leaderboards, extraction schemas and the real-history importer all read
  * from this file; adding a stat is one entry.
  */
 import type { PositionGroup } from "../domain/positions";

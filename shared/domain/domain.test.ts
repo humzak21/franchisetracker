@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { NFL_TEAMS, adjacentWeek, normalizePosition, weekLabel, weekPhase } from "./index";
+import { NFL_TEAMS, adjacentWeek, currentNflSeason, normalizePosition, weekLabel, weekPhase } from "./index";
 
 describe("positions", () => {
-  it("normalizes workbook spellings", () => {
+  it("normalizes Madden and legacy spellings", () => {
     expect(normalizePosition("LEDGE")).toBe("LEDG");
     expect(normalizePosition("SS/LB")).toBe("SS");
     expect(normalizePosition("rb")).toBe("HB");
@@ -15,8 +15,19 @@ describe("calendar", () => {
     expect(weekLabel("w7")).toBe("W7");
     expect(weekLabel("sb", "long")).toBe("Super Bowl");
     expect(weekPhase("div")).toBe("postseason");
+    expect(weekPhase("wc")).toBe("postseason");
+    expect(weekLabel("wc")).toBe("WC");
+    expect(weekLabel("w10", "long")).toBe("Week 10");
     expect(adjacentWeek("w18", 1)).toBe("wc");
     expect(adjacentWeek("pre1", -1)).toBeNull();
+  });
+});
+
+describe("currentNflSeason", () => {
+  it("names the season for the year it kicks off, turning over in March", () => {
+    expect(currentNflSeason(new Date(2026, 9, 26))).toBe(2026);
+    expect(currentNflSeason(new Date(2027, 1, 10))).toBe(2026);
+    expect(currentNflSeason(new Date(2027, 2, 1))).toBe(2027);
   });
 });
 

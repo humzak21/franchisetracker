@@ -15,13 +15,15 @@ import { Route as DraftRouteImport } from './routes/draft'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as LeagueRouteImport } from './routes/league'
-import { Route as PlayersRouteImport } from './routes/players'
 import { Route as RosterRouteImport } from './routes/roster'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StatsRouteImport } from './routes/stats'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as DevComponentsRouteImport } from './routes/dev/components'
+import { Route as GamesGameIdRouteImport } from './routes/games.$gameId'
+import { Route as PlayersIndexRouteImport } from './routes/players.index'
+import { Route as PlayersPlayerIdRouteImport } from './routes/players.$playerId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -51,11 +53,6 @@ const InboxRoute = InboxRouteImport.update({
 const LeagueRoute = LeagueRouteImport.update({
   id: '/league',
   path: '/league',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlayersRoute = PlayersRouteImport.update({
-  id: '/players',
-  path: '/players',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RosterRoute = RosterRouteImport.update({
@@ -88,6 +85,21 @@ const DevComponentsRoute = DevComponentsRouteImport.update({
   path: '/dev/components',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GamesGameIdRoute = GamesGameIdRouteImport.update({
+  id: '/games/$gameId',
+  path: '/games/$gameId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlayersIndexRoute = PlayersIndexRouteImport.update({
+  id: '/players/',
+  path: '/players/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlayersPlayerIdRoute = PlayersPlayerIdRouteImport.update({
+  id: '/players/$playerId',
+  path: '/players/$playerId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -96,13 +108,15 @@ export interface FileRoutesByFullPath {
   '/history': typeof HistoryRoute
   '/inbox': typeof InboxRoute
   '/league': typeof LeagueRoute
-  '/players': typeof PlayersRoute
   '/roster': typeof RosterRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
   '/transactions': typeof TransactionsRoute
   '/dev/components': typeof DevComponentsRoute
+  '/games/$gameId': typeof GamesGameIdRoute
+  '/players/$playerId': typeof PlayersPlayerIdRoute
+  '/players/': typeof PlayersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -111,13 +125,15 @@ export interface FileRoutesByTo {
   '/history': typeof HistoryRoute
   '/inbox': typeof InboxRoute
   '/league': typeof LeagueRoute
-  '/players': typeof PlayersRoute
   '/roster': typeof RosterRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
   '/transactions': typeof TransactionsRoute
   '/dev/components': typeof DevComponentsRoute
+  '/games/$gameId': typeof GamesGameIdRoute
+  '/players/$playerId': typeof PlayersPlayerIdRoute
+  '/players': typeof PlayersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -127,13 +143,15 @@ export interface FileRoutesById {
   '/history': typeof HistoryRoute
   '/inbox': typeof InboxRoute
   '/league': typeof LeagueRoute
-  '/players': typeof PlayersRoute
   '/roster': typeof RosterRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
   '/transactions': typeof TransactionsRoute
   '/dev/components': typeof DevComponentsRoute
+  '/games/$gameId': typeof GamesGameIdRoute
+  '/players/$playerId': typeof PlayersPlayerIdRoute
+  '/players/': typeof PlayersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -144,13 +162,15 @@ export interface FileRouteTypes {
     | '/history'
     | '/inbox'
     | '/league'
-    | '/players'
     | '/roster'
     | '/schedule'
     | '/settings'
     | '/stats'
     | '/transactions'
     | '/dev/components'
+    | '/games/$gameId'
+    | '/players/$playerId'
+    | '/players/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -159,13 +179,15 @@ export interface FileRouteTypes {
     | '/history'
     | '/inbox'
     | '/league'
-    | '/players'
     | '/roster'
     | '/schedule'
     | '/settings'
     | '/stats'
     | '/transactions'
     | '/dev/components'
+    | '/games/$gameId'
+    | '/players/$playerId'
+    | '/players'
   id:
     | '__root__'
     | '/'
@@ -174,13 +196,15 @@ export interface FileRouteTypes {
     | '/history'
     | '/inbox'
     | '/league'
-    | '/players'
     | '/roster'
     | '/schedule'
     | '/settings'
     | '/stats'
     | '/transactions'
     | '/dev/components'
+    | '/games/$gameId'
+    | '/players/$playerId'
+    | '/players/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -190,13 +214,15 @@ export interface RootRouteChildren {
   HistoryRoute: typeof HistoryRoute
   InboxRoute: typeof InboxRoute
   LeagueRoute: typeof LeagueRoute
-  PlayersRoute: typeof PlayersRoute
   RosterRoute: typeof RosterRoute
   ScheduleRoute: typeof ScheduleRoute
   SettingsRoute: typeof SettingsRoute
   StatsRoute: typeof StatsRoute
   TransactionsRoute: typeof TransactionsRoute
   DevComponentsRoute: typeof DevComponentsRoute
+  GamesGameIdRoute: typeof GamesGameIdRoute
+  PlayersPlayerIdRoute: typeof PlayersPlayerIdRoute
+  PlayersIndexRoute: typeof PlayersIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -243,13 +269,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeagueRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/players': {
-      id: '/players'
-      path: '/players'
-      fullPath: '/players'
-      preLoaderRoute: typeof PlayersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/roster': {
       id: '/roster'
       path: '/roster'
@@ -292,6 +311,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevComponentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/games/$gameId': {
+      id: '/games/$gameId'
+      path: '/games/$gameId'
+      fullPath: '/games/$gameId'
+      preLoaderRoute: typeof GamesGameIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/players/': {
+      id: '/players/'
+      path: '/players'
+      fullPath: '/players/'
+      preLoaderRoute: typeof PlayersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/players/$playerId': {
+      id: '/players/$playerId'
+      path: '/players/$playerId'
+      fullPath: '/players/$playerId'
+      preLoaderRoute: typeof PlayersPlayerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -302,13 +342,15 @@ const rootRouteChildren: RootRouteChildren = {
   HistoryRoute: HistoryRoute,
   InboxRoute: InboxRoute,
   LeagueRoute: LeagueRoute,
-  PlayersRoute: PlayersRoute,
   RosterRoute: RosterRoute,
   ScheduleRoute: ScheduleRoute,
   SettingsRoute: SettingsRoute,
   StatsRoute: StatsRoute,
   TransactionsRoute: TransactionsRoute,
   DevComponentsRoute: DevComponentsRoute,
+  GamesGameIdRoute: GamesGameIdRoute,
+  PlayersPlayerIdRoute: PlayersPlayerIdRoute,
+  PlayersIndexRoute: PlayersIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

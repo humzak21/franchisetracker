@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Camera, Database, FileSpreadsheet, LayoutGrid } from "lucide-react";
+import { Camera, History, LayoutGrid } from "lucide-react";
 import { formatRecord } from "@shared/stats";
 import { useFranchise, type ActiveFranchise } from "@/app/franchise";
 import { useSeason } from "@/app/season";
@@ -39,7 +39,10 @@ function Hero({ active }: { active: ActiveFranchise }) {
         <dl className="grid grid-cols-3 gap-4 @tablet:gap-8">
           {[
             ["Seasons", String(seasons.length)],
-            ["Span", first && last ? `${first}–${String(last).slice(2)}` : "—"],
+            [
+              "Span",
+              !first || !last ? "—" : first === last ? String(first) : `${first}–${String(last).slice(2)}`,
+            ],
             ["Since", String(franchise.startYear)],
           ].map(([label, value]) => (
             <div key={label}>
@@ -94,32 +97,21 @@ export function HomeScreen() {
           <Skeleton className="h-24 rounded-xl" />
         </div>
       )}
-      {active === null && (
-        <EmptyState
-          size="page"
-          icon={Database}
-          title="No franchise yet"
-          description={
-            <>
-              This deployment has not been seeded. Run{" "}
-              <code className="rounded bg-surface-2 px-1">npm run seed</code> to create the 32 teams, the
-              franchise and its seasons.
-            </>
-          }
-        />
-      )}
       {active && (
         <div className="@container space-y-8">
           <Hero active={active} />
-          <Section title="Seasons" description="Empty shells until the workbook import fills them in.">
+          <Section
+            title="Seasons"
+            description="One per season played; the next is added when you advance (Sprint 5)."
+          >
             <SeasonGrid active={active} />
           </Section>
           <Section title="Next steps">
             <div className="grid gap-3 @tablet:grid-cols-3">
               <EmptyState
-                icon={FileSpreadsheet}
-                title="Import the workbook"
-                description="All ten seasons from Madden 26 Pats.xlsx. Sprint 1."
+                icon={History}
+                title="Real NFL history"
+                description="Seasons before your franchise, from an external NFL data source. Sprint 4."
               />
               <EmptyState
                 icon={Camera}
