@@ -200,9 +200,10 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 - Head-to-head and rivalry views; margin-of-victory and streak charts; team rank ribbons across seasons.
 - Calendar view of the season.
 - Command palette with players, games, seasons, screens and actions; keyboard shortcuts sheet.
-- Phone: dashboard cards in one column with prompts and inbox first, phone chart variants for pulse and rank ribbons, calendar as a vertical month list, search from the header icon.
+- Multiple franchises: create another franchise (team, name, first season, with its own real NFL history import) from Settings and the franchise header, and switch between them from a franchise switcher in the sidebar and the phone's More sheet. Exactly one franchise is active at a time; every screen, the inbox and the Shortcut endpoint follow the active one.
+- Phone: dashboard cards in one column with prompts and inbox first, phone chart variants for pulse and rank ribbons, calendar as a vertical month list, search from the header icon, the franchise switcher and "New franchise" in the More sheet.
 
-**Done when:** the dashboard is the screen you want to leave open on the second monitor and the first thing you check on your phone.
+**Done when:** the dashboard is the screen you want to leave open on the second monitor and the first thing you check on your phone, and a second franchise can be created and switched to on either device without touching the first one's data.
 
 ---
 
@@ -224,6 +225,5 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 ## Later (not scheduled)
 
 - Scoring plays and drive charts if a Madden screen provides them cleanly.
-- Multi-franchise switcher in the UI (the model already supports it).
 - Shareable read-only season recap pages.
 - Live Text on-device OCR as a pre-pass to improve digit accuracy.
