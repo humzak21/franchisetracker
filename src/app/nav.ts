@@ -61,7 +61,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Players",
     to: "/players",
     icon: Users,
-    description: "Player pages, search and compare",
+    description: "Players index, search, player pages and compare",
     sprint: 4,
   },
   {

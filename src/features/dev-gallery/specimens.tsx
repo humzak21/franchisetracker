@@ -31,6 +31,7 @@ import {
 } from "./fixtures";
 import { SegmentedDemo, SheetDemo, TeamPickerDemo } from "./demos";
 import { INGESTION_SPECIMENS } from "./ingestionSpecimens";
+import { PLAYER_SPECIMENS } from "./playerSpecimens";
 import { STATS_SPECIMENS } from "./statsSpecimens";
 import { TABLE_SPECIMENS } from "./tableSpecimens";
 
@@ -68,6 +69,7 @@ export const SPECIMENS: Specimen[] = [
   ...TABLE_SPECIMENS,
   ...INGESTION_SPECIMENS,
   ...STATS_SPECIMENS,
+  ...PLAYER_SPECIMENS,
   {
     id: "statcell",
     name: "StatCell · Highlight",

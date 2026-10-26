@@ -17,7 +17,15 @@ import { statColumn, type DataColumn } from "@/components/data/DataTable";
 import { StatCell } from "@/components/data/StatCell";
 import type { PlayerPage } from "./types";
 
-export type CareerRow = { id: string; year: number | null; teamAbbr: string; games: number; line: StatLine };
+export type CareerRow = {
+  id: string;
+  year: number | null;
+  teamAbbr: string;
+  games: number;
+  line: StatLine;
+  /** Imported real-NFL totals from before the franchise, not derived from captured games. */
+  imported: boolean;
+};
 
 /** One row per season (log-derived totals win over imported ones) for the regular season or playoffs. */
 export function careerRows(
@@ -33,6 +41,7 @@ export function careerRows(
     teamAbbr: s.team.abbr,
     games: s.stats.gamesPlayed,
     line: s.stats.totals as StatLine,
+    imported: s.stats.source === "import",
   }));
 }
 
@@ -43,6 +52,7 @@ export function totalsRow(rows: readonly CareerRow[]): CareerRow {
     teamAbbr: "",
     games: rows.reduce((n, r) => n + r.games, 0),
     line: aggregateLines(rows.map((r) => r.line)),
+    imported: false,
   };
 }
 
@@ -91,8 +101,16 @@ export function careerColumns(
       r.year === null ? (
         <span className="font-semibold">Career</span>
       ) : (
-        <span className="num font-medium">
+        <span className="num inline-flex items-center gap-1.5 font-medium">
           {r.year} <span className="text-xs text-subtle-foreground">{r.teamAbbr}</span>
+          {r.imported && (
+            <span
+              title="Real NFL season before the franchise"
+              className="rounded border border-dashed border-border-strong px-1 text-[10px] leading-4 font-semibold text-muted-foreground"
+            >
+              NFL
+            </span>
+          )}
         </span>
       ),
   };

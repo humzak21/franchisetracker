@@ -33,6 +33,13 @@ export function mix(a: string, b: string, amount: number): string {
   return rgbToHex(ca.map((c, i) => c + (cb[i]! - c) * amount) as Rgb);
 }
 
+/** Straight-line RGB distance, 0 (same) to about 441 (black and white). */
+export function distance(a: string, b: string): number {
+  const ca = hexToRgb(a);
+  const cb = hexToRgb(b);
+  return Math.hypot(...ca.map((c, i) => c - cb[i]!));
+}
+
 /** Text color (near-white or near-black) that reads on a given background. */
 export function readableOn(background: string): string {
   return contrast(background, "#ffffff") >= contrast(background, "#0b0f17") ? "#ffffff" : "#0b0f17";

@@ -19,6 +19,25 @@ export function ageInSeason(player: AgeSource, year: number): number | null {
   return null;
 }
 
+/** 76 → `6'4"`. */
+export function formatHeight(inches: number | undefined | null): string | null {
+  if (!inches) return null;
+  return `${Math.floor(inches / 12)}'${inches % 12}"`;
+}
+
+type DraftSlot = { year: number; round: number; pick?: number };
+
+/** "2024 · Rd 1, #3 NE", "Undrafted", or null when unknown. */
+export function formatDraft(
+  draft: DraftSlot | undefined | null,
+  teamAbbr: string | null,
+  undrafted?: boolean,
+): string | null {
+  if (!draft) return undrafted ? "Undrafted" : null;
+  const pick = draft.pick === undefined ? "" : `, #${draft.pick}`;
+  return `${draft.year} · Rd ${draft.round}${pick}${teamAbbr ? ` ${teamAbbr}` : ""}`;
+}
+
 /** Depth-chart order (QB first, LS last) for sorting by position. */
 export function positionOrder(position: Position): number {
   return POSITIONS.indexOf(position);

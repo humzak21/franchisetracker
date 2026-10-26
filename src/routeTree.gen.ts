@@ -25,6 +25,7 @@ import { Route as InboxIndexRouteImport } from './routes/inbox.index'
 import { Route as InboxSetKeyRouteImport } from './routes/inbox.$setKey'
 import { Route as PlayersIndexRouteImport } from './routes/players.index'
 import { Route as PlayersPlayerIdRouteImport } from './routes/players.$playerId'
+import { Route as PlayersCompareRouteImport } from './routes/players.compare'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -106,6 +107,11 @@ const PlayersPlayerIdRoute = PlayersPlayerIdRouteImport.update({
   path: '/players/$playerId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlayersCompareRoute = PlayersCompareRouteImport.update({
+  id: '/players/compare',
+  path: '/players/compare',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/games/$gameId': typeof GamesGameIdRoute
   '/inbox/$setKey': typeof InboxSetKeyRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
+  '/players/compare': typeof PlayersCompareRoute
   '/inbox/': typeof InboxIndexRoute
   '/players/': typeof PlayersIndexRoute
 }
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/games/$gameId': typeof GamesGameIdRoute
   '/inbox/$setKey': typeof InboxSetKeyRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
+  '/players/compare': typeof PlayersCompareRoute
   '/inbox': typeof InboxIndexRoute
   '/players': typeof PlayersIndexRoute
 }
@@ -159,6 +167,7 @@ export interface FileRoutesById {
   '/games/$gameId': typeof GamesGameIdRoute
   '/inbox/$setKey': typeof InboxSetKeyRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
+  '/players/compare': typeof PlayersCompareRoute
   '/inbox/': typeof InboxIndexRoute
   '/players/': typeof PlayersIndexRoute
 }
@@ -179,6 +188,7 @@ export interface FileRouteTypes {
     | '/games/$gameId'
     | '/inbox/$setKey'
     | '/players/$playerId'
+    | '/players/compare'
     | '/inbox/'
     | '/players/'
   fileRoutesByTo: FileRoutesByTo
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/games/$gameId'
     | '/inbox/$setKey'
     | '/players/$playerId'
+    | '/players/compare'
     | '/inbox'
     | '/players'
   id:
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/games/$gameId'
     | '/inbox/$setKey'
     | '/players/$playerId'
+    | '/players/compare'
     | '/inbox/'
     | '/players/'
   fileRoutesById: FileRoutesById
@@ -234,6 +246,7 @@ export interface RootRouteChildren {
   GamesGameIdRoute: typeof GamesGameIdRoute
   InboxSetKeyRoute: typeof InboxSetKeyRoute
   PlayersPlayerIdRoute: typeof PlayersPlayerIdRoute
+  PlayersCompareRoute: typeof PlayersCompareRoute
   InboxIndexRoute: typeof InboxIndexRoute
   PlayersIndexRoute: typeof PlayersIndexRoute
 }
@@ -352,6 +365,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayersPlayerIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/players/compare': {
+      id: '/players/compare'
+      path: '/players/compare'
+      fullPath: '/players/compare'
+      preLoaderRoute: typeof PlayersCompareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -370,6 +390,7 @@ const rootRouteChildren: RootRouteChildren = {
   GamesGameIdRoute: GamesGameIdRoute,
   InboxSetKeyRoute: InboxSetKeyRoute,
   PlayersPlayerIdRoute: PlayersPlayerIdRoute,
+  PlayersCompareRoute: PlayersCompareRoute,
   InboxIndexRoute: InboxIndexRoute,
   PlayersIndexRoute: PlayersIndexRoute,
 }

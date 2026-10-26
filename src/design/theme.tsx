@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from "react";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
-import { isNeutral, readableAccent, readableOn } from "./color";
+import { distance, isNeutral, readableAccent, readableOn } from "./color";
 
 export type ThemeMode = "light" | "dark" | "system";
 export type TeamColors = { primaryColor: string; secondaryColor: string };
@@ -21,6 +21,34 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 export function teamAccent(team: TeamColors, resolved: "light" | "dark"): string {
   const candidates = [team.primaryColor, team.secondaryColor].filter((c) => !isNeutral(c));
   return readableAccent(candidates.length ? candidates : [team.primaryColor], BACKGROUNDS[resolved]);
+}
+
+/** Below this RGB distance two series colors read as the same color. */
+const ALIKE = 90;
+/** Token colors for a series whose team colors are taken (two red teams in one chart). */
+const FALLBACKS = ["var(--ot)", "var(--tie)", "var(--win)", "var(--muted-foreground)"] as const;
+
+/**
+ * One readable, distinct color per team for charts that compare teams: the team's accent, else
+ * its other color, else a token color when both look like a color already in the chart.
+ */
+export function seriesColors(teams: readonly (TeamColors | null)[], resolved: "light" | "dark"): string[] {
+  const used: string[] = [];
+  let fallback = 0;
+  return teams.map((team) => {
+    const options = team
+      ? [
+          teamAccent(team, resolved),
+          teamAccent({ primaryColor: team.secondaryColor, secondaryColor: team.secondaryColor }, resolved),
+        ]
+      : [];
+    const color = options.find((c) => used.every((u) => distance(u, c) >= ALIKE));
+    if (color) {
+      used.push(color);
+      return color;
+    }
+    return FALLBACKS[fallback++ % FALLBACKS.length]!;
+  });
 }
 
 /** CSS variables for a team, resolved for the current theme. Pure so the gallery can preview any team. */

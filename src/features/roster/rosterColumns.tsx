@@ -35,7 +35,7 @@ export function rosterColumns(team: TeamLike, year: number): DataColumn<RosterRo
               displayName: r.player.displayName,
               position: r.entry.position,
               jersey: r.entry.jersey,
-              headshotUrl: null,
+              headshotUrl: r.headshotUrl,
               team,
             }}
           />

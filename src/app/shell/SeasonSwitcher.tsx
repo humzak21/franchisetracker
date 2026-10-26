@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/misc";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/cn";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/hooks/useMediaQuery";
-import type { Season } from "../franchise";
+import { isPreFranchise } from "@shared/history/nflverse";
+import { useFranchise, type Season } from "../franchise";
 import { useSeason } from "../season";
 
 const statusTone = {
@@ -19,10 +20,12 @@ const statusTone = {
 function SeasonList({
   seasons,
   selected,
+  startYear,
   onPick,
 }: {
   seasons: readonly Season[];
   selected?: number;
+  startYear: number;
   onPick: (year: number) => void;
 }) {
   return (
@@ -38,7 +41,11 @@ function SeasonList({
             )}
           >
             <span className="num font-display text-xl font-bold">{s.year}</span>
-            <Badge tone={statusTone[s.status]}>{s.status}</Badge>
+            {isPreFranchise(s.year, startYear) ? (
+              <Badge title="Real NFL season before the franchise">NFL</Badge>
+            ) : (
+              <Badge tone={statusTone[s.status]}>{s.status}</Badge>
+            )}
             {s.userRecord && (
               <span className="num ml-auto text-sm text-muted-foreground">{formatRecord(s.userRecord)}</span>
             )}
@@ -53,6 +60,7 @@ function SeasonList({
 /** Season picker for the page header: a popover on wide screens, a bottom sheet on phones. Shortcut S. */
 export function SeasonSwitcher() {
   const { seasons, season, setYear, pickerOpen, setPickerOpen } = useSeason();
+  const startYear = useFranchise()?.franchise.startYear ?? 0;
   const phone = useMediaQuery(PHONE_QUERY);
   if (!season) return null;
 
@@ -77,7 +85,7 @@ export function SeasonSwitcher() {
       <>
         <span onClick={() => setPickerOpen(true)}>{trigger}</span>
         <BottomSheet open={pickerOpen} onOpenChange={setPickerOpen} title="Season">
-          <SeasonList seasons={seasons} selected={season.year} onPick={pick} />
+          <SeasonList seasons={seasons} selected={season.year} startYear={startYear} onPick={pick} />
         </BottomSheet>
       </>
     );
@@ -85,8 +93,8 @@ export function SeasonSwitcher() {
   return (
     <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent className="w-64 p-1.5">
-        <SeasonList seasons={seasons} selected={season.year} onPick={pick} />
+      <PopoverContent className="max-h-[70vh] w-64 overflow-y-auto p-1.5">
+        <SeasonList seasons={seasons} selected={season.year} startYear={startYear} onPick={pick} />
       </PopoverContent>
     </Popover>
   );

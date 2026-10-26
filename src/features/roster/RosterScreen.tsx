@@ -1,13 +1,17 @@
 import { useQuery } from "convex/react";
-import { Users } from "lucide-react";
+import { ScanFace, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
+import { isPreFranchise } from "@shared/history/nflverse";
 import { POSITION_GROUPS, positionGroupOf, sideOf, type PositionGroup, type Side } from "@shared/domain";
+import { useFranchise } from "@/app/franchise";
 import { useSeason } from "@/app/season";
 import { DataTable } from "@/components/data/DataTable";
 import { EmptyState } from "@/components/data/EmptyState";
 import { FilterBar, type FilterOption } from "@/components/data/FilterBar";
 import { Page } from "@/components/layout/Page";
+import { Button } from "@/components/ui/button";
+import { FaceMatchSheet } from "./FaceMatchSheet";
 import { byDepthOrder, rosterColumns, type RosterRow } from "./rosterColumns";
 
 type SideFilter = Side | "all";
@@ -59,13 +63,35 @@ export function RosterScreen() {
     ),
   ];
 
+  const unmatched = useMemo(
+    () =>
+      all
+        .filter((r) => r.player.isReal && r.player.espnId === undefined)
+        .map((r) => ({ playerId: r.player._id, displayName: r.player.displayName })),
+    [all],
+  );
+  const [facesOpen, setFacesOpen] = useState(false);
   const team = data?.team ?? LOADING_TEAM;
   const year = season?.year ?? 0;
   const columns = useMemo(() => rosterColumns(team, year), [team, year]);
   const empty = all.length === 0;
+  const startYear = useFranchise()?.franchise.startYear;
+  const preFranchise =
+    season !== undefined && startYear !== undefined && isPreFranchise(season.year, startYear);
 
   return (
-    <Page title="Roster" eyebrow={season ? `${season.year} season` : undefined} season>
+    <Page
+      title="Roster"
+      eyebrow={season ? `${season.year} season` : undefined}
+      season
+      actions={
+        unmatched.length > 0 && (
+          <Button size="sm" variant="outline" onClick={() => setFacesOpen(true)}>
+            <ScanFace /> <span className="max-sm:sr-only">Match faces</span> {unmatched.length}
+          </Button>
+        )
+      }
+    >
       {/* Each filter gets a full cell: FilterBar picks chips or a sheet from its own width. */}
       <div className="@container mb-3">
         <div className="grid grid-cols-2 gap-2 @tablet:grid-cols-1">
@@ -96,12 +122,20 @@ export function RosterScreen() {
             icon={Users}
             title={empty ? `No roster for ${season?.year ?? "this season"} yet` : "No players match"}
             description={
-              empty
-                ? "Rosters come from roster screenshots (Sprint 6) and the real NFL history import (Sprint 4)."
-                : "Try another side or position."
+              !empty
+                ? "Try another side or position."
+                : preFranchise
+                  ? "Rosters before the franchise are not imported; each real player's seasons are on their own page."
+                  : "Rosters come from the real NFL import for the first season and from roster screenshots (Sprint 6)."
             }
           />
         }
+      />
+      <FaceMatchSheet
+        key={unmatched.length}
+        players={unmatched}
+        open={facesOpen}
+        onOpenChange={setFacesOpen}
       />
     </Page>
   );

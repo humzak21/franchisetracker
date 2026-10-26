@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { readableOn } from "@/design/color";
 import { cn } from "@/lib/cn";
 import type { TeamLike } from "../team/TeamLogo";
@@ -21,7 +22,7 @@ export function initials(name: string): string {
   ).toUpperCase();
 }
 
-/** Player headshot: cached photo for real players, a monogram in team colors for everyone else. */
+/** Player headshot: the photo for real players, a monogram in team colors for everyone else. */
 export function Headshot({
   name,
   src,
@@ -36,9 +37,17 @@ export function Headshot({
   className?: string;
 }) {
   const base = cn("shrink-0 overflow-hidden rounded-full", sizes[size], className);
-  if (src)
+  // A photo ESPN no longer serves falls back to the monogram instead of a broken image.
+  const [failed, setFailed] = useState<string | null>(null);
+  if (src && failed !== src)
     return (
-      <img src={src} alt={name} className={cn(base, "bg-surface-2 object-cover object-top")} loading="lazy" />
+      <img
+        src={src}
+        alt={name}
+        onError={() => setFailed(src)}
+        className={cn(base, "bg-surface-2 object-cover object-top")}
+        loading="lazy"
+      />
     );
   const primary = team?.primaryColor ?? "#334155";
   return (

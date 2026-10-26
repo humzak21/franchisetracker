@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, History } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { PLAYOFF_RESULT_LABELS, weekPhase, type WeekPhase } from "@shared/domain";
+import { isPreFranchise } from "@shared/history/nflverse";
 import { formatRecord, formatSigned } from "@shared/stats";
 import { useFranchise } from "@/app/franchise";
 import { useSeason } from "@/app/season";
@@ -35,6 +36,7 @@ function Week({ games }: { games: ScheduleGame[] }) {
 
 export function ScheduleScreen() {
   const { season } = useSeason();
+  const active = useFranchise();
   const data = useQuery(api.games.schedule.bySeason, season ? { seasonId: season._id } : "skip");
   const summary = data?.summary;
   const playoffResult = season?.userRecord?.playoffResult;
@@ -48,6 +50,21 @@ export function ScheduleScreen() {
             <Skeleton key={i} className="h-16 rounded-xl" />
           ))}
         </div>
+      ) : data.games.length === 0 &&
+        season &&
+        active &&
+        isPreFranchise(season.year, active.franchise.startYear) ? (
+        <EmptyState
+          size="page"
+          icon={History}
+          title={`${season.year}: real NFL history`}
+          description={`Seasons before the franchise come from nflverse as standings, results and season totals, without game-by-game schedules. ${season.userRecord ? `The ${active.userTeam.name} went ${formatRecord(season.userRecord)}.` : ""}`}
+          action={
+            <Button asChild variant="outline">
+              <Link to="/history">Open history</Link>
+            </Button>
+          }
+        />
       ) : data.games.length === 0 ? (
         <EmptyState
           size="page"

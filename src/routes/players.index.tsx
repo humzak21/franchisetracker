@@ -1,4 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlannedScreen } from "@/app/shell/PlannedScreen";
+import { PlayersScreen } from "@/features/players/PlayersScreen";
 
-export const Route = createFileRoute("/players/")({ component: () => <PlannedScreen nav="players" /> });
+export const Route = createFileRoute("/players/")({ component: PlayersScreen });

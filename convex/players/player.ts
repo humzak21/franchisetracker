@@ -19,6 +19,7 @@ export const get = query({
   returns: v.object({
     player: schema.doc("players"),
     headshotUrl: v.union(v.string(), v.null()),
+    draftTeamAbbr: v.union(v.string(), v.null()),
     startYear: v.number(),
     history: v.array(v.object({ year: v.number(), team: vTeamRef, entry: schema.doc("rosterEntries") })),
     seasons: v.array(v.object({ year: v.number(), team: vTeamRef, stats: schema.doc("seasonPlayerStats") })),
@@ -58,6 +59,7 @@ export const get = query({
     return {
       player,
       headshotUrl: await headshotUrl(ctx, player),
+      draftTeamAbbr: (player.draft?.teamId && teams.get(player.draft.teamId)?.abbr) ?? null,
       startYear: franchise.startYear,
       history,
       seasons,
