@@ -11,25 +11,11 @@ type ThemeChoice = "app" | "dark" | "light" | "both";
 
 const PHONE_WIDTH = 390;
 const DESKTOP_WIDTH = 960;
-/** Specimens mounted per frame. */
-const BATCH = 4;
-
 /**
- * How many specimens to render, growing a batch per frame. Every specimen renders four times,
- * charts included; mounting them all in one pass kept the page blank for seconds on a phone.
- * A section scrolled to (or linked from the specimen nav) mounts at once, ahead of its batch.
+ * Becomes true, and stays true, once the element comes within a screen of the viewport. Every
+ * specimen renders four times, charts included: rendering them all up front kept a phone busy for
+ * many seconds, so each section mounts its frames only when it is scrolled to (or linked to).
  */
-function useProgressiveCount(total: number): number {
-  const [count, setCount] = useState(BATCH);
-  useEffect(() => {
-    if (count >= total) return;
-    const id = requestAnimationFrame(() => setCount((n) => Math.min(total, n + BATCH)));
-    return () => cancelAnimationFrame(id);
-  }, [count, total]);
-  return count;
-}
-
-/** Becomes true, and stays true, once the element comes within a screen of the viewport. */
 function useNearViewport<T extends HTMLElement>() {
   const ref = useRef<T>(null);
   const [near, setNear] = useState(false);
@@ -77,16 +63,12 @@ function SpecimenBlock({
   specimen,
   themes,
   team,
-  mounted,
 }: {
   specimen: Specimen;
   themes: ("dark" | "light")[];
   team: (typeof NFL_TEAMS)[number];
-  /** False until its batch comes up: the heading shows, the frames wait unless scrolled to. */
-  mounted: boolean;
 }) {
-  const { ref, near } = useNearViewport<HTMLElement>();
-  const shown = mounted || near;
+  const { ref, near: shown } = useNearViewport<HTMLElement>();
   return (
     <section ref={ref} id={specimen.id} className="scroll-mt-24 border-t border-border pt-6">
       <h2 className="font-display text-2xl font-bold tracking-wide uppercase">{specimen.name}</h2>
@@ -118,7 +100,6 @@ export function GalleryScreen() {
   const [choice, setChoice] = useLocalStorage<ThemeChoice>("ft.gallery.theme", "both");
   const [teamAbbr, setTeamAbbr] = useLocalStorage("ft.gallery.team", "NE");
   const team = NFL_TEAMS.find((t) => t.abbr === teamAbbr) ?? NFL_TEAMS[0]!;
-  const mounted = useProgressiveCount(SPECIMENS.length);
   const themes: ("dark" | "light")[] =
     choice === "both" ? ["dark", "light"] : [choice === "app" ? resolved : choice];
 
@@ -168,8 +149,8 @@ export function GalleryScreen() {
         </nav>
       </div>
       <div className="space-y-10">
-        {SPECIMENS.map((sp, i) => (
-          <SpecimenBlock key={sp.id} specimen={sp} themes={themes} team={team} mounted={i < mounted} />
+        {SPECIMENS.map((sp) => (
+          <SpecimenBlock key={sp.id} specimen={sp} themes={themes} team={team} />
         ))}
       </div>
     </Page>

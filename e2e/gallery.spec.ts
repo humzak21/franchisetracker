@@ -3,7 +3,7 @@ import { expect, test } from "./fixtures";
 test.describe("component gallery", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/dev/components");
-    // Every specimen renders four times (two themes, two widths), charts included: slow on CI WebKit.
+    // Each specimen renders four times (two themes, two widths) as it is scrolled to: slow on CI WebKit.
     await expect(page.getByRole("heading", { level: 1, name: "Component gallery" })).toBeVisible({
       timeout: 20_000,
     });
@@ -11,6 +11,8 @@ test.describe("component gallery", () => {
 
   test("DataTable switches to phone mode inside the phone frame", async ({ page }) => {
     const section = page.locator("#datatable");
+    // Specimens mount when scrolled to.
+    await section.scrollIntoViewIfNeeded();
     const phoneFrame = section.locator("figure").filter({ hasText: /Phone · 390px · dark/ });
     const desktopFrame = section.locator("figure").filter({ hasText: /Desktop · 960px · dark/ });
 
@@ -26,7 +28,7 @@ test.describe("component gallery", () => {
   });
 
   test("TeamPicker selects one team at a time", async ({ page }) => {
-    // Specimens far down the page mount when scrolled to (or once their batch comes up).
+    // Specimens mount when scrolled to.
     await page.locator("#teampicker").scrollIntoViewIfNeeded();
     const frame = page.locator("#teampicker figure").first();
     const lions = frame.getByRole("radio", { name: "Detroit Lions" });
