@@ -33,11 +33,11 @@ export const playerTables = {
     ),
     undrafted: v.optional(v.boolean()),
     isReal: v.boolean(),
+    /** nflverse `gsis_id` for players from the real NFL history import; the import's upsert key. */
+    nflverseId: v.optional(v.string()),
     espnId: v.optional(v.number()),
     headshotStorageId: v.optional(v.id("_storage")),
     retired: v.boolean(),
-    devTrait: v.optional(vDevTrait),
-    abilities: v.optional(v.array(v.string())),
     /** Name variants for resolution ("D. Maye", typos); a few per player. */
     aliases: v.array(v.string()),
     notes: v.optional(v.string()),
@@ -45,6 +45,7 @@ export const playerTables = {
     .index("by_franchiseId_and_lastName", ["franchiseId", "lastName"])
     .index("by_franchiseId_and_displayName", ["franchiseId", "displayName"])
     .index("by_franchiseId_and_position", ["franchiseId", "position"])
+    .index("by_franchiseId_and_nflverseId", ["franchiseId", "nflverseId"])
     .index("by_espnId", ["espnId"])
     .searchIndex("search_displayName", { searchField: "displayName", filterFields: ["franchiseId"] }),
 
@@ -58,6 +59,9 @@ export const playerTables = {
     position: vPosition,
     depthSlot: v.optional(v.number()),
     ovr: v.optional(v.number()),
+    /** Dev trait and abilities change season to season, so they live on the entry. */
+    devTrait: v.optional(vDevTrait),
+    abilities: v.optional(v.array(v.string())),
     age: v.optional(v.number()),
     exp: v.optional(v.number()),
     acquisition: v.optional(

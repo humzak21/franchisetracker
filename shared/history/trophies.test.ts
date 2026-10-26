@@ -17,15 +17,28 @@ describe("trophies", () => {
   });
 
   it("merges real-history entries without double counting", () => {
-    const room = trophyRoom(seasons, [
-      { year: 2019, kind: "superBowl" },
-      { year: 2029, kind: "superBowl" },
-    ]);
+    const room = trophyRoom(
+      seasons,
+      [
+        { year: 2019, kind: "superBowl" },
+        { year: 2029, kind: "superBowl" },
+      ],
+      2025,
+    );
     expect(room.superBowl).toEqual([
       { year: 2029, source: "franchise" },
       { year: 2019, source: "history" },
     ]);
     expect(room.division.map((t) => t.year)).toEqual([2030, 2029]);
+  });
+
+  it("counts imported seasons before the franchise as history", () => {
+    const room = trophyRoom(seasons, [], 2030);
+    expect(room.superBowl).toEqual([{ year: 2029, source: "history" }]);
+    expect(room.conference).toEqual([
+      { year: 2030, source: "franchise" },
+      { year: 2029, source: "history" },
+    ]);
   });
 
   it("groups seasons by decade with totals", () => {

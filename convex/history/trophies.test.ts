@@ -19,7 +19,7 @@ describe("history/trophies", () => {
       note: " LIII ",
     });
     const overview = await owner.query(api.history.trophies.overview, {});
-    expect(overview.seasons.map((s) => s.year)).toEqual([2026, 2027]);
+    expect(overview.seasons.map((s) => s.year)).toEqual([2024, 2025, 2026, 2027]);
     expect(overview.entries).toMatchObject([{ year: 2019, kind: "superBowl", note: "LIII" }]);
     await owner.mutation(api.history.trophies.removeEntry, { entryId });
     expect((await owner.query(api.history.trophies.overview, {})).entries).toEqual([]);

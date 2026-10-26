@@ -28,7 +28,7 @@ export function HistoryScreen() {
   const played = data.seasons.filter((s) => s.userRecord);
   const totals = totalsOf(played);
   const pct = winPct(totals);
-  const room = trophyRoom(data.seasons, data.entries);
+  const room = trophyRoom(data.seasons, data.entries, data.startYear);
 
   return (
     <Page title="History" eyebrow={`Since ${data.startYear}`}>

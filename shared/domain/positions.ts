@@ -76,7 +76,7 @@ export const POSITION_GROUP_LABELS: Record<PositionGroup, string> = {
   LS: "Long Snappers",
 };
 
-/** Alternate spellings seen on Madden screens and in older games. */
+/** Alternate spellings seen on Madden screens, in older games and in real-roster data. */
 export const POSITION_ALIASES: Record<string, Position> = {
   RB: "HB",
   LEDGE: "LEDG",
@@ -94,6 +94,15 @@ export const POSITION_ALIASES: Record<string, Position> = {
   S: "SS",
   NT: "DT",
   PK: "K",
+  // Generic groups real-roster sources (nflverse) list instead of a depth-chart slot.
+  T: "LT",
+  OT: "LT",
+  G: "LG",
+  OG: "LG",
+  OL: "LG",
+  DL: "DT",
+  DB: "CB",
+  SAF: "SS",
 };
 
 export function isPosition(value: string): value is Position {

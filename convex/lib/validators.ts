@@ -55,6 +55,7 @@ export const MILESTONE_KINDS = [
   "custom",
 ] as const;
 export const WARNING_SEVERITIES = ["info", "warning", "error"] as const;
+export const IMPORT_STATUSES = ["running", "done", "failed"] as const;
 
 // Shared domain enums.
 export const vWeekKey = literals(WEEK_KEYS);
@@ -86,6 +87,7 @@ export const vStandingSource = literals(STANDING_SOURCES);
 export const vTransactionDirection = literals(TRANSACTION_DIRECTIONS);
 export const vMilestoneKind = literals(MILESTONE_KINDS);
 export const vWarningSeverity = literals(WARNING_SEVERITIES);
+export const vImportStatus = literals(IMPORT_STATUSES);
 
 /** Flat stat map keyed by stat-registry keys (`shared/stats/registry.ts`), e.g. `{ passYds: 203 }`. */
 export const vStatMap = v.record(v.string(), v.number());

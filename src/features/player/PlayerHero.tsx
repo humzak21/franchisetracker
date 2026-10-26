@@ -41,8 +41,8 @@ export function PlayerHero({ page }: { page: PlayerPage }) {
             <PositionBadge position={position} />
             <span>{POSITION_INFO[position].label}</span>
             {latest?.entry.jersey != null && <span className="num">#{latest.entry.jersey}</span>}
-            {player.devTrait && player.devTrait !== "normal" && (
-              <span>· {DEV_TRAIT_LABELS[player.devTrait]}</span>
+            {latest?.entry.devTrait && latest.entry.devTrait !== "normal" && (
+              <span>· {DEV_TRAIT_LABELS[latest.entry.devTrait]}</span>
             )}
           </div>
           <h2 className="mt-1.5 font-display text-4xl leading-none font-bold tracking-wide uppercase @tablet:text-5xl">

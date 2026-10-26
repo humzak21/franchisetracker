@@ -40,18 +40,19 @@ describe("players/roster:bySeason", () => {
 });
 
 describe("players/player", () => {
-  test("get returns history and season stats with years and teams", async () => {
+  test("get returns history and season stats with years and teams, imported seasons first", async () => {
     const { owner, seasonId } = await seeded();
     const roster = await owner.query(api.players.roster.bySeason, { seasonId });
     const maye = roster.entries.find((e) => e.player.displayName === "Drake Maye")!;
     const page = await owner.query(api.players.player.get, { playerId: maye.player._id });
     expect(page.history).toHaveLength(1);
     expect(page.history[0]).toMatchObject({ year: SAMPLE_START_YEAR, team: { abbr: "NE" } });
-    expect(page.seasons[0]?.stats).toMatchObject({
+    expect(page.seasons.find((s) => s.year === SAMPLE_START_YEAR)?.stats).toMatchObject({
       source: "logs",
       gamesPlayed: 5,
       totals: { passYds: 1403 },
     });
+    expect(page.seasons[0]).toMatchObject({ year: 2024, team: { abbr: "NE" }, stats: { source: "import" } });
   });
 
   test("updateNotes saves and clears notes", async () => {
