@@ -11,7 +11,8 @@ export type NewFranchise = { name: string; teamAbbr: string; startYear: number }
 
 /**
  * Creates the active franchise and its first season. One active franchise at a time for now
- * (the model supports several; a switcher is in "Later"), so a second create is refused.
+ * (the model supports several; creating and switching franchises is Sprint 8), so a second create
+ * is refused.
  */
 export async function createFranchise(
   ctx: MutationCtx,

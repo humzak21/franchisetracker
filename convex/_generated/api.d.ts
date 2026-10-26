@@ -10,9 +10,14 @@
 
 import type * as account from "../account.js";
 import type * as auth from "../auth.js";
+import type * as awards_awards from "../awards/awards.js";
 import type * as dev_fixtureHistory from "../dev/fixtureHistory.js";
+import type * as dev_fixtureLeague from "../dev/fixtureLeague.js";
 import type * as dev_fixtureLines from "../dev/fixtureLines.js";
 import type * as dev_fixtures from "../dev/fixtures.js";
+import type * as draft_board from "../draft/board.js";
+import type * as draft_draft from "../draft/draft.js";
+import type * as draft_inventory from "../draft/inventory.js";
 import type * as external_espn from "../external/espn.js";
 import type * as external_media from "../external/media.js";
 import type * as external_openrouter from "../external/openrouter.js";
@@ -60,6 +65,8 @@ import type * as ingestion_uploads from "../ingestion/uploads.js";
 import type * as ingestion_usage from "../ingestion/usage.js";
 import type * as league_logos from "../league/logos.js";
 import type * as league_seed from "../league/seed.js";
+import type * as league_standings from "../league/standings.js";
+import type * as league_teamHistory from "../league/teamHistory.js";
 import type * as league_teams from "../league/teams.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_draftValidators from "../lib/draftValidators.js";
@@ -73,6 +80,8 @@ import type * as lib_refs from "../lib/refs.js";
 import type * as lib_reports from "../lib/reports.js";
 import type * as lib_testOwner from "../lib/testOwner.js";
 import type * as lib_validators from "../lib/validators.js";
+import type * as players_activity from "../players/activity.js";
+import type * as players_cap from "../players/cap.js";
 import type * as players_compare from "../players/compare.js";
 import type * as players_directory from "../players/directory.js";
 import type * as players_espn from "../players/espn.js";
@@ -109,6 +118,7 @@ import type * as stats_refreshRecords from "../stats/refreshRecords.js";
 import type * as stats_refreshStreaks from "../stats/refreshStreaks.js";
 import type * as stats_season from "../stats/season.js";
 import type * as stats_streaks from "../stats/streaks.js";
+import type * as transactions_transactions from "../transactions/transactions.js";
 
 import type {
   ApiFromModules,
@@ -119,9 +129,14 @@ import type {
 declare const fullApi: ApiFromModules<{
   account: typeof account;
   auth: typeof auth;
+  "awards/awards": typeof awards_awards;
   "dev/fixtureHistory": typeof dev_fixtureHistory;
+  "dev/fixtureLeague": typeof dev_fixtureLeague;
   "dev/fixtureLines": typeof dev_fixtureLines;
   "dev/fixtures": typeof dev_fixtures;
+  "draft/board": typeof draft_board;
+  "draft/draft": typeof draft_draft;
+  "draft/inventory": typeof draft_inventory;
   "external/espn": typeof external_espn;
   "external/media": typeof external_media;
   "external/openrouter": typeof external_openrouter;
@@ -169,6 +184,8 @@ declare const fullApi: ApiFromModules<{
   "ingestion/usage": typeof ingestion_usage;
   "league/logos": typeof league_logos;
   "league/seed": typeof league_seed;
+  "league/standings": typeof league_standings;
+  "league/teamHistory": typeof league_teamHistory;
   "league/teams": typeof league_teams;
   "lib/auth": typeof lib_auth;
   "lib/draftValidators": typeof lib_draftValidators;
@@ -182,6 +199,8 @@ declare const fullApi: ApiFromModules<{
   "lib/reports": typeof lib_reports;
   "lib/testOwner": typeof lib_testOwner;
   "lib/validators": typeof lib_validators;
+  "players/activity": typeof players_activity;
+  "players/cap": typeof players_cap;
   "players/compare": typeof players_compare;
   "players/directory": typeof players_directory;
   "players/espn": typeof players_espn;
@@ -218,6 +237,7 @@ declare const fullApi: ApiFromModules<{
   "stats/refreshStreaks": typeof stats_refreshStreaks;
   "stats/season": typeof stats_season;
   "stats/streaks": typeof stats_streaks;
+  "transactions/transactions": typeof transactions_transactions;
 }>;
 
 /**

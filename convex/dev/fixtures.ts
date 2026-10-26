@@ -17,6 +17,7 @@ import { must } from "../lib/errors";
 import { refreshAfterGame } from "../stats/refresh";
 import { recomputeCareer, recomputePlayerSeason } from "../stats/recompute";
 import { seedSampleHistory } from "./fixtureHistory";
+import { seedSampleLeague } from "./fixtureLeague";
 import { SAMPLE_LINES } from "./fixtureLines";
 
 export const SAMPLE_FRANCHISE_NAME = "Sample Franchise";
@@ -267,7 +268,8 @@ export const seedFixtures = internalMutation({
       await recomputeCareer(ctx, player);
     }
     for (const gameId of gameIds) await refreshAfterGame(ctx, gameId, [...playerIds.values()]);
-    await ctx.db.patch("seasons", season._id, { userRecord: { w, l, t: 0 } });
+    await ctx.db.patch("seasons", season._id, { userRecord: { w, l, t: 0, divisionRank: 1 } });
+    await seedSampleLeague(ctx, franchiseId, season._id, SAMPLE_START_YEAR, playerIds);
     return { seeded: true };
   },
 });

@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AwardsRouteImport } from './routes/awards'
 import { Route as DraftRouteImport } from './routes/draft'
-import { Route as LeagueRouteImport } from './routes/league'
 import { Route as RosterRouteImport } from './routes/roster'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -24,6 +23,7 @@ import { Route as HistoryHallOfFameRouteImport } from './routes/history.hall-of-
 import { Route as HistoryTimelineRouteImport } from './routes/history.timeline'
 import { Route as InboxIndexRouteImport } from './routes/inbox.index'
 import { Route as InboxSetKeyRouteImport } from './routes/inbox.$setKey'
+import { Route as LeagueIndexRouteImport } from './routes/league.index'
 import { Route as PlayersIndexRouteImport } from './routes/players.index'
 import { Route as PlayersPlayerIdRouteImport } from './routes/players.$playerId'
 import { Route as PlayersCompareRouteImport } from './routes/players.compare'
@@ -31,6 +31,7 @@ import { Route as StatsIndexRouteImport } from './routes/stats.index'
 import { Route as StatsReconcileRouteImport } from './routes/stats.reconcile'
 import { Route as HistoryReportsIndexRouteImport } from './routes/history.reports.index'
 import { Route as HistoryReportsYearRouteImport } from './routes/history.reports.$year'
+import { Route as LeagueTeamsAbbrRouteImport } from './routes/league.teams.$abbr'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -45,11 +46,6 @@ const AwardsRoute = AwardsRouteImport.update({
 const DraftRoute = DraftRouteImport.update({
   id: '/draft',
   path: '/draft',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LeagueRoute = LeagueRouteImport.update({
-  id: '/league',
-  path: '/league',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RosterRoute = RosterRouteImport.update({
@@ -107,6 +103,11 @@ const InboxSetKeyRoute = InboxSetKeyRouteImport.update({
   path: '/inbox/$setKey',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LeagueIndexRoute = LeagueIndexRouteImport.update({
+  id: '/league/',
+  path: '/league/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlayersIndexRoute = PlayersIndexRouteImport.update({
   id: '/players/',
   path: '/players/',
@@ -142,12 +143,16 @@ const HistoryReportsYearRoute = HistoryReportsYearRouteImport.update({
   path: '/history/reports/$year',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LeagueTeamsAbbrRoute = LeagueTeamsAbbrRouteImport.update({
+  id: '/league/teams/$abbr',
+  path: '/league/teams/$abbr',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/awards': typeof AwardsRoute
   '/draft': typeof DraftRoute
-  '/league': typeof LeagueRoute
   '/roster': typeof RosterRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
@@ -162,16 +167,17 @@ export interface FileRoutesByFullPath {
   '/stats/reconcile': typeof StatsReconcileRoute
   '/history/': typeof HistoryIndexRoute
   '/inbox/': typeof InboxIndexRoute
+  '/league/': typeof LeagueIndexRoute
   '/players/': typeof PlayersIndexRoute
   '/stats/': typeof StatsIndexRoute
   '/history/reports/$year': typeof HistoryReportsYearRoute
+  '/league/teams/$abbr': typeof LeagueTeamsAbbrRoute
   '/history/reports/': typeof HistoryReportsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/awards': typeof AwardsRoute
   '/draft': typeof DraftRoute
-  '/league': typeof LeagueRoute
   '/roster': typeof RosterRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
@@ -186,9 +192,11 @@ export interface FileRoutesByTo {
   '/stats/reconcile': typeof StatsReconcileRoute
   '/history': typeof HistoryIndexRoute
   '/inbox': typeof InboxIndexRoute
+  '/league': typeof LeagueIndexRoute
   '/players': typeof PlayersIndexRoute
   '/stats': typeof StatsIndexRoute
   '/history/reports/$year': typeof HistoryReportsYearRoute
+  '/league/teams/$abbr': typeof LeagueTeamsAbbrRoute
   '/history/reports': typeof HistoryReportsIndexRoute
 }
 export interface FileRoutesById {
@@ -196,7 +204,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/awards': typeof AwardsRoute
   '/draft': typeof DraftRoute
-  '/league': typeof LeagueRoute
   '/roster': typeof RosterRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
@@ -211,9 +218,11 @@ export interface FileRoutesById {
   '/stats/reconcile': typeof StatsReconcileRoute
   '/history/': typeof HistoryIndexRoute
   '/inbox/': typeof InboxIndexRoute
+  '/league/': typeof LeagueIndexRoute
   '/players/': typeof PlayersIndexRoute
   '/stats/': typeof StatsIndexRoute
   '/history/reports/$year': typeof HistoryReportsYearRoute
+  '/league/teams/$abbr': typeof LeagueTeamsAbbrRoute
   '/history/reports/': typeof HistoryReportsIndexRoute
 }
 export interface FileRouteTypes {
@@ -222,7 +231,6 @@ export interface FileRouteTypes {
     | '/'
     | '/awards'
     | '/draft'
-    | '/league'
     | '/roster'
     | '/schedule'
     | '/settings'
@@ -237,16 +245,17 @@ export interface FileRouteTypes {
     | '/stats/reconcile'
     | '/history/'
     | '/inbox/'
+    | '/league/'
     | '/players/'
     | '/stats/'
     | '/history/reports/$year'
+    | '/league/teams/$abbr'
     | '/history/reports/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/awards'
     | '/draft'
-    | '/league'
     | '/roster'
     | '/schedule'
     | '/settings'
@@ -261,16 +270,17 @@ export interface FileRouteTypes {
     | '/stats/reconcile'
     | '/history'
     | '/inbox'
+    | '/league'
     | '/players'
     | '/stats'
     | '/history/reports/$year'
+    | '/league/teams/$abbr'
     | '/history/reports'
   id:
     | '__root__'
     | '/'
     | '/awards'
     | '/draft'
-    | '/league'
     | '/roster'
     | '/schedule'
     | '/settings'
@@ -285,9 +295,11 @@ export interface FileRouteTypes {
     | '/stats/reconcile'
     | '/history/'
     | '/inbox/'
+    | '/league/'
     | '/players/'
     | '/stats/'
     | '/history/reports/$year'
+    | '/league/teams/$abbr'
     | '/history/reports/'
   fileRoutesById: FileRoutesById
 }
@@ -295,7 +307,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AwardsRoute: typeof AwardsRoute
   DraftRoute: typeof DraftRoute
-  LeagueRoute: typeof LeagueRoute
   RosterRoute: typeof RosterRoute
   ScheduleRoute: typeof ScheduleRoute
   SettingsRoute: typeof SettingsRoute
@@ -310,9 +321,11 @@ export interface RootRouteChildren {
   StatsReconcileRoute: typeof StatsReconcileRoute
   HistoryIndexRoute: typeof HistoryIndexRoute
   InboxIndexRoute: typeof InboxIndexRoute
+  LeagueIndexRoute: typeof LeagueIndexRoute
   PlayersIndexRoute: typeof PlayersIndexRoute
   StatsIndexRoute: typeof StatsIndexRoute
   HistoryReportsYearRoute: typeof HistoryReportsYearRoute
+  LeagueTeamsAbbrRoute: typeof LeagueTeamsAbbrRoute
   HistoryReportsIndexRoute: typeof HistoryReportsIndexRoute
 }
 
@@ -337,13 +350,6 @@ declare module '@tanstack/react-router' {
       path: '/draft'
       fullPath: '/draft'
       preLoaderRoute: typeof DraftRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/league': {
-      id: '/league'
-      path: '/league'
-      fullPath: '/league'
-      preLoaderRoute: typeof LeagueRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/roster': {
@@ -423,6 +429,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InboxSetKeyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/league/': {
+      id: '/league/'
+      path: '/league'
+      fullPath: '/league/'
+      preLoaderRoute: typeof LeagueIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/players/': {
       id: '/players/'
       path: '/players'
@@ -472,6 +485,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HistoryReportsYearRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/league/teams/$abbr': {
+      id: '/league/teams/$abbr'
+      path: '/league/teams/$abbr'
+      fullPath: '/league/teams/$abbr'
+      preLoaderRoute: typeof LeagueTeamsAbbrRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -479,7 +499,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AwardsRoute: AwardsRoute,
   DraftRoute: DraftRoute,
-  LeagueRoute: LeagueRoute,
   RosterRoute: RosterRoute,
   ScheduleRoute: ScheduleRoute,
   SettingsRoute: SettingsRoute,
@@ -494,9 +513,11 @@ const rootRouteChildren: RootRouteChildren = {
   StatsReconcileRoute: StatsReconcileRoute,
   HistoryIndexRoute: HistoryIndexRoute,
   InboxIndexRoute: InboxIndexRoute,
+  LeagueIndexRoute: LeagueIndexRoute,
   PlayersIndexRoute: PlayersIndexRoute,
   StatsIndexRoute: StatsIndexRoute,
   HistoryReportsYearRoute: HistoryReportsYearRoute,
+  LeagueTeamsAbbrRoute: LeagueTeamsAbbrRoute,
   HistoryReportsIndexRoute: HistoryReportsIndexRoute,
 }
 export const routeTree = rootRouteImport

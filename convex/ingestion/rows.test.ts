@@ -184,7 +184,13 @@ describe("row targets", () => {
         .withIndex("by_seasonId_and_type", (q) => q.eq("seasonId", seasonId))
         .collect(),
     );
-    expect(awards.map((a) => [a.type, a.weekKey ?? null, a.rawName]).sort()).toEqual([
+    // Only the screenshot's awards; the sample season's own have no printed name.
+    expect(
+      awards
+        .filter((a) => a.rawName)
+        .map((a) => [a.type, a.weekKey ?? null, a.rawName])
+        .sort(),
+    ).toEqual([
       ["AllPro1", null, "C. Gonzalez"],
       ["DPOW", "w6", "M. Parsons"],
       ["MVP", null, "D. Maye"],
@@ -217,7 +223,7 @@ describe("row targets", () => {
         .withIndex("by_seasonId_and_weekKey", (q) => q.eq("seasonId", seasonId))
         .collect(),
     );
-    expect(moves).toMatchObject([{ type: "sign", weekKey: "w6", notes: "1 yr, $2.5M" }]);
+    expect(moves.filter((m) => m.weekKey === "w6")).toMatchObject([{ type: "sign", notes: "1 yr, $2.5M" }]);
 
     await commit("injury_report", "w6");
     const henry = (await playerNamed(t, fid, "Hunter Henry"))!;
@@ -227,8 +233,8 @@ describe("row targets", () => {
         .withIndex("by_playerId", (q) => q.eq("playerId", henry._id))
         .collect(),
     );
-    expect(injuries).toMatchObject([
-      { injuryType: "Ankle sprain", lengthWeeks: 3, onIr: false, weekKey: "w6" },
+    expect(injuries.filter((i) => i.weekKey === "w6")).toMatchObject([
+      { injuryType: "Ankle sprain", lengthWeeks: 3, onIr: false },
     ]);
 
     const { result } = await commit("player_card");

@@ -190,6 +190,16 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 **Done when:** the League section answers "who won the AFC in 2029", awards and draft screens are populated for every played season, the cap view matches the roster, and each of these screens is complete on the phone.
 
+**As built:**
+
+- The bracket is rebuilt, not stored: `shared/league/standings.ts` pairs the seeds (seven since 2020 with one bye, six before with two), re-seeds the divisional round and reads each winner from where its run ended, so any season with seeded standings (imported, captured, or the user team's own record) gets a bracket and champions. League → Champions lists every season's AFC, NFC and Super Bowl winners; the all-time table can include real history. Team pages live at `/league/teams/$abbr`.
+- A franchise season with no standings screen still shows the user team, from its season record and games.
+- Draft grades (`shared/draft/grade.ts`) wait two completed seasons, then weigh the peak OVR on the user team's roster against the slot, playing time and honors. Real seasons before the franchise carry no OVR, so those picks are judged on playing time and honors alone.
+- The pick inventory stores only picks that changed hands; every other pick in the next three drafts is assumed to be the team's own. The draft board is a new `draftBoard` table, ordered by the owner; it shows the previous season report's needs and who the team took.
+- Transactions are written by the Sprint 6 screenshot targets; this sprint reads them (type chips, the trade tracker's hindsight notes, the injury report). Rosters show each player's latest injury; the player page gains awards, moves and injuries. The cap view sums contract APYs against the season's salary cap, which is set on the cap view.
+- Team awards are `awards` with `scope: "team"`, given from Awards → Team.
+- The planned-screen placeholder and the nav's `sprint` field went with the last planned screen.
+
 ---
 
 ## Sprint 8 — Dashboard and insights (M)
@@ -200,9 +210,10 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 - Head-to-head and rivalry views; margin-of-victory and streak charts; team rank ribbons across seasons.
 - Calendar view of the season.
 - Command palette with players, games, seasons, screens and actions; keyboard shortcuts sheet.
-- Phone: dashboard cards in one column with prompts and inbox first, phone chart variants for pulse and rank ribbons, calendar as a vertical month list, search from the header icon.
+- Multiple franchises: create another franchise (team, name, first season, with its own real NFL history import) from Settings and the franchise header, and switch between them from a franchise switcher in the sidebar and the phone's More sheet. Exactly one franchise is active at a time; every screen, the inbox and the Shortcut endpoint follow the active one.
+- Phone: dashboard cards in one column with prompts and inbox first, phone chart variants for pulse and rank ribbons, calendar as a vertical month list, search from the header icon, the franchise switcher and "New franchise" in the More sheet.
 
-**Done when:** the dashboard is the screen you want to leave open on the second monitor and the first thing you check on your phone.
+**Done when:** the dashboard is the screen you want to leave open on the second monitor and the first thing you check on your phone, and a second franchise can be created and switched to on either device without touching the first one's data.
 
 ---
 
@@ -224,6 +235,5 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 ## Later (not scheduled)
 
 - Scoring plays and drive charts if a Madden screen provides them cleanly.
-- Multi-franchise switcher in the UI (the model already supports it).
 - Shareable read-only season recap pages.
 - Live Text on-device OCR as a pre-pass to improve digit accuracy.
