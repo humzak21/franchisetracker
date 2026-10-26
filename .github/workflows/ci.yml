@@ -25,10 +25,36 @@ jobs:
       - run: npm run check
       - run: npm run build
 
-  e2e:
-    name: Playwright smoke tests (local Convex)
+  # Reads the Playwright version from the lockfile so the e2e image always matches it.
+  playwright-version:
+    name: Resolve Playwright version
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: package-lock.json
+          sparse-checkout-cone-mode: false
+      - id: version
+        run: echo "version=$(jq -r '.packages["node_modules/@playwright/test"].version' package-lock.json)" >> "$GITHUB_OUTPUT"
+
+  # One job per Playwright project, each with its own local backend. The official image ships
+  # the browsers and their system libraries, so nothing is downloaded or apt-installed here
+  # (`playwright install --with-deps` could hang on apt for the whole job timeout).
+  e2e:
+    name: Playwright (${{ matrix.project }})
+    needs: playwright-version
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.playwright-version.outputs.version }}-noble
+      options: --ipc=host
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop, phone, phone-large]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -36,23 +62,17 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - run: npx playwright install --with-deps chromium webkit
       - name: Cache local Convex backend binary
         uses: actions/cache@v4
         with:
           path: ~/.cache/convex
           key: convex-backend-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - run: npm run test:e2e
+      - run: npx playwright test --project=${{ matrix.project }}
         env:
           CI: "true"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.project }}
           path: playwright-report/
           retention-days: 7
