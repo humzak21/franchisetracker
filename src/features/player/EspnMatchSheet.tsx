@@ -54,11 +54,11 @@ export function EspnMatchSheet({
     void fetchResults(text);
   };
 
-  const pick = async (espnId: number) => {
+  const pick = async ({ espnId, league }: Candidate) => {
     setSaving(espnId);
     setError(null);
     try {
-      await confirm({ playerId, espnId });
+      await confirm({ playerId, espnId, league });
       onOpenChange(false);
     } catch (e) {
       setError(errorMessage(e, "Could not save the match"));
@@ -72,7 +72,7 @@ export function EspnMatchSheet({
       open={open}
       onOpenChange={onOpenChange}
       title="Match on ESPN"
-      description="Pick the real player to add the headshot and fill missing bio."
+      description="Pick the real player, NFL or college prospect, to add the headshot and fill missing bio."
     >
       <form
         className="mb-3 flex gap-2"
@@ -98,12 +98,7 @@ export function EspnMatchSheet({
               key={c.espnId}
               candidate={c}
               action={
-                <Button
-                  size="sm"
-                  variant="primary"
-                  disabled={saving !== null}
-                  onClick={() => void pick(c.espnId)}
-                >
+                <Button size="sm" variant="primary" disabled={saving !== null} onClick={() => void pick(c)}>
                   {saving === c.espnId ? "Saving…" : "This is him"}
                 </Button>
               }

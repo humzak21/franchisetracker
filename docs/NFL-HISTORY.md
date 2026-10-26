@@ -53,6 +53,8 @@ Release files live under `https://github.com/nflverse/nflverse-data/releases/dow
 - Headshots show ESPN's CDN image until cached; the import caches the user team's first roster, and a player page caches its player the first time it opens.
 - Team logos are cached into storage once and served to every `TeamLogo` through one query.
 - Players without an ESPN id (captured names the import did not adopt, created players) can be matched from the player page or in bulk from the roster; confirming stores the id, fills missing bio and caches the photo. Fictional players get a monogram card.
+- Matching searches the NFL and college football. A created player in a real draft class is a current college prospect, so ESPN has his school, class, size and college headshot; the player keeps `espnLeague: "college"` so his photo comes from the college CDN path. An athlete has one ESPN id from college into the NFL, so a prospect's match carries over when he is drafted.
+- Candidates rank by exact name, then the player's school, position group and NFL team (`shared/players/espnMatch.ts`). The bulk roster match suggests only an exact name that the player's school and position agree with, because generated Madden names often have a real namesake somewhere; everything else stays a choice on the player page. ESPN's college coverage is strongest for FBS rosters and has no stats for us to import.
 
 ## Testing
 

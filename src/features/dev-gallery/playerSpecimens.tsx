@@ -84,15 +84,17 @@ export const PLAYER_SPECIMENS: Specimen[] = [
   {
     id: "matchcandidate",
     name: "MatchCandidate",
-    note: "A possible ESPN match in the confirm sheets: face, name and the facts that tell people apart.",
+    note: "A possible ESPN match in the confirm sheets, NFL or college prospect: face, name, league and the facts that tell namesakes apart.",
     render: () => (
       <div className="space-y-2">
         <MatchCandidate
           candidate={{
             name: "Drake Maye",
+            league: "nfl",
             position: "QB",
             teamAbbr: "NE",
             college: "North Carolina",
+            classYear: null,
             age: 24,
             headshotUrl: null,
           }}
@@ -104,11 +106,13 @@ export const PLAYER_SPECIMENS: Specimen[] = [
         />
         <MatchCandidate
           candidate={{
-            name: "Drake London",
-            position: "WR",
-            teamAbbr: "ATL",
-            college: "USC",
-            age: 25,
+            name: "Arch Manning",
+            league: "college",
+            position: "QB",
+            teamAbbr: "TEX",
+            college: "Texas",
+            classYear: "Senior",
+            age: null,
             headshotUrl: null,
           }}
         />

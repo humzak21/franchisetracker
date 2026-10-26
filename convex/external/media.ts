@@ -1,5 +1,6 @@
 /** Downloads ESPN images into Convex storage. Shared by the import, the player page and setup. */
 import { internal } from "../_generated/api";
+import type { EspnLeague } from "../../shared/players/espnMatch";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { espnHeadshotUrl, espnLogoUrl, fetchImage } from "./espn";
@@ -29,11 +30,11 @@ export async function cacheTeamLogos(ctx: ActionCtx): Promise<number> {
 
 export async function cacheHeadshots(
   ctx: ActionCtx,
-  players: readonly { playerId: Id<"players">; espnId: number }[],
+  players: readonly { playerId: Id<"players">; espnId: number; league?: EspnLeague }[],
 ): Promise<number> {
   let stored = 0;
-  await inBatches(players, async ({ playerId, espnId }) => {
-    const image = await fetchImage(espnHeadshotUrl(espnId));
+  await inBatches(players, async ({ playerId, espnId, league }) => {
+    const image = await fetchImage(espnHeadshotUrl(espnId, league));
     if (!image) return;
     const storageId = await ctx.storage.store(image);
     await ctx.runMutation(internal.players.headshots.save, { playerId, espnId, storageId });

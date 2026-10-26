@@ -49,7 +49,8 @@ export function FaceMatchSheet({
     setError(null);
     try {
       for (const s of suggestions ?? []) {
-        if (s.candidate) await confirm({ playerId: s.playerId, espnId: s.candidate.espnId });
+        if (s.candidate)
+          await confirm({ playerId: s.playerId, espnId: s.candidate.espnId, league: s.candidate.league });
       }
       onOpenChange(false);
     } catch (e) {
@@ -112,7 +113,7 @@ export function FaceMatchSheet({
               ) : (
                 suggestions && (
                   <p className="text-xs text-muted-foreground">
-                    No exact match on ESPN; try the player page.
+                    No confident match in the NFL or college football; try the player page.
                   </p>
                 )
               )}

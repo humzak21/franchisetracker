@@ -8,8 +8,11 @@ import type { Id } from "../_generated/dataModel";
 import { action, internalMutation, internalQuery } from "../_generated/server";
 import { requireOwner, requireSignedIn } from "../lib/auth";
 import { cacheHeadshots } from "../external/media";
+import { vEspnLeague } from "../lib/validators";
+import type { EspnLeague } from "../../shared/players/espnMatch";
 
 const MAX_ROSTER = 150;
+const vPending = v.object({ playerId: v.id("players"), espnId: v.number(), league: v.optional(vEspnLeague) });
 
 export const save = internalMutation({
   args: { playerId: v.id("players"), espnId: v.number(), storageId: v.id("_storage") },
@@ -29,7 +32,7 @@ export const save = internalMutation({
 /** Players on the user team's first-season roster who have an ESPN id but no cached photo. */
 export const pendingForFranchise = internalQuery({
   args: { franchiseId: v.id("franchises") },
-  returns: v.array(v.object({ playerId: v.id("players"), espnId: v.number() })),
+  returns: v.array(vPending),
   handler: async (ctx, { franchiseId }) => {
     const franchise = await ctx.db.get("franchises", franchiseId);
     if (!franchise) return [];
@@ -48,19 +51,21 @@ export const pendingForFranchise = internalQuery({
       .take(MAX_ROSTER);
     const players = await Promise.all(entries.map((e) => ctx.db.get("players", e.playerId)));
     return players.flatMap((p) =>
-      p && p.espnId !== undefined && !p.headshotStorageId ? [{ playerId: p._id, espnId: p.espnId }] : [],
+      p && p.espnId !== undefined && !p.headshotStorageId
+        ? [{ playerId: p._id, espnId: p.espnId, league: p.espnLeague }]
+        : [],
     );
   },
 });
 
 export const pendingForPlayer = internalQuery({
   args: { playerId: v.id("players") },
-  returns: v.array(v.object({ playerId: v.id("players"), espnId: v.number() })),
+  returns: v.array(vPending),
   handler: async (ctx, { playerId }) => {
     await requireOwner(ctx);
     const p = await ctx.db.get("players", playerId);
     return p && p.isReal && p.espnId !== undefined && !p.headshotStorageId
-      ? [{ playerId: p._id, espnId: p.espnId }]
+      ? [{ playerId: p._id, espnId: p.espnId, league: p.espnLeague }]
       : [];
   },
 });
@@ -71,7 +76,7 @@ export const ensure = action({
   returns: v.null(),
   handler: async (ctx, { playerId }) => {
     await requireSignedIn(ctx);
-    const pending: { playerId: Id<"players">; espnId: number }[] = await ctx.runQuery(
+    const pending: { playerId: Id<"players">; espnId: number; league?: EspnLeague }[] = await ctx.runQuery(
       internal.players.headshots.pendingForPlayer,
       { playerId },
     );

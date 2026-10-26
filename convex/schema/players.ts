@@ -4,6 +4,7 @@ import {
   vAcquisitionType,
   vContract,
   vDevTrait,
+  vEspnLeague,
   vPosition,
   vRosterStatus,
   vWeekKey,
@@ -36,6 +37,8 @@ export const playerTables = {
     /** nflverse `gsis_id` for players from the real NFL history import; the import's upsert key. */
     nflverseId: v.optional(v.string()),
     espnId: v.optional(v.number()),
+    /** Where `espnId` was matched: college for prospects (the id carries into the NFL). Absent means NFL. */
+    espnLeague: v.optional(vEspnLeague),
     headshotStorageId: v.optional(v.id("_storage")),
     retired: v.boolean(),
     /** Name variants for resolution ("D. Maye", typos); a few per player. */

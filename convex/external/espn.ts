@@ -1,14 +1,16 @@
 /**
- * The unofficial ESPN site API: player search, athlete bios, headshots and team logos. Plain
- * `fetch`, so it runs in either Convex runtime. No key; responses are narrowed field by field.
+ * The unofficial ESPN site API: player search, athlete bios, headshots and team logos, for the
+ * NFL and college football. Plain `fetch`, so it runs in either Convex runtime. No key; responses
+ * are narrowed field by field. An athlete keeps one id from college into the NFL.
  */
+import { ESPN_LEAGUE_SLUGS, type EspnLeague } from "../../shared/players/espnMatch";
 
 const SEARCH = "https://site.web.api.espn.com/apis/common/v3/search";
-const ATHLETE = "https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/athletes";
+const ATHLETES = "https://site.web.api.espn.com/apis/common/v3/sports/football";
 const TIMEOUT_MS = 20_000;
 
-export const espnHeadshotUrl = (espnId: number) =>
-  `https://a.espncdn.com/i/headshots/nfl/players/full/${espnId}.png`;
+export const espnHeadshotUrl = (espnId: number, league: EspnLeague = "nfl") =>
+  `https://a.espncdn.com/i/headshots/${ESPN_LEAGUE_SLUGS[league]}/players/full/${espnId}.png`;
 export const espnLogoUrl = (abbr: string) =>
   `https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png`;
 
@@ -29,14 +31,14 @@ const str = (value: unknown) => (typeof value === "string" && value.trim() ? val
 
 export type EspnCandidate = { espnId: number; name: string };
 
-/** Up to `limit` NFL players whose name matches. */
-export async function searchAthletes(name: string, limit = 8): Promise<EspnCandidate[]> {
+/** Up to `limit` players in one league whose name matches. */
+export async function searchAthletes(name: string, league: EspnLeague, limit = 8): Promise<EspnCandidate[]> {
   const params = new URLSearchParams({
     query: name,
     limit: String(limit),
     type: "player",
     sport: "football",
-    league: "nfl",
+    league: ESPN_LEAGUE_SLUGS[league],
   });
   const res = await get(`${SEARCH}?${params}`);
   if (!res.ok) throw new Error(`ESPN search ${res.status}`);
@@ -50,12 +52,17 @@ export async function searchAthletes(name: string, limit = 8): Promise<EspnCandi
 
 export type EspnAthlete = {
   espnId: number;
+  league: EspnLeague;
   name: string;
   firstName?: string;
   lastName?: string;
   position?: string;
+  /** NFL team, or the school for a college player. */
   teamAbbr?: string;
+  /** The college attended (NFL) or attending (college). */
   college?: string;
+  /** College class as ESPN prints it ("Junior", "Senior"); college players only. */
+  classYear?: string;
   heightIn?: number;
   weightLb?: number;
   age?: number;
@@ -68,23 +75,26 @@ function inches(display: string | undefined): number | undefined {
   return match ? Number(match[1]) * 12 + Number(match[2]) : undefined;
 }
 
-/** An athlete's bio, or null when ESPN does not know the id. */
-export async function fetchAthlete(espnId: number): Promise<EspnAthlete | null> {
-  const res = await get(`${ATHLETE}/${espnId}`);
+/** An athlete's bio in one league, or null when ESPN does not know the id there. */
+export async function fetchAthlete(espnId: number, league: EspnLeague): Promise<EspnAthlete | null> {
+  const res = await get(`${ATHLETES}/${ESPN_LEAGUE_SLUGS[league]}/athletes/${espnId}`);
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`ESPN athlete ${res.status}`);
   const a = record(record(await res.json()).athlete);
   const name = str(a.displayName);
   if (!name) return null;
   const weight = Number.parseInt(str(a.displayWeight) ?? "", 10);
+  const team = record(a.team);
   return {
     espnId,
+    league,
     name,
     firstName: str(a.firstName),
     lastName: str(a.lastName),
     position: str(record(a.position).abbreviation),
-    teamAbbr: str(record(a.team).abbreviation),
-    college: str(record(a.college).name),
+    teamAbbr: str(team.abbreviation),
+    college: str(record(a.college).name) ?? (league === "college" ? str(team.location) : undefined),
+    classYear: league === "college" ? str(a.displayExperience) : undefined,
     heightIn: inches(str(a.displayHeight)),
     weightLb: Number.isFinite(weight) ? weight : undefined,
     age: typeof a.age === "number" ? a.age : undefined,
