@@ -1,14 +1,14 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
-import { LogOut, SlidersHorizontal } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { api } from "@convex/_generated/api";
-import { EmptyState } from "@/components/data/EmptyState";
 import { Page } from "@/components/layout/Page";
 import { Section } from "@/components/layout/Section";
 import { Headshot } from "@/components/player/Headshot";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { CorrectionsSettings } from "./CorrectionsSettings";
+import { DataSettings } from "./DataSettings";
 import { ErrorSettings } from "./ErrorSettings";
 import { ExtractionSettings } from "./ExtractionSettings";
 import { FranchiseSettings } from "./FranchiseSettings";
@@ -55,12 +55,8 @@ export function SettingsScreen() {
         {/* Below the Shortcut: their lists load late and would push everything under them down. */}
         <UsageSettings />
         <CorrectionsSettings />
+        <DataSettings />
         <ErrorSettings />
-        <EmptyState
-          icon={SlidersHorizontal}
-          title="More settings arrive with their sprints"
-          description="Export and backup (Sprint 9)."
-        />
       </div>
     </Page>
   );

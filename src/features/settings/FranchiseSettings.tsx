@@ -10,11 +10,13 @@ import { Section } from "@/components/layout/Section";
 import { TeamLogo } from "@/components/team/TeamLogo";
 import { Button } from "@/components/ui/button";
 import { Badge, Skeleton } from "@/components/ui/misc";
+import { DeleteFranchise } from "./DeleteFranchise";
 import { errorMessage } from "@/lib/errors";
 
 /**
  * Franchises (FEATURES.md 5.12): every franchise with its team and latest season, switching
- * between them, and starting another. Exactly one is active; the rest keep their data.
+ * between them, starting another, and deleting one that is not active. Exactly one is active;
+ * the rest keep their data.
  */
 export function FranchiseSettings() {
   const franchises = useQuery(api.franchise.franchises.list, {});
@@ -53,13 +55,14 @@ export function FranchiseSettings() {
                 <div className="flex items-center gap-2 font-semibold">
                   <span className="truncate">{f.name}</span>
                   {f.isActive && <Badge tone="accent">Active</Badge>}
+                  {f.deleting && <Badge tone="warn">Deleting</Badge>}
                 </div>
                 <div className="num truncate text-sm text-muted-foreground">
                   {f.userTeam.city} {f.userTeam.name} · since {f.startYear}
                   {f.current && ` · ${f.current.year} ${formatRecord(f.current)}`}
                 </div>
               </div>
-              {!f.isActive && (
+              {!f.isActive && !f.deleting && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -70,6 +73,7 @@ export function FranchiseSettings() {
                   {pending === f._id ? "Switching…" : "Switch"}
                 </Button>
               )}
+              {!f.isActive && !f.deleting && <DeleteFranchise franchiseId={f._id} name={f.name} />}
             </li>
           ))}
         </ul>

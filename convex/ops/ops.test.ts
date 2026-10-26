@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import { asOwner, asStranger } from "../lib/testOwner";
 import schema from "../schema";
 
@@ -37,5 +37,21 @@ describe("ops/errors", () => {
     await expect(
       t.mutation(api.ops.errors.report, { kind: "error", message: "x", path: "/" }),
     ).rejects.toThrow(/Sign in required/);
+  });
+});
+
+describe("ops/exportData", () => {
+  test("player seasons are the user team's, from the franchise's own seasons", async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(internal.league.seed.seedTeams, {});
+    await t.mutation(internal.dev.fixtures.seedFixtures, {});
+    const owner = await asOwner(t);
+    const rows = await owner.query(api.ops.exportData.playerSeasons, {});
+    expect(rows.every((r) => r.year >= 2026)).toBe(true);
+    expect(rows.find((r) => r.player === "Drake Maye")).toMatchObject({
+      year: 2026,
+      split: "regular",
+      position: "QB",
+    });
   });
 });

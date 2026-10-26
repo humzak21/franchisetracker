@@ -14,7 +14,7 @@ export function PaletteFranchises({ close }: { close: (then: () => void) => void
   return (
     <Command.Group heading="Franchises" className={paletteGroupClass}>
       {franchises
-        ?.filter((f) => !f.isActive)
+        ?.filter((f) => !f.isActive && !f.deleting)
         .map((f) => (
           <PaletteItem
             key={f._id}

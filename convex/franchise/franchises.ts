@@ -54,6 +54,8 @@ export const list = query({
       name: v.string(),
       startYear: v.number(),
       isActive: v.boolean(),
+      /** Being deleted in the background (Settings → Franchises); it can no longer be switched to. */
+      deleting: v.boolean(),
       userTeam: vTeamRef,
       /** The season being played: the first not complete, else the latest. */
       current: v.union(
@@ -87,6 +89,7 @@ export const list = query({
           name: franchise.name,
           startYear: franchise.startYear,
           isActive: franchise.isActive,
+          deleting: franchise.deletingAt !== undefined,
           userTeam: toTeamRef(team),
           current: current && {
             year: current.year,
@@ -112,7 +115,9 @@ export const activate = mutation({
   handler: async (ctx, { franchiseId }) => {
     await requireOwner(ctx);
     const franchise = await ctx.db.get("franchises", franchiseId);
-    if (franchise === null) throw invalid("That franchise no longer exists");
+    if (franchise === null || franchise.deletingAt !== undefined) {
+      throw invalid("That franchise no longer exists");
+    }
     if (franchise.isActive) return null;
     await deactivateAll(ctx);
     await ctx.db.patch("franchises", franchiseId, { isActive: true });

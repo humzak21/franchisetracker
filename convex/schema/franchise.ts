@@ -35,6 +35,8 @@ export const franchiseTables = {
       ),
     }),
     isActive: v.boolean(),
+    /** Set when the owner deletes the franchise; its rows are being removed in the background. */
+    deletingAt: v.optional(v.number()),
   }).index("by_isActive", ["isActive"]),
 
   seasons: defineTable({
