@@ -1,5 +1,5 @@
 /** Upload set helpers shared by the inbox, review, extraction and Shortcut functions. */
-import { isTargetKey } from "../../shared/ingestion/targets";
+import { INGESTION_TARGETS, isTargetKey } from "../../shared/ingestion/targets";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
@@ -24,13 +24,15 @@ export async function requireSet(ctx: QueryCtx, franchiseId: Id<"franchises">, s
   return must(uploads[0] ? uploads : null, "Upload set");
 }
 
-/** Context an extraction needs: a target, and a game or a season and week to put it in. */
+/**
+ * Context an extraction needs: a target, and where it goes by the target's scope: a game (or a
+ * season and week) for game screens, a season and week for weekly ones, a season for the rest.
+ */
 export function readyToExtract(upload: Doc<"uploads">): boolean {
-  return (
-    upload.targetKey !== undefined &&
-    isTargetKey(upload.targetKey) &&
-    (upload.gameId !== undefined || (upload.seasonId !== undefined && upload.weekKey !== undefined))
-  );
+  if (upload.targetKey === undefined || !isTargetKey(upload.targetKey)) return false;
+  if (upload.gameId !== undefined) return true;
+  if (upload.seasonId === undefined) return false;
+  return INGESTION_TARGETS[upload.targetKey].scope === "season" || upload.weekKey !== undefined;
 }
 
 /** Marks a set as extracting and schedules the extraction action. */
@@ -41,7 +43,7 @@ export async function startExtraction(
 ): Promise<void> {
   const first = uploads[0];
   if (!first?.setKey) throw invalid("Nothing to extract");
-  if (!readyToExtract(first)) throw invalid("Tag the screenshots with a target, season and week first");
+  if (!readyToExtract(first)) throw invalid("Tag the screenshots with what they show and when first");
   if (uploads.some((u) => u.status === "committed")) throw invalid("This set is already committed");
   for (const upload of uploads) {
     await ctx.db.patch("uploads", upload._id, { status: "extracting", error: undefined });

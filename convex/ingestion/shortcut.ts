@@ -3,11 +3,12 @@
  * Convex Auth's own routes, guarded by a revocable bearer token instead of a session.
  *
  *   GET  /shortcut/targets   the menu: targets from the registry, week keys, the current season
- *   POST /shortcut/upload    multipart `image` files plus `target`, `week`, optional `season` (year)
+ *   POST /shortcut/upload    multipart `image` files plus `target`, optional `week` and `season` (year);
+ *                            a missing week is inferred from the target and the schedule
  */
 import { v } from "convex/values";
 import { WEEK_KEYS, isWeekKey, weekLabel } from "../../shared/domain";
-import { nextWeek } from "../../shared/games/summary";
+import { nextWeek, sortByWeek, userScore } from "../../shared/games/summary";
 import { INGESTION_TARGETS, TARGET_KEYS, isTargetKey } from "../../shared/ingestion/targets";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -28,10 +29,17 @@ async function authorized(ctx: ActionCtx, request: Request): Promise<boolean> {
   return await ctx.runMutation(internal.ingestion.tokens.verify, { tokenHash: await sha256Hex(token) });
 }
 
-/** The season a capture belongs to (the requested year, else the one being played) and its next week. */
+/**
+ * The season a capture belongs to (the requested year, else the one being played), the week a
+ * new game screen most likely is (the one after the latest result) and the week just played
+ * (for weekly screens such as awards and the injury report).
+ */
 export const season = internalQuery({
   args: { year: v.optional(v.number()) },
-  returns: v.union(v.object({ _id: v.id("seasons"), year: v.number(), nextWeek: vWeekKey }), v.null()),
+  returns: v.union(
+    v.object({ _id: v.id("seasons"), year: v.number(), nextWeek: vWeekKey, lastWeek: vWeekKey }),
+    v.null(),
+  ),
   handler: async (ctx, { year }) => {
     const franchise = await activeFranchise(ctx);
     const seasons = await ctx.db
@@ -47,7 +55,9 @@ export const season = internalQuery({
       .query("games")
       .withIndex("by_seasonId_and_weekKey", (q) => q.eq("seasonId", found._id))
       .take(MAX_GAMES_PER_SEASON);
-    return { _id: found._id, year: found.year, nextWeek: nextWeek(games) };
+    const next = nextWeek(games);
+    const played = sortByWeek(games.filter((g) => userScore(g) !== null)).at(-1);
+    return { _id: found._id, year: found.year, nextWeek: next, lastWeek: played?.weekKey ?? next };
   },
 });
 
@@ -64,6 +74,10 @@ export const targets = httpAction(async (ctx, request) => {
     targetByLabel: Object.fromEntries(TARGET_KEYS.map((key, i) => [targetLabels[i], key])),
     weekLabels,
     weekByLabel: Object.fromEntries(WEEK_KEYS.map((key, i) => [weekLabels[i], key])),
+    // Season screens (standings, leaders) skip the week question; the others suggest one.
+    asksWeekByLabel: Object.fromEntries(
+      TARGET_KEYS.map((key, i) => [targetLabels[i], INGESTION_TARGETS[key].scope !== "season"]),
+    ),
   });
 });
 
@@ -95,11 +109,22 @@ export const upload = httpAction(async (ctx, request) => {
       return json({ error: `${file.name || "A file"} is not an image` }, 400);
     storageIds.push(await ctx.storage.store(file));
   }
+  const targetKey = target && isTargetKey(target) ? target : undefined;
+  const scope = targetKey ? INGESTION_TARGETS[targetKey].scope : undefined;
+  // Context inference: without a week, a game screen is the next game, a weekly one the week just played.
+  const weekKey =
+    week && isWeekKey(week)
+      ? week
+      : scope === "game"
+        ? season.nextWeek
+        : scope === "week"
+          ? season.lastWeek
+          : undefined;
   const sets = await ctx.runMutation(internal.ingestion.uploads.createFromShortcut, {
     storageIds,
-    targetKey: target && isTargetKey(target) ? target : undefined,
+    targetKey,
     seasonId: season._id,
-    weekKey: week && isWeekKey(week) ? week : undefined,
+    weekKey,
   });
   return json({ ok: true, sets: sets.length, images: storageIds.length });
 });

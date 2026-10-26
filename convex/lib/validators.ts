@@ -23,6 +23,7 @@ import {
   TRANSACTION_TYPES,
   WEEK_KEYS,
 } from "../../shared/domain";
+import { RECONCILE_RESOLUTIONS } from "../../shared/ingestion/reconcile";
 import { ESPN_LEAGUES } from "../../shared/players/espnMatch";
 
 /** `literals(["a", "b"])` → `v.union(v.literal("a"), v.literal("b"))`, typed as `"a" | "b"`. */
@@ -90,6 +91,7 @@ export const vTransactionDirection = literals(TRANSACTION_DIRECTIONS);
 export const vMilestoneKind = literals(MILESTONE_KINDS);
 export const vWarningSeverity = literals(WARNING_SEVERITIES);
 export const vImportStatus = literals(IMPORT_STATUSES);
+export const vReconcileResolution = literals(RECONCILE_RESOLUTIONS);
 
 /** Flat stat map keyed by stat-registry keys (`shared/stats/registry.ts`), e.g. `{ passYds: 203 }`. */
 export const vStatMap = v.record(v.string(), v.number());

@@ -56,6 +56,7 @@ export const ingestionTables = {
     ),
     latencyMs: v.optional(v.number()),
   })
+    .index("by_franchiseId", ["franchiseId"])
     .index("by_uploadId", ["uploadId"])
     .index("by_setKey", ["setKey"]),
 

@@ -9,6 +9,7 @@ import {
   vStatMap,
   vStatSource,
   vStatSplit,
+  vReconcileResolution,
   vWeekKey,
 } from "../lib/validators";
 
@@ -118,4 +119,21 @@ export const statTables = {
     .index("by_seasonId_and_weekKey", ["seasonId", "weekKey"])
     .index("by_gameId", ["gameId"])
     .index("by_playerId", ["playerId"]),
+
+  /**
+   * Season totals as a season stats screenshot printed them, kept beside the log-derived
+   * `seasonPlayerStats` for the reconciliation view; never a source for other numbers.
+   */
+  reportedSeasonStats: defineTable({
+    franchiseId: v.id("franchises"),
+    seasonId: v.id("seasons"),
+    playerId: v.id("players"),
+    teamId: v.id("teams"),
+    gamesPlayed: v.optional(v.number()),
+    stats: vStatMap,
+    /** Per stat key, how a difference from the logs was settled: the logs are right, or a game is missing. */
+    resolved: v.optional(v.record(v.string(), vReconcileResolution)),
+  })
+    .index("by_seasonId_and_teamId", ["seasonId", "teamId"])
+    .index("by_playerId_and_seasonId", ["playerId", "seasonId"]),
 };

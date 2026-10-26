@@ -4,6 +4,7 @@
  * client is refused at the boundary.
  */
 import { v, type Infer } from "convex/values";
+import { ROW_TARGET_KEYS } from "../../shared/ingestion/rows/targets";
 import { TARGET_KEYS } from "../../shared/ingestion/targets";
 import { literals, vPosition, vStatMap, vWarningSeverity } from "./validators";
 
@@ -47,7 +48,25 @@ export const vTeamStatsDraft = v.object({
   teams: v.array(v.object({ teamAbbr: nullable(v.string()), stats: vStatMap })),
 });
 
-export const vDraft = v.union(vBoxScoreDraft, vTeamStatsDraft);
+const vRowValue = v.union(v.number(), v.string(), v.boolean(), v.null());
+
+export const vDraftRow = v.object({
+  id: v.string(),
+  accepted: v.boolean(),
+  name: nullable(v.string()),
+  teamAbbr: nullable(v.string()),
+  values: v.record(v.string(), vRowValue),
+  playerId: nullable(v.id("players")),
+  match: nullable(vMatch),
+});
+
+export const vRowsDraft = v.object({
+  target: literals(ROW_TARGET_KEYS),
+  meta: v.record(v.string(), vRowValue),
+  rows: v.array(vDraftRow),
+});
+
+export const vDraft = v.union(vBoxScoreDraft, vTeamStatsDraft, vRowsDraft);
 export type StoredDraft = Infer<typeof vDraft>;
 
 export const vDraftWarning = v.object({

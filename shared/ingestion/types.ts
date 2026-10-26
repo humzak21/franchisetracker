@@ -6,6 +6,8 @@
 import type { Position } from "../domain/positions";
 import type { StatLine } from "../stats/registry";
 import type { TeamStatLine } from "../stats/teamRegistry";
+import type { RowTargetKey } from "./rows/targets";
+import type { RowsDraft } from "./rows/types";
 
 /** The score header both game targets carry. Team fields are abbreviations from `NFL_TEAMS`. */
 export type GameHeader = {
@@ -54,7 +56,10 @@ export type TeamStatsDraft = {
   teams: { teamAbbr: string | null; stats: TeamStatLine }[];
 };
 
-export type Draft<P extends string = string> = BoxScoreDraft<P> | TeamStatsDraft;
+/** A list screen's draft (leaders, standings, a roster page): see `./rows`. */
+export type RowTargetDraft<P extends string = string> = RowsDraft<P, RowTargetKey>;
+
+export type Draft<P extends string = string> = BoxScoreDraft<P> | TeamStatsDraft | RowTargetDraft<P>;
 
 export type WarningSeverity = "info" | "warning" | "error";
 export type DraftWarning = { path?: string; message: string; severity: WarningSeverity };

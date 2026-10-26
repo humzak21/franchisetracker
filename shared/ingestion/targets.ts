@@ -1,18 +1,25 @@
 /**
  * The ingestion target registry (FEATURES.md principle 3): each kind of screenshot is declared
  * once. The inbox tag list, the Shortcut menu, the extraction action (schema, prompt, normalize,
- * validate) all read this. The review form (`src`) and commit mutation (`convex`) are keyed by
- * `TargetKey` in exhaustive records, so a new target does not typecheck until both exist.
+ * validate) all read this. Game targets have their own drafts and editors; row targets share
+ * one (`./rows`). Commit functions (`convex`) are keyed by `TargetKey` in an exhaustive record,
+ * so a new target does not typecheck until it can be committed.
  */
 import { boxScoreSchema, teamStatsSchema, type JsonSchema } from "./schema";
 import { normalizeBoxScore, normalizeTeamStats, type Normalized } from "./normalize";
+import { mergeRowDrafts, normalizeRows, rowsSchema, validateRows } from "./rows/engine";
+import { ROW_TARGETS, type RowTargetDef, type RowTargetKey, type TargetScope } from "./rows/targets";
 import { validateBoxScore, validateTeamStats } from "./validate";
-import type { BoxScoreDraft, Draft, DraftWarning, TeamStatsDraft } from "./types";
+import type { BoxScoreDraft, Draft, DraftWarning, RowTargetDraft, TeamStatsDraft } from "./types";
 
-type TargetDef<D extends Draft> = {
+export type { TargetScope } from "./rows/targets";
+
+type GameTargetDef<D extends Draft> = {
+  kind: "game";
   label: string;
   /** One line for the tag picker and the Shortcut menu. */
   description: string;
+  scope: TargetScope;
   /** Several screenshots of one game are grouped into a set and extracted together. */
   multiImage: boolean;
   /** What the model is told it is looking at; appended to the shared instructions. */
@@ -22,11 +29,13 @@ type TargetDef<D extends Draft> = {
   validate: (draft: D) => DraftWarning[];
 };
 
-export const INGESTION_TARGETS = {
+const GAME_TARGETS = {
   game_box_score: {
+    kind: "game",
     label: "Box score",
     description:
       "Final score and every player's passing, rushing, receiving, defense, kicking and return lines",
+    scope: "game",
     multiImage: true,
     instructions: [
       "These are Madden post-game screens for one game: the score summary and the player stats",
@@ -37,10 +46,12 @@ export const INGESTION_TARGETS = {
     schema: boxScoreSchema,
     normalize: normalizeBoxScore,
     validate: validateBoxScore,
-  } satisfies TargetDef<BoxScoreDraft>,
+  } satisfies GameTargetDef<BoxScoreDraft>,
   team_game_stats: {
+    kind: "game",
     label: "Team game stats",
     description: "First downs, yards, third downs, turnovers, penalties and possession for both teams",
+    scope: "game",
     multiImage: false,
     instructions: [
       "This is the Madden post-game team stats screen comparing the two teams side by side.",
@@ -49,23 +60,57 @@ export const INGESTION_TARGETS = {
     schema: teamStatsSchema,
     normalize: normalizeTeamStats,
     validate: validateTeamStats,
-  } satisfies TargetDef<TeamStatsDraft>,
+  } satisfies GameTargetDef<TeamStatsDraft>,
 } as const;
 
+export const INGESTION_TARGETS = { ...GAME_TARGETS, ...ROW_TARGETS };
+
 export type TargetKey = keyof typeof INGESTION_TARGETS;
+export type GameTargetKey = keyof typeof GAME_TARGETS;
+export type { RowTargetKey } from "./rows/targets";
 export const TARGET_KEYS = Object.keys(INGESTION_TARGETS) as [TargetKey, ...TargetKey[]];
+
+export const SCOPE_LABELS: Record<TargetScope, string> = {
+  game: "One game",
+  week: "One week",
+  season: "The season",
+};
 
 export function isTargetKey(value: string): value is TargetKey {
   return value in INGESTION_TARGETS;
 }
 
-/** Runs the target's validator on a draft of any target. */
-export function validateDraft(draft: Draft): DraftWarning[] {
-  return draft.target === "game_box_score"
-    ? INGESTION_TARGETS.game_box_score.validate(draft)
-    : INGESTION_TARGETS.team_game_stats.validate(draft);
+export function isRowTarget(key: TargetKey): key is RowTargetKey {
+  return INGESTION_TARGETS[key].kind === "rows";
+}
+
+export function rowTarget(key: RowTargetKey): RowTargetDef {
+  return ROW_TARGETS[key];
+}
+
+export function isRowDraft<P extends string>(draft: Draft<P>): draft is RowTargetDraft<P> {
+  return isRowTarget(draft.target);
+}
+
+export function schemaFor(key: TargetKey): JsonSchema {
+  return isRowTarget(key) ? rowsSchema(ROW_TARGETS[key].spec) : GAME_TARGETS[key].schema();
 }
 
 export function normalizeFor(target: TargetKey, raw: unknown): Normalized<Draft> {
-  return INGESTION_TARGETS[target].normalize(raw);
+  if (isRowTarget(target)) return normalizeRows(target, ROW_TARGETS[target].spec, raw);
+  return target === "game_box_score" ? normalizeBoxScore(raw) : normalizeTeamStats(raw);
+}
+
+/** Row screenshots read one at a time, merged into one draft: the union of their rows. */
+export function mergeFor(
+  target: RowTargetKey,
+  parts: readonly Normalized<RowTargetDraft>[],
+): Normalized<Draft> {
+  return mergeRowDrafts(ROW_TARGETS[target].spec, parts);
+}
+
+/** Runs the target's validator on a draft of any target. */
+export function validateDraft(draft: Draft): DraftWarning[] {
+  if (isRowDraft(draft)) return validateRows(ROW_TARGETS[draft.target].spec, draft);
+  return draft.target === "game_box_score" ? validateBoxScore(draft) : validateTeamStats(draft);
 }

@@ -5,10 +5,10 @@
 import { v } from "convex/values";
 import { diffDrafts } from "../../shared/ingestion/diff";
 import { blocksCommit } from "../../shared/ingestion/validate";
-import { validateDraft } from "../../shared/ingestion/targets";
+import { isRowDraft, validateDraft } from "../../shared/ingestion/targets";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { mutation, query, type QueryCtx } from "../_generated/server";
+import { mutation, query, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { vDraft, vDraftWarning, vFieldConfidence, type StoredDraft } from "../lib/draftValidators";
 import { invalid, must } from "../lib/errors";
@@ -16,7 +16,9 @@ import { activeFranchise } from "../lib/franchise";
 import { vUploadStatus, vWeekKey } from "../lib/validators";
 import { commitBoxScore } from "./commitBoxScore";
 import { refreshSeasonRecord, upsertGame } from "./commitGame";
+import { commitRows } from "./commitRows";
 import { commitTeamStats } from "./commitTeamStats";
+import type { StoredRowsDraft } from "./rowCommit";
 import { requireSet, setStatus } from "./sets";
 
 /** Corrections stored per commit; a full re-key of a box score is still well under this. */
@@ -148,7 +150,15 @@ export const saveDraft = mutation({
   },
 });
 
+/** Game numbers stay small; row values include contract money, so their ceiling is higher. */
 const finite = (draft: StoredDraft) => {
+  if (isRowDraft(draft)) {
+    return draft.rows.every((r) =>
+      Object.values(r.values).every(
+        (v) => typeof v !== "number" || (Number.isFinite(v) && Math.abs(v) < 1e9),
+      ),
+    );
+  }
   const maps =
     draft.target === "game_box_score" ? draft.lines.map((l) => l.stats) : draft.teams.map((t) => t.stats);
   const numbers = [
@@ -159,9 +169,36 @@ const finite = (draft: StoredDraft) => {
   return numbers.every((n) => Number.isFinite(n) && Math.abs(n) < 100_000);
 };
 
+/** Writes a game screen into its game and refreshes the season; returns the game. */
+async function commitGameDraft(
+  ctx: MutationCtx,
+  franchise: Doc<"franchises">,
+  lead: Doc<"uploads">,
+  draft: Exclude<StoredDraft, StoredRowsDraft>,
+) {
+  const game = await upsertGame(ctx, franchise, lead, draft.game);
+  let playerIds: Id<"players">[] = [];
+  switch (draft.target) {
+    case "game_box_score":
+      playerIds = await commitBoxScore(ctx, franchise, game, draft);
+      break;
+    case "team_game_stats":
+      await commitTeamStats(ctx, franchise, game, draft);
+      break;
+  }
+  await refreshSeasonRecord(ctx, game.seasonId);
+  await ctx.scheduler.runAfter(0, internal.stats.refresh.afterGame, { gameId: game._id, playerIds });
+  return game._id;
+}
+
 export const commit = mutation({
   args: { setKey: v.string(), draft: vDraft },
-  returns: v.object({ gameId: v.id("games") }),
+  returns: v.object({
+    gameId: v.optional(v.id("games")),
+    playerId: v.optional(v.id("players")),
+    /** The next set waiting for review, so an end-of-season pass moves straight on. */
+    nextSetKey: v.optional(v.string()),
+  }),
   handler: async (ctx, { setKey, draft }) => {
     await requireOwner(ctx);
     const franchise = await activeFranchise(ctx);
@@ -174,18 +211,9 @@ export const commit = mutation({
     if (blocksCommit(errors)) throw invalid(errors[0]!.message);
 
     const lead = [...uploads].sort((a, b) => a._creationTime - b._creationTime)[0]!;
-    const game = await upsertGame(ctx, franchise, lead, draft.game);
-    let playerIds: Id<"players">[] = [];
-    switch (draft.target) {
-      case "game_box_score":
-        playerIds = await commitBoxScore(ctx, franchise, game, draft);
-        break;
-      case "team_game_stats":
-        await commitTeamStats(ctx, franchise, game, draft);
-        break;
-    }
-    await refreshSeasonRecord(ctx, game.seasonId);
-    await ctx.scheduler.runAfter(0, internal.stats.refresh.afterGame, { gameId: game._id, playerIds });
+    const result: { gameId?: Id<"games">; playerId?: Id<"players"> } = isRowDraft(draft)
+      ? await commitRows(ctx, franchise, lead, draft)
+      : { gameId: await commitGameDraft(ctx, franchise, lead, draft) };
 
     for (const change of diffDrafts(extraction.draft, draft).slice(0, MAX_CORRECTIONS)) {
       await ctx.db.insert("corrections", {
@@ -201,8 +229,18 @@ export const commit = mutation({
     }
     await ctx.db.patch("extractions", extraction._id, { reviewDraft: draft });
     for (const upload of uploads) {
-      await ctx.db.patch("uploads", upload._id, { status: "committed", gameId: game._id, error: undefined });
+      await ctx.db.patch("uploads", upload._id, {
+        status: "committed",
+        error: undefined,
+        ...(result.gameId ? { gameId: result.gameId } : {}),
+      });
     }
-    return { gameId: game._id };
+    const next = await ctx.db
+      .query("uploads")
+      .withIndex("by_franchiseId_and_status", (q) =>
+        q.eq("franchiseId", franchise._id).eq("status", "review"),
+      )
+      .first();
+    return { ...result, nextSetKey: next?.setKey };
   },
 });

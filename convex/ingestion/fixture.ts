@@ -3,7 +3,8 @@
  * It goes through the same normalize, resolve, validate and commit path as a real answer, so
  * Playwright and local development exercise the whole loop without a network call or a bill.
  */
-import type { TargetKey } from "../../shared/ingestion/targets";
+import { isRowTarget, type TargetKey } from "../../shared/ingestion/targets";
+import { fixtureRows } from "./fixtureRows";
 
 type Teams = { home: string; away: string; userIsHome: boolean };
 
@@ -25,6 +26,7 @@ const row = (
 export function fixtureAnswer(target: TargetKey, { home, away, userIsHome }: Teams): unknown {
   const us = userIsHome ? home : away;
   const them = userIsHome ? away : home;
+  if (isRowTarget(target)) return fixtureRows(target, us);
   const header = {
     home_team: home,
     away_team: away,
