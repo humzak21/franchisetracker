@@ -1,7 +1,8 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { NFL_TEAMS } from "@shared/domain";
 import { ThemeScope, useTheme } from "@/design/theme";
 import { Page } from "@/components/layout/Page";
+import { Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import { SPECIMENS, type Specimen } from "./specimens";
@@ -10,6 +11,22 @@ type ThemeChoice = "app" | "dark" | "light" | "both";
 
 const PHONE_WIDTH = 390;
 const DESKTOP_WIDTH = 960;
+/** Specimens mounted per frame. */
+const BATCH = 4;
+
+/**
+ * How many specimens to render, growing a batch per frame. Every specimen renders four times,
+ * charts included; mounting them all in one pass kept the page blank for seconds on a phone.
+ */
+function useProgressiveCount(total: number): number {
+  const [count, setCount] = useState(BATCH);
+  useEffect(() => {
+    if (count >= total) return;
+    const id = requestAnimationFrame(() => setCount((n) => Math.min(total, n + BATCH)));
+    return () => cancelAnimationFrame(id);
+  }, [count, total]);
+  return count;
+}
 
 type FrameProps = {
   label: string;
@@ -40,26 +57,31 @@ function SpecimenBlock({
   specimen,
   themes,
   team,
+  mounted,
 }: {
   specimen: Specimen;
   themes: ("dark" | "light")[];
   team: (typeof NFL_TEAMS)[number];
+  /** False until its batch comes up: the heading shows, the frames wait. */
+  mounted: boolean;
 }) {
   return (
     <section id={specimen.id} className="scroll-mt-24 border-t border-border pt-6">
       <h2 className="font-display text-2xl font-bold tracking-wide uppercase">{specimen.name}</h2>
       {specimen.note && <p className="mt-0.5 max-w-3xl text-sm text-muted-foreground">{specimen.note}</p>}
       <div className="mt-4 space-y-5">
-        {themes.map((theme) => (
-          <div key={theme} className="flex flex-col gap-5 2xl:flex-row">
-            <Frame label="Phone" width={PHONE_WIDTH} fluid theme={theme} team={team}>
-              {specimen.render()}
-            </Frame>
-            <Frame label="Desktop" width={DESKTOP_WIDTH} theme={theme} team={team}>
-              {specimen.render()}
-            </Frame>
-          </div>
-        ))}
+        {!mounted && <Skeleton className="h-40 rounded-xl" />}
+        {mounted &&
+          themes.map((theme) => (
+            <div key={theme} className="flex flex-col gap-5 2xl:flex-row">
+              <Frame label="Phone" width={PHONE_WIDTH} fluid theme={theme} team={team}>
+                {specimen.render()}
+              </Frame>
+              <Frame label="Desktop" width={DESKTOP_WIDTH} theme={theme} team={team}>
+                {specimen.render()}
+              </Frame>
+            </div>
+          ))}
       </div>
     </section>
   );
@@ -74,6 +96,7 @@ export function GalleryScreen() {
   const [choice, setChoice] = useLocalStorage<ThemeChoice>("ft.gallery.theme", "both");
   const [teamAbbr, setTeamAbbr] = useLocalStorage("ft.gallery.team", "NE");
   const team = NFL_TEAMS.find((t) => t.abbr === teamAbbr) ?? NFL_TEAMS[0]!;
+  const mounted = useProgressiveCount(SPECIMENS.length);
   const themes: ("dark" | "light")[] =
     choice === "both" ? ["dark", "light"] : [choice === "app" ? resolved : choice];
 
@@ -123,8 +146,8 @@ export function GalleryScreen() {
         </nav>
       </div>
       <div className="space-y-10">
-        {SPECIMENS.map((sp) => (
-          <SpecimenBlock key={sp.id} specimen={sp} themes={themes} team={team} />
+        {SPECIMENS.map((sp, i) => (
+          <SpecimenBlock key={sp.id} specimen={sp} themes={themes} team={team} mounted={i < mounted} />
         ))}
       </div>
     </Page>
