@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "dev": "convex dev"
+  },
+  "dependencies": {
+    "convex": "^1.48.0"
+  }
+}
