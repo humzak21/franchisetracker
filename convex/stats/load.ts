@@ -30,6 +30,8 @@ export async function userSeasonRows(
 ): Promise<Record<Split, SeasonRow<Id<"players">, Id<"seasons">>[]>> {
   const out: Record<Split, SeasonRow<Id<"players">, Id<"seasons">>[]> = { regular: [], postseason: [] };
   for (const season of await franchiseSeasons(ctx, franchise._id)) {
+    // Imported seasons before the franchise hold no log-derived rows.
+    if (season.year < franchise.startYear) continue;
     const rows = await ctx.db
       .query("seasonPlayerStats")
       .withIndex("by_seasonId_and_teamId", (q) =>

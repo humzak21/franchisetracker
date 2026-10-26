@@ -3,7 +3,7 @@
 A Football Manager style front end for a Madden franchise. Single user, Convex backend, one responsive React app that is a full client on both the Mac and the iPhone.
 
 - **Product spec (source of truth):** `docs/FEATURES.md`. **Build order:** `docs/SPRINTS.md`. Read the sprint you are working on before writing code, and keep both docs current when scope changes.
-- **Data origin:** franchises are new. Real NFL seasons before a franchise's first season come from an external NFL data source (Sprint 4, `docs/FEATURES.md` 4.8); everything after is captured as the franchise is played. There is no spreadsheet or workbook import; do not build one.
+- **Data origin:** franchises are new. Real NFL seasons before a franchise's first season come from nflverse (`docs/NFL-HISTORY.md`, `docs/FEATURES.md` 4.8); everything after is captured as the franchise is played. There is no spreadsheet or workbook import; do not build one.
 
 ## Commands
 
@@ -27,6 +27,8 @@ Environments:
 - **Local (default for development and all automated tests):** an anonymous Convex backend on this machine, no account needed. Its data lives in `.convex/` (git-ignored); delete that folder to start clean, then `npm run use:local`.
 - **Cloud dev (`prestigious-iguana-83`):** shared staging, reachable from the phone. Switch with `npm run use:cloud`.
 - **Production:** Vercel plus the Convex production deployment, deployed only from `main`.
+
+Real NFL history imports from nflverse when a franchise is created (`docs/NFL-HISTORY.md`); a franchise that predates the import starts it from Settings or with `npx convex run history/importJob:restart`. The sample franchise loads a bundled slice instead, so tests never fetch nflverse.
 
 `.env.local` (git-ignored, rewritten by `convex dev`) selects the backend for `npm run dev`. Playwright never reads it: it starts its own local backend, builds the app in `e2e` mode (`.env.e2e`, committed) and serves the build on port 5174, so tests cannot touch cloud data. Each signed-in test gets its own test-owner session (`e2e/ownerSession.ts`); never share one saved session across tests, because Convex Auth revokes a session whose refresh token is replayed. CI runs one Playwright job per project inside the official Playwright image. Never run `convex deploy`, or anything else that writes to production, without the user's explicit go-ahead. Secrets (OpenRouter key, Shortcut tokens, OAuth client secrets) live in Convex env vars, never in the client or the repo.
 

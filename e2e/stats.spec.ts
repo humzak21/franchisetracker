@@ -53,6 +53,8 @@ test("milestones can be acknowledged from Home", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Milestones" })).toBeVisible();
   const first = page.getByRole("button", { name: /^Acknowledge: / }).first();
+  // Wait for the feed to load before counting: its loading state has neither.
+  await expect(first.or(page.getByText("All caught up."))).toBeVisible();
   // The local backend is shared across runs: once every milestone is acknowledged the feed is empty.
   if ((await first.count()) === 0) {
     await expect(page.getByText("All caught up.")).toBeVisible();

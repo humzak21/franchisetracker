@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { readableOn } from "@/design/color";
 import { cn } from "@/lib/cn";
+import { useTeamLogoUrl } from "./TeamLogos";
 
 /** The fields any team-rendering component needs. Convex `teams` docs satisfy it. */
 export type TeamLike = {
@@ -20,7 +22,10 @@ const sizes = {
 } as const;
 export type LogoSize = keyof typeof sizes;
 
-/** Team logo. Uses the cached ESPN logo when present, otherwise a monogram shield in team colors. */
+/**
+ * Team logo: the URL passed in, else the cached ESPN logo from `TeamLogosProvider`, else (or if
+ * the image fails) a monogram shield in team colors.
+ */
 export function TeamLogo({
   team,
   size = "md",
@@ -31,9 +36,17 @@ export function TeamLogo({
   className?: string;
 }) {
   const label = team.name ? `${team.city ?? ""} ${team.name}`.trim() : team.abbr;
-  if (team.logoUrl) {
+  const cached = useTeamLogoUrl(team.abbr);
+  const src = team.logoUrl ?? cached;
+  const [failed, setFailed] = useState<string | null>(null);
+  if (src && failed !== src) {
     return (
-      <img src={team.logoUrl} alt={label} className={cn("shrink-0 object-contain", sizes[size], className)} />
+      <img
+        src={src}
+        alt={label}
+        onError={() => setFailed(src)}
+        className={cn("shrink-0 object-contain", sizes[size], className)}
+      />
     );
   }
   return (

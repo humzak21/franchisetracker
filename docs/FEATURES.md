@@ -2,7 +2,7 @@
 
 A Football Manager style front end for a Madden franchise, minus the game. One user, one franchise at a time (the model supports several), fed by photos and screenshots the user takes during and after each game, parsed into structured data, and reviewed before commit.
 
-It is built for **new franchises**. A franchise starts in the current real-life NFL season. Everything before that (real team records, standings, playoff results, real players' careers) is imported from an external NFL data source; everything from the first franchise season on is captured as the user plays. There is no spreadsheet or workbook import, and there never will be.
+It is built for **new franchises**. A franchise starts in the current real-life NFL season. Everything before that (real team records, standings, playoff results, real players' careers) is imported from nflverse (`docs/NFL-HISTORY.md`); everything from the first franchise season on is captured as the user plays. There is no spreadsheet or workbook import, and there never will be.
 
 This document is the product source of truth. `SPRINTS.md` turns it into build order.
 
@@ -30,7 +30,7 @@ This document is the product source of truth. `SPRINTS.md` turns it into build o
 | Backend | Convex: database, file storage, actions, HTTP endpoints, scheduled functions | Single deployment. Schema split by domain under `convex/`. |
 | Shared logic | `shared/` TypeScript package consumed by both `convex/` and `src/` | Stat registry, stat math (passer rating, averages, pace), formatters, validators, ingestion target registry. |
 | Vision extraction | OpenRouter from a Convex action, structured output with a JSON schema per target, model fallback chain | Key stored as a Convex env var. Never on the client. |
-| External data | ESPN unofficial site API from Convex actions, plus a real NFL history source (4.8) | Headshots, team logos and colors, real-player bios, and every season before the franchise began. Cached in Convex. |
+| External data | nflverse public data releases for real NFL history (4.8, `docs/NFL-HISTORY.md`); the ESPN unofficial site API for headshots, logos, player search and bios | All fetched by Convex actions and cached in Convex. |
 | Phone | The same web app as a home-screen PWA with full feature parity, plus an Apple Shortcut on the share sheet and home screen that posts images to a Convex HTTP endpoint with a bearer token for the fastest capture path. | Zero native code. |
 | Auth | The entire app sits behind **Sign in with Vercel** (OIDC). Convex validates the Vercel ID token (`convex/auth.config.ts`) and every public function requires the signed-in user, checked against an allowlist of the owner's Vercel account. Nothing renders before sign-in except the sign-in screen. The Shortcut HTTP endpoint is the one exception and uses a revocable bearer token. | Franchise data is private. Hiding the front end is not enough on its own: the Convex URL is public, so the check lives in the backend. |
 | Hosting | Vercel for the static front end (production branch `main`; the build runs `convex deploy` against the production deployment), Convex cloud for the backend | Any device can open the URL, and signs in before seeing anything. |
@@ -162,9 +162,9 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 
 ### 4.8 Real NFL history (before the franchise)
 
-- Imported once when a franchise is created, refreshable from Settings: for every season before `startYear` that the source covers, all 32 teams' records, standings, playoff results and titles; real players with their careers and season totals up to the franchise start; draft history.
+- Imported once when a franchise is created, refreshable from Settings: for every finished season from 2002 (the 32-team era) up to `startYear`, all 32 teams' records, standings, playoff results and titles; real players with their careers and season totals up to the franchise start; draft history; and all 32 teams' real rosters for the first season, so box scores resolve to real players from the first game.
 - Lands in the same tables as franchise data (`seasons` for the user team, `standings`, `seasonPlayerStats` with `source: "import"`, `players` with `isReal`, `trophyEntries` for pre-franchise titles), so history screens, player pages and records read one model. Pre-franchise seasons are marked as such and never mix with captured game logs.
-- Source to be chosen in Sprint 4. Candidates: the nflverse public data releases (schedules, standings, weekly and season player stats as CSV or Parquet) and the ESPN site API already used for headshots and logos. Fetched by Convex actions; never a spreadsheet the user supplies.
+- Source: the nflverse public data releases (standings, schedules, players, season stats, draft picks, rosters as CSV), chosen in Sprint 4; ESPN supplies headshots and logos. Decision, coverage and mechanics in `docs/NFL-HISTORY.md`. Fetched by Convex actions; never a spreadsheet the user supplies.
 
 ## 5. Features by area
 
@@ -206,13 +206,14 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 
 ### 5.4 Players
 
-- Player page: hero with headshot, team colors, position, number, age, OVR with progression chart across seasons, college, acquisition story, contract, dev trait and abilities, notes.
-- Career stats table by season with totals row, computed from game logs, with the elite highlight rules applied per season. Postseason split toggle.
+- Player page: hero with the player card (headshot or monogram) in team colors, position, number, age, height and weight, college, draft slot, acquisition story, contract, dev trait and abilities (per season, on the roster entry), notes; OVR progression chart across seasons and in-season checkpoints.
+- Career stats table by season with totals row, computed from game logs (real NFL seasons before the franchise are imported totals, marked), with the elite highlight rules applied per season. Postseason split toggle.
 - Game log for any season with per-game highlight markers.
 - Awards, records held, milestones, draft info, transactions involving the player, Hall of Fame status.
 - Compare: two to four players side by side on shared stat keys with a radar or bar chart.
-- Identity tools: merge duplicates, add alias, correct a mis-extracted name once and have it remembered.
-- Headshots: fetched from ESPN for real players by name match, confirmed by the user, cached. Fictional players get a generated monogram card in team colors. Manual upload supported.
+- Identity tools: merge duplicates (suggested in Settings), rename with the old name kept as an alias, edit aliases, mark a player fictional, and apply a name corrected in review to every player still carrying the misread name.
+- Headshots: imported real players arrive with their ESPN id; anyone else is matched on ESPN by name (NFL first, then college football for created players in a real draft class, ranked by school and position) and confirmed by the user, from the player page or in bulk from the roster. Photos are cached in storage. Fictional players get a generated monogram card in team colors. Manual upload supported (later).
+- Players index: every player on a team's roster during the franchise (any team), filtered by position and sorted by OVR, age or seasons with the team, plus a name search across every player, real history included.
 
 ### 5.5 Stats
 

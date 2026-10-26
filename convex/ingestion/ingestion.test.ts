@@ -93,7 +93,12 @@ describe("ingestion", () => {
         .withIndex("by_playerId", (q) => q.eq("playerId", maye.playerId!))
         .collect(),
     );
-    expect(career).toHaveLength(1);
+    // Regular season: imported 2024-25 plus the captured game; the import also brought 2025 playoffs.
+    expect(career.find((c) => c.split === "regular")).toMatchObject({
+      firstYear: 2024,
+      lastYear: SAMPLE_START_YEAR + 1,
+    });
+    expect(career.map((c) => c.split).sort()).toEqual(["postseason", "regular"]);
 
     const corrections = await t.run((ctx) => ctx.db.query("corrections").collect());
     expect(corrections.map((c) => [c.extractedValue, c.correctedValue]).sort()).toEqual([

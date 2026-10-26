@@ -1,12 +1,14 @@
 import { useQuery } from "convex/react";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, History } from "lucide-react";
 import { useMemo } from "react";
 import { api } from "@convex/_generated/api";
+import { isPreFranchise } from "@shared/history/nflverse";
 import { STAT_GROUPS, statGroup, type ThresholdOverrides } from "@shared/stats";
 import { useFranchise } from "@/app/franchise";
 import { useSeason } from "@/app/season";
 import { DataTable } from "@/components/data/DataTable";
 import { EmptyState } from "@/components/data/EmptyState";
+import { Notice } from "@/components/data/Notice";
 import { Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
@@ -28,8 +30,15 @@ export function SeasonStats({ split }: { split: Split }) {
     return { rows, totals: totalsRow(rows), ...seasonColumns(group, rows, active.userTeam, thresholds) };
   }, [data, active, group, thresholds]);
 
+  const preFranchise = season && active && isPreFranchise(season.year, active.franchise.startYear);
   return (
     <div className="space-y-3">
+      {preFranchise && (
+        <Notice icon={History}>
+          {season.year} is real NFL history: season totals for the {active.userTeam.name} imported from
+          nflverse. Records, leaders and streaks count only the seasons you play.
+        </Notice>
+      )}
       <div data-swipe-ignore className="-mx-1 scrollbar-none overflow-x-auto px-1">
         <Segmented
           size="sm"

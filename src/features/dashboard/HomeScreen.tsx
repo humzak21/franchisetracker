@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Camera, History, LayoutGrid } from "lucide-react";
+import { isPreFranchise } from "@shared/history/nflverse";
 import { formatRecord } from "@shared/stats";
 import { useFranchise, type ActiveFranchise } from "@/app/franchise";
 import { useSeason } from "@/app/season";
@@ -13,8 +14,13 @@ import { cn } from "@/lib/cn";
 import { MilestoneFeed } from "./MilestoneFeed";
 import { TeamStreaks } from "./TeamStreaks";
 
+/** Seasons played in the franchise; imported real NFL seasons before it live in History. */
+const franchiseSeasons = (active: ActiveFranchise) =>
+  active.seasons.filter((s) => !isPreFranchise(s.year, active.franchise.startYear));
+
 function Hero({ active }: { active: ActiveFranchise }) {
-  const { franchise, userTeam, seasons } = active;
+  const { franchise, userTeam } = active;
+  const seasons = franchiseSeasons(active);
   const first = seasons[0]?.year;
   const last = seasons[seasons.length - 1]?.year;
   return (
@@ -64,7 +70,7 @@ function SeasonGrid({ active }: { active: ActiveFranchise }) {
   const { season, setYear } = useSeason();
   return (
     <div className="grid grid-cols-2 gap-2 @tablet:grid-cols-5">
-      {active.seasons.map((s) => (
+      {franchiseSeasons(active).map((s) => (
         <button
           key={s._id}
           type="button"
@@ -90,6 +96,7 @@ function SeasonGrid({ active }: { active: ActiveFranchise }) {
 export function HomeScreen() {
   const active = useFranchise();
   const { season } = useSeason();
+  const imported = active ? active.seasons.length - franchiseSeasons(active).length : 0;
 
   return (
     <Page title="Home" eyebrow={season ? `${season.year} season` : undefined} season>
@@ -119,7 +126,18 @@ export function HomeScreen() {
               <EmptyState
                 icon={History}
                 title="Real NFL history"
-                description="Seasons before your franchise, from an external NFL data source. Sprint 4."
+                description={
+                  imported > 0
+                    ? `${imported} real seasons before the franchise, with standings, players and the draft.`
+                    : "Seasons before the franchise import from nflverse; follow it in Settings."
+                }
+                action={
+                  <Button asChild variant="outline" size="sm">
+                    <Link to={imported > 0 ? "/history" : "/settings"}>
+                      {imported > 0 ? "Open history" : "Settings"}
+                    </Link>
+                  </Button>
+                }
               />
               <EmptyState
                 icon={Camera}

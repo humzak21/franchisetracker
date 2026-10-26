@@ -3,7 +3,10 @@ import { expect, test } from "./fixtures";
 test.describe("component gallery", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/dev/components");
-    await expect(page.getByRole("heading", { level: 1, name: "Component gallery" })).toBeVisible();
+    // Every specimen renders four times (two themes, two widths), charts included: slow on CI WebKit.
+    await expect(page.getByRole("heading", { level: 1, name: "Component gallery" })).toBeVisible({
+      timeout: 20_000,
+    });
   });
 
   test("DataTable switches to phone mode inside the phone frame", async ({ page }) => {

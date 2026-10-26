@@ -23,6 +23,7 @@ import {
   TRANSACTION_TYPES,
   WEEK_KEYS,
 } from "../../shared/domain";
+import { ESPN_LEAGUES } from "../../shared/players/espnMatch";
 
 /** `literals(["a", "b"])` → `v.union(v.literal("a"), v.literal("b"))`, typed as `"a" | "b"`. */
 export function literals<const T extends readonly [string, ...string[]]>(values: T) {
@@ -55,6 +56,7 @@ export const MILESTONE_KINDS = [
   "custom",
 ] as const;
 export const WARNING_SEVERITIES = ["info", "warning", "error"] as const;
+export const IMPORT_STATUSES = ["running", "done", "failed"] as const;
 
 // Shared domain enums.
 export const vWeekKey = literals(WEEK_KEYS);
@@ -74,6 +76,7 @@ export const vAwardType = literals(AWARD_TYPES);
 export const vAwardScope = literals(AWARD_SCOPES);
 export const vConference = literals(CONFERENCES);
 export const vDivision = literals(DIVISIONS);
+export const vEspnLeague = literals(ESPN_LEAGUES);
 
 // Backend-only enums.
 export const vUploadStatus = literals(UPLOAD_STATUSES);
@@ -86,6 +89,7 @@ export const vStandingSource = literals(STANDING_SOURCES);
 export const vTransactionDirection = literals(TRANSACTION_DIRECTIONS);
 export const vMilestoneKind = literals(MILESTONE_KINDS);
 export const vWarningSeverity = literals(WARNING_SEVERITIES);
+export const vImportStatus = literals(IMPORT_STATUSES);
 
 /** Flat stat map keyed by stat-registry keys (`shared/stats/registry.ts`), e.g. `{ passYds: 203 }`. */
 export const vStatMap = v.record(v.string(), v.number());

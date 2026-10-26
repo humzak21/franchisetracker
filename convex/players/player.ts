@@ -1,45 +1,28 @@
 import { v } from "convex/values";
-import type { Doc, Id } from "../_generated/dataModel";
-import { mutation, query, type QueryCtx } from "../_generated/server";
+import { mutation, query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { must } from "../lib/errors";
-import { teamsById } from "../lib/franchise";
+import { activeFranchise, teamsById } from "../lib/franchise";
+import { headshotUrl } from "../lib/media";
+import { seasonYears, toTeamRef, vTeamRef } from "../lib/refs";
 import schema from "../schema";
 
-/** A long career: seasons with the franchise, with headroom for mid-season moves. */
-const MAX_ROWS = 60;
+/** Twenty-plus real seasons before the franchise, two splits each, then the franchise run. */
+const MAX_ROWS = 160;
 
-async function seasonYears(ctx: QueryCtx, ids: Iterable<Id<"seasons">>): Promise<Map<Id<"seasons">, number>> {
-  const unique = [...new Set(ids)];
-  const docs = await Promise.all(unique.map((id) => ctx.db.get("seasons", id)));
-  return new Map(docs.filter((d): d is Doc<"seasons"> => d !== null).map((d) => [d._id, d.year]));
-}
-
-const teamRef = v.object({
-  _id: v.id("teams"),
-  abbr: v.string(),
-  city: v.string(),
-  name: v.string(),
-  primaryColor: v.string(),
-  secondaryColor: v.string(),
-});
-
-const toTeamRef = (team: Doc<"teams">) => ({
-  _id: team._id,
-  abbr: team.abbr,
-  city: team.city,
-  name: team.name,
-  primaryColor: team.primaryColor,
-  secondaryColor: team.secondaryColor,
-});
-
-/** A player with roster history and season stat rows, both oldest season first. */
+/**
+ * A player with roster history and season stat rows, both oldest season first. Seasons before
+ * `startYear` are imported real history.
+ */
 export const get = query({
   args: { playerId: v.id("players") },
   returns: v.object({
     player: schema.doc("players"),
-    history: v.array(v.object({ year: v.number(), team: teamRef, entry: schema.doc("rosterEntries") })),
-    seasons: v.array(v.object({ year: v.number(), team: teamRef, stats: schema.doc("seasonPlayerStats") })),
+    headshotUrl: v.union(v.string(), v.null()),
+    draftTeamAbbr: v.union(v.string(), v.null()),
+    startYear: v.number(),
+    history: v.array(v.object({ year: v.number(), team: vTeamRef, entry: schema.doc("rosterEntries") })),
+    seasons: v.array(v.object({ year: v.number(), team: vTeamRef, stats: schema.doc("seasonPlayerStats") })),
   }),
   handler: async (ctx, { playerId }) => {
     await requireOwner(ctx);
@@ -52,12 +35,13 @@ export const get = query({
       .query("seasonPlayerStats")
       .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId))
       .take(MAX_ROWS);
-    const [years, teams] = await Promise.all([
+    const [years, teams, franchise] = await Promise.all([
       seasonYears(
         ctx,
         [...entries, ...stats].map((row) => row.seasonId),
       ),
       teamsById(ctx),
+      activeFranchise(ctx),
     ]);
 
     const history = entries.flatMap((entry) => {
@@ -72,7 +56,14 @@ export const get = query({
     });
     history.sort((a, b) => a.year - b.year);
     seasons.sort((a, b) => a.year - b.year);
-    return { player, history, seasons };
+    return {
+      player,
+      headshotUrl: await headshotUrl(ctx, player),
+      draftTeamAbbr: (player.draft?.teamId && teams.get(player.draft.teamId)?.abbr) ?? null,
+      startYear: franchise.startYear,
+      history,
+      seasons,
+    };
   },
 });
 

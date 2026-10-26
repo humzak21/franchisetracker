@@ -1,6 +1,13 @@
 /** Which stats a table shows: the ones with data, and the few that stay visible on a phone. */
 import { statValue } from "./aggregate";
-import { STAT_REGISTRY, statsInCategory, type StatCategory, type StatKey, type StatLine } from "./registry";
+import {
+  isRawStatKey,
+  STAT_REGISTRY,
+  statsInCategory,
+  type StatCategory,
+  type StatKey,
+  type StatLine,
+} from "./registry";
 
 /** The stats that define each category, kept in the phone table; the rest go in the expand card. */
 export const CATEGORY_PRIMARY: Record<StatCategory, StatKey[]> = {
@@ -47,4 +54,13 @@ export function categoriesWithData(
   return categories.filter((c) =>
     statsInCategory(c).some((key) => rows.some((r) => (statValue(key, r.line) ?? 0) !== 0)),
   );
+}
+
+/**
+ * Categories the player actually played in this line: a nonzero raw stat. Unlike
+ * `categoriesWithData`, derived stats do not count, so a receiver's scrimmage yards do not put
+ * him in the rushing category.
+ */
+export function categoriesPlayed(categories: readonly StatCategory[], line: StatLine): StatCategory[] {
+  return categories.filter((c) => statsInCategory(c).some((k) => isRawStatKey(k) && (line[k] ?? 0) !== 0));
 }

@@ -1,6 +1,8 @@
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { ConvexReactClient } from "convex/react";
+import { ConvexReactClient, useQuery } from "convex/react";
 import type { ReactNode } from "react";
+import { api } from "@convex/_generated/api";
+import { TeamLogosProvider } from "@/components/team/TeamLogos";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/design/theme";
 import { AuthGate } from "./auth/AuthGate";
@@ -18,6 +20,14 @@ function TeamTheme({ children }: { children: ReactNode }) {
   return <ThemeProvider team={active?.userTeam}>{children}</ThemeProvider>;
 }
 
+const NO_LOGOS: Record<string, string> = {};
+
+/** Cached ESPN logos for every `TeamLogo`; monograms until they load (or if never cached). */
+function TeamLogos({ children }: { children: ReactNode }) {
+  const logos = useQuery(api.league.logos.urls, {});
+  return <TeamLogosProvider value={logos ?? NO_LOGOS}>{children}</TeamLogosProvider>;
+}
+
 /**
  * Providers that do not depend on the router. Everything below the AuthGate, including
  * every Convex query, exists only for the signed-in owner.
@@ -28,11 +38,13 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <AuthGate>
         <FranchiseProvider>
           <TeamTheme>
-            <TooltipProvider delayDuration={300}>
-              <KeyboardProvider>
-                <FranchiseGate>{children}</FranchiseGate>
-              </KeyboardProvider>
-            </TooltipProvider>
+            <TeamLogos>
+              <TooltipProvider delayDuration={300}>
+                <KeyboardProvider>
+                  <FranchiseGate>{children}</FranchiseGate>
+                </KeyboardProvider>
+              </TooltipProvider>
+            </TeamLogos>
           </TeamTheme>
         </FranchiseProvider>
       </AuthGate>

@@ -3,6 +3,7 @@ import { query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { must } from "../lib/errors";
 import { activeFranchise, playersById } from "../lib/franchise";
+import { headshotUrls } from "../lib/refs";
 import schema from "../schema";
 
 /** A full roster plus practice squad and IR stays well under this. */
@@ -13,7 +14,13 @@ export const bySeason = query({
   args: { seasonId: v.id("seasons"), teamId: v.optional(v.id("teams")) },
   returns: v.object({
     team: schema.doc("teams"),
-    entries: v.array(v.object({ entry: schema.doc("rosterEntries"), player: schema.doc("players") })),
+    entries: v.array(
+      v.object({
+        entry: schema.doc("rosterEntries"),
+        player: schema.doc("players"),
+        headshotUrl: v.union(v.string(), v.null()),
+      }),
+    ),
   }),
   handler: async (ctx, args) => {
     await requireOwner(ctx);
@@ -27,11 +34,12 @@ export const bySeason = query({
       ctx,
       entries.map((e) => e.playerId),
     );
+    const urls = await headshotUrls(ctx, players.values());
     return {
       team,
       entries: entries.flatMap((entry) => {
         const player = players.get(entry.playerId);
-        return player ? [{ entry, player }] : [];
+        return player ? [{ entry, player, headshotUrl: urls.get(player._id) ?? null }] : [];
       }),
     };
   },

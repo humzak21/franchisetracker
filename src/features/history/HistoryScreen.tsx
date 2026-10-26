@@ -1,5 +1,6 @@
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
+import { isPreFranchise } from "@shared/history/nflverse";
 import { byDecade, totalsOf, trophyRoom } from "@shared/history/trophies";
 import { formatRecord, winPct } from "@shared/stats";
 import { Tile, TileStrip } from "@/components/data/Tile";
@@ -26,12 +27,13 @@ export function HistoryScreen() {
   }
 
   const played = data.seasons.filter((s) => s.userRecord);
+  const real = data.seasons.filter((s) => isPreFranchise(s.year, data.startYear)).length;
   const totals = totalsOf(played);
   const pct = winPct(totals);
-  const room = trophyRoom(data.seasons, data.entries);
+  const room = trophyRoom(data.seasons, data.entries, data.startYear);
 
   return (
-    <Page title="History" eyebrow={`Since ${data.startYear}`}>
+    <Page title="History" eyebrow={`Since ${data.seasons[0]?.year ?? data.startYear}`}>
       <div className="space-y-10">
         <TileStrip>
           <Tile
@@ -40,12 +42,18 @@ export function HistoryScreen() {
             accent
             detail={pct === null ? "No games yet" : `${(pct * 100).toFixed(1)}% wins`}
           />
-          <Tile label="Seasons" value={played.length} detail={`of ${data.seasons.length} tracked`} />
+          <Tile
+            label="Seasons"
+            value={played.length}
+            detail={
+              real > 0 ? `${real} real NFL before ${data.startYear}` : `of ${data.seasons.length} tracked`
+            }
+          />
           <Tile label="Playoff trips" value={totals.playoffs} />
           <Tile
             label="Super Bowls"
             value={room.superBowl.length}
-            detail={`${totals.titles} in the franchise`}
+            detail={`${room.superBowl.filter((t) => t.source === "franchise").length} in the franchise`}
           />
         </TileStrip>
 
@@ -62,7 +70,7 @@ export function HistoryScreen() {
             title={`${decade}s`}
             description={`${formatRecord(decadeTotals)} · ${decadeTotals.playoffs} playoff trips`}
           >
-            <DecadeGrid seasons={seasons} totals={decadeTotals} />
+            <DecadeGrid seasons={seasons} totals={decadeTotals} startYear={data.startYear} />
           </Section>
         ))}
       </div>

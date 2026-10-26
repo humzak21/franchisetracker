@@ -36,17 +36,22 @@ export function trophiesFor(season: SeasonRecordLike): TrophyKind[] {
   return kinds;
 }
 
-/** Years per trophy kind, newest first, merging franchise results and real-history entries. */
+/**
+ * Years per trophy kind, newest first, merging season results and hand-added entries. Seasons
+ * before `startYear` are imported real history, so their trophies count as history too.
+ */
 export function trophyRoom(
   seasons: readonly SeasonRecordLike[],
   entries: readonly TrophyEntryLike[],
+  startYear: number,
 ): Record<TrophyKind, TrophyYear[]> {
   const room = Object.fromEntries(TROPHY_KINDS.map((kind) => [kind, [] as TrophyYear[]])) as Record<
     TrophyKind,
     TrophyYear[]
   >;
   for (const season of seasons) {
-    for (const kind of trophiesFor(season)) room[kind].push({ year: season.year, source: "franchise" });
+    const source = season.year < startYear ? "history" : "franchise";
+    for (const kind of trophiesFor(season)) room[kind].push({ year: season.year, source });
   }
   for (const entry of entries) {
     if (!room[entry.kind].some((t) => t.year === entry.year))
