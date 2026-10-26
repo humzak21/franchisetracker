@@ -29,7 +29,8 @@
     "check": "npm run typecheck && npm run lint && npm run test",
     "check:all": "npm run check && npm run test:e2e",
     "seed:sample": "convex run dev/fixtures:seedFixtures",
-    "test:coverage": "vitest run --project unit --coverage --coverage.include='shared/**' --coverage.reporter=text-summary"
+    "test:coverage": "vitest run --project unit --coverage --coverage.include='shared/**' --coverage.reporter=text-summary",
+    "check:fresh-clone": "node scripts/fresh-clone/check.mjs"
   },
   "dependencies": {
     "@convex-dev/auth": "^0.0.96",
