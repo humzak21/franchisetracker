@@ -8,11 +8,16 @@
  * @module
  */
 
+import type * as account from "../account.js";
+import type * as auth from "../auth.js";
 import type * as franchise_franchises from "../franchise/franchises.js";
 import type * as franchise_seed from "../franchise/seed.js";
+import type * as http from "../http.js";
 import type * as league_teams from "../league/teams.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_errors from "../lib/errors.js";
+import type * as lib_owner from "../lib/owner.js";
+import type * as lib_testOwner from "../lib/testOwner.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as schema_awards from "../schema/awards.js";
 import type * as schema_draft from "../schema/draft.js";
@@ -32,11 +37,16 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  account: typeof account;
+  auth: typeof auth;
   "franchise/franchises": typeof franchise_franchises;
   "franchise/seed": typeof franchise_seed;
+  http: typeof http;
   "league/teams": typeof league_teams;
   "lib/auth": typeof lib_auth;
   "lib/errors": typeof lib_errors;
+  "lib/owner": typeof lib_owner;
+  "lib/testOwner": typeof lib_testOwner;
   "lib/validators": typeof lib_validators;
   "schema/awards": typeof schema_awards;
   "schema/draft": typeof schema_draft;

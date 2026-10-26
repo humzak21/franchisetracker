@@ -3,6 +3,7 @@ import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { NFL_TEAMS, USER_TEAM_ABBR } from "../../shared/domain";
 import { api, internal } from "../_generated/api";
+import { asOwner } from "../lib/testOwner";
 import schema from "../schema";
 
 // Root-relative so keys stay uniform ("/convex/franchise/seed.ts"); a "../**" glob yields
@@ -52,13 +53,15 @@ describe("franchise/seed:seedInitial", () => {
 describe("franchise/franchises:getActive", () => {
   test("returns null before seeding", async () => {
     const t = convexTest(schema, modules);
-    expect(await t.query(api.franchise.franchises.getActive, {})).toBeNull();
+    const owner = await asOwner(t);
+    expect(await owner.query(api.franchise.franchises.getActive, {})).toBeNull();
   });
 
   test("returns the franchise with user team NE and seasons ascending", async () => {
     const t = convexTest(schema, modules);
     await t.mutation(internal.franchise.seed.seedInitial, {});
-    const active = await t.query(api.franchise.franchises.getActive, {});
+    const owner = await asOwner(t);
+    const active = await owner.query(api.franchise.franchises.getActive, {});
     expect(active).not.toBeNull();
     expect(active!.franchise.name).toBe("Patriots Dynasty");
     expect(active!.franchise.settings).toEqual({ gamesPerSeason: 17, playoffTeams: 14 });
@@ -74,7 +77,8 @@ describe("league/teams:list", () => {
   test("orders teams by conference, division, then city", async () => {
     const t = convexTest(schema, modules);
     await t.mutation(internal.franchise.seed.seedInitial, {});
-    const teams = await t.query(api.league.teams.list, {});
+    const owner = await asOwner(t);
+    const teams = await owner.query(api.league.teams.list, {});
     expect(teams).toHaveLength(32);
     const keys = teams.map((team) => `${team.conference}|${team.division}|${team.city}`);
     expect(keys).toEqual([...keys].sort());

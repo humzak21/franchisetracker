@@ -37,7 +37,7 @@ export default defineConfig({
       command:
         "CONVEX_AGENT_MODE=anonymous CONVEX_DEPLOYMENT=anonymous:anonymous-agent npx convex dev --run franchise/seed:seedInitial --tail-logs disable",
       port: 3210,
-      wait: { stdout: /Convex functions ready/ },
+      wait: { stdout: /Finished running function/ },
       reuseExistingServer: !CI,
       timeout: 180_000,
       stdout: "pipe",

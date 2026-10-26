@@ -2,6 +2,7 @@
  * Schema v1, composed from one file per domain under `convex/schema/`.
  * Data model reference: docs/FEATURES.md section 4.
  */
+import { authTables } from "@convex-dev/auth/server";
 import { defineSchema } from "convex/server";
 import { awardTables } from "./schema/awards";
 import { draftTables } from "./schema/draft";
@@ -15,6 +16,8 @@ import { statTables } from "./schema/stats";
 import { transactionTables } from "./schema/transactions";
 
 export default defineSchema({
+  // users, sessions, accounts and tokens for Convex Auth (Sign in with Vercel).
+  ...authTables,
   ...franchiseTables,
   ...leagueTables,
   ...playerTables,

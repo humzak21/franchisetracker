@@ -92,7 +92,7 @@ Every screen ships for phone and desktop together (FEATURES.md 5.13 and 9). Ther
 - Schema is split per domain in `convex/schema/*.ts` and composed in `convex/schema.ts`. Enum validators come from `convex/lib/validators.ts`, which builds them from `shared/domain`.
 - Indexed reads only (`withIndex`), bounded results (`take`/`paginate`), no `.filter` scans, no `.collect()` on growing tables. Aggregates are materialized so tables are one indexed read.
 - Every function has argument validators; internal-only functions use `internal*`. Imports and recomputes are idempotent.
-- **The whole app is private.** From Sprint 1, every public query, mutation and action starts with `requireOwner(ctx)` (Sign in with Vercel identity checked against the owner allowlist). The only unauthenticated surface is the Shortcut HTTP endpoint, which checks its bearer token. Never ship a public function without the check.
+- **The whole app is private.** Every public query and mutation starts with `requireOwner(ctx)` (`convex/lib/auth.ts`; actions use `requireSignedIn` and delegate to internal functions). Sign in with Vercel runs through Convex Auth (`convex/auth.ts`) and the `OWNER_EMAILS` allowlist; setup is in `docs/AUTH-SETUP.md`. Tests get an owner identity from `convex/lib/testOwner.ts`. Apart from Convex Auth's own routes and `account.authInfo` (which sign-in buttons to show), the only unauthenticated surface will be the Shortcut HTTP endpoint, which checks its bearer token. Never ship a public function without the check.
 - Tests use `convex-test` under `convex/**/*.test.ts` (Vitest `convex` project, edge runtime).
 
 ## Testing and definition of done
