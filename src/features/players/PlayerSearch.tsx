@@ -1,10 +1,10 @@
-import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Search } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { api } from "@convex/_generated/api";
 import { PlayerChip } from "@/components/player/PlayerChip";
 import { Input } from "@/components/ui/input";
+import { useQuery } from "@/lib/convex/useQuery";
 
 export type SearchHit = FunctionReturnType<typeof api.players.directory.search>[number];
 

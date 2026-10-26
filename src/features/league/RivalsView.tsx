@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Swords } from "lucide-react";
 import { api } from "@convex/_generated/api";
@@ -9,6 +8,7 @@ import { EmptyState } from "@/components/data/EmptyState";
 import { Sparkline } from "@/components/data/Sparkline";
 import { ResultBadge } from "@/components/team/ResultBadge";
 import { TeamLink } from "./TeamLink";
+import { useQuery } from "@/lib/convex/useQuery";
 
 type Row = FunctionReturnType<typeof api.league.rivals.list>[number];
 

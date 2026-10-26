@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { Check, Plus } from "lucide-react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
@@ -10,6 +9,7 @@ import { Skeleton } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { errorMessage } from "@/lib/errors";
 import { useSwitchFranchise } from "../franchise";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /**
  * Every franchise with its team and latest season; tapping one makes it the active franchise.

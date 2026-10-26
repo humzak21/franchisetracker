@@ -1,5 +1,4 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { Camera, ImagePlus, LoaderCircle, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@convex/_generated/api";
@@ -12,6 +11,7 @@ import { errorMessage } from "@/lib/errors";
 import { currentSeason, useFranchise } from "../franchise";
 import type { CapturePreset } from "./CaptureProvider";
 import { useUploader } from "./useUploader";
+import { useQuery } from "@/lib/convex/useQuery";
 
 type CaptureSheetProps = {
   open: boolean;

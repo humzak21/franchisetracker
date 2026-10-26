@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import { Wallet } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { isPreFranchise } from "@shared/history/nflverse";
@@ -13,6 +12,7 @@ import { CapView } from "./CapView";
 import { InjuriesView } from "./InjuriesView";
 import { MovesFeed } from "./MovesFeed";
 import { TradesView } from "./TradesView";
+import { useQuery } from "@/lib/convex/useQuery";
 
 type View = "moves" | "trades" | "injuries" | "cap";
 

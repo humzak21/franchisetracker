@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useState, type FormEvent } from "react";
 import { api } from "@convex/_generated/api";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge, Skeleton } from "@/components/ui/misc";
 import { errorMessage } from "@/lib/errors";
+import { useQuery } from "@/lib/convex/useQuery";
 
 type Cap = FunctionReturnType<typeof api.players.cap.bySeason>;
 type Row = Cap["players"][number];

@@ -7,6 +7,7 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { AppProviders } from "./app/providers";
+import { hydrateQueryCache } from "./lib/offline/queryCache";
 import { ErrorScreen } from "./app/shell/StatusScreens";
 import { routeTree } from "./routeTree.gen";
 
@@ -23,10 +24,13 @@ declare module "@tanstack/react-router" {
   }
 }
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <AppProviders>
-      <RouterProvider router={router} />
-    </AppProviders>
-  </StrictMode>,
+// The offline read cache loads first, so a screen opened with no connection has its data.
+void hydrateQueryCache().then(() =>
+  createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+      <AppProviders>
+        <RouterProvider router={router} />
+      </AppProviders>
+    </StrictMode>,
+  ),
 );

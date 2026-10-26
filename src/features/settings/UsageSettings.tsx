@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Gauge } from "lucide-react";
 import { api } from "@convex/_generated/api";
@@ -8,6 +7,7 @@ import { EmptyState } from "@/components/data/EmptyState";
 import { Section } from "@/components/layout/Section";
 import { Skeleton } from "@/components/ui/misc";
 import { formatAge } from "@/lib/time";
+import { useQuery } from "@/lib/convex/useQuery";
 
 type Usage = FunctionReturnType<typeof api.ingestion.usage.summary>;
 type ModelRow = Usage["byModel"][number];

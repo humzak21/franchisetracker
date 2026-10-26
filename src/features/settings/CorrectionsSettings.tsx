@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { BookOpenCheck, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge, Skeleton } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { formatAge } from "@/lib/time";
+import { useQuery } from "@/lib/convex/useQuery";
 
 type Group = FunctionReturnType<typeof api.ingestion.corrections.list>[number];
 

@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { FileText } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { PLAYOFF_RESULT_LABELS } from "@shared/domain";
@@ -11,6 +10,7 @@ import { StaffLine } from "@/components/team/StaffLine";
 import { Badge } from "@/components/ui/misc";
 import { Skeleton } from "@/components/ui/misc";
 import type { ArchiveRow } from "./types";
+import { useQuery } from "@/lib/convex/useQuery";
 
 function PromptBadge({ label, answered, due }: { label: string; answered: boolean; due: boolean }) {
   if (answered) return <Badge tone="win">{label} filed</Badge>;

@@ -6,6 +6,7 @@ import type { WeekKey } from "@shared/domain";
 import type { TargetKey } from "@shared/ingestion/targets";
 import { blobQueue } from "@/lib/blobQueue";
 import { prepareImage } from "@/lib/image";
+import { useReportError } from "../errors/useReportError";
 
 export type UploadContext = {
   targetKey?: TargetKey;
@@ -20,6 +21,11 @@ type QueuedMeta = UploadContext & { sizes: { width: number; height: number }[] |
 /** Captures waiting for a connection; shared by every tab of the installed app. */
 export const captureQueue = blobQueue<QueuedMeta>("ft-captures");
 
+/** Refusals from the server before a queued capture is given up on. */
+const MAX_REFUSALS = 3;
+/** The flush in progress, shared so overlapping triggers (online, focus, a new capture) send once. */
+let flushing: Promise<number> | null = null;
+
 export type UploadOutcome = { kind: "uploaded"; setKeys: string[] } | { kind: "queued" };
 
 /**
@@ -29,6 +35,7 @@ export type UploadOutcome = { kind: "uploaded"; setKeys: string[] } | { kind: "q
 export function useUploader() {
   const generateUploadUrl = useMutation(api.ingestion.uploads.generateUploadUrl);
   const create = useMutation(api.ingestion.uploads.create);
+  const report = useReportError();
 
   const send = useCallback(
     async (blobs: Blob[], meta: QueuedMeta): Promise<string[]> => {
@@ -74,21 +81,39 @@ export function useUploader() {
     [send],
   );
 
-  /** Sends queued captures oldest first; returns how many are still waiting. */
-  const flush = useCallback(async (): Promise<number> => {
-    const items = (await captureQueue.list()).sort((a, b) => a.createdAt - b.createdAt);
-    let left = items.length;
-    for (const item of items) {
-      try {
-        await send(item.blobs, item.meta);
-        await captureQueue.remove(item.id);
-        left--;
-      } catch {
-        break;
+  /**
+   * Sends queued captures oldest first; returns how many are still waiting. One flush runs at a
+   * time (a second caller shares it), so nothing is sent twice. A dropped connection stops the
+   * flush for a later try; a capture the server refuses is skipped so it never blocks the rest,
+   * and dropped after a few refusals with the reason sent to Settings → Errors.
+   */
+  const flush = useCallback((): Promise<number> => {
+    flushing ??= (async () => {
+      const items = (await captureQueue.list()).sort((a, b) => a.createdAt - b.createdAt);
+      let left = items.length;
+      for (const item of items) {
+        try {
+          await send(item.blobs, item.meta);
+          await captureQueue.remove(item.id);
+          left--;
+        } catch (error) {
+          if (error instanceof TypeError) break;
+          const attempts = (item.attempts ?? 0) + 1;
+          if (attempts >= MAX_REFUSALS) {
+            await captureQueue.remove(item.id);
+            left--;
+            report(error, "rejection");
+          } else {
+            await captureQueue.update({ ...item, attempts });
+          }
+        }
       }
-    }
-    return left;
-  }, [send]);
+      return left;
+    })().finally(() => {
+      flushing = null;
+    });
+    return flushing;
+  }, [send, report]);
 
   return { upload, flush };
 }

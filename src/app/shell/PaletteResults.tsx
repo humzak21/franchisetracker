@@ -1,10 +1,10 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Command } from "cmdk";
-import { useQuery } from "convex/react";
 import { Trophy, User } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { weekLabel } from "@shared/domain";
 import { PaletteItem, paletteGroupClass } from "./PaletteItem";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /**
  * The palette's search groups (FEATURES.md 5.14): players matched by name on the server and games

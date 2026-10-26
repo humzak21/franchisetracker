@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { ShieldCheck } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { EmptyState } from "@/components/data/EmptyState";
@@ -6,6 +6,7 @@ import { Section } from "@/components/layout/Section";
 import { Button } from "@/components/ui/button";
 import { Badge, Skeleton } from "@/components/ui/misc";
 import { formatAge } from "@/lib/time";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /** Errors (FEATURES.md 8): what broke in the app on any device, newest first, with how often. */
 export function ErrorSettings() {

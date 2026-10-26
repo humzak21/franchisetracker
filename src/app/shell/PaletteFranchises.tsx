@@ -1,10 +1,10 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Command } from "cmdk";
-import { useQuery } from "convex/react";
 import { Plus, Repeat } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { useSwitchFranchise } from "../franchise";
 import { PaletteItem, paletteGroupClass } from "./PaletteItem";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /** Switching to another franchise, or starting a new one, from the palette. */
 export function PaletteFranchises({ close }: { close: (then: () => void) => void }) {

@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { BarChart3 } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { trendRows } from "@shared/stats/teamTrends";
@@ -8,6 +7,7 @@ import { EmptyState } from "@/components/data/EmptyState";
 import { RankTrend } from "@/components/data/RankTrend";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /**
  * Team stats (FEATURES.md 5.5): the season's league rank in every team stat as rank ribbons,

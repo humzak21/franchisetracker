@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import { Check, Search, UserPlus } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { api } from "@convex/_generated/api";
@@ -8,6 +7,7 @@ import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { PositionBadge } from "@/components/player/PositionBadge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
+import { useQuery } from "@/lib/convex/useQuery";
 
 type PlayerPickerSheetProps = {
   open: boolean;

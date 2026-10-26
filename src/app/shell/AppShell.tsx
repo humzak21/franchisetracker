@@ -8,6 +8,7 @@ import { useSeason } from "../season";
 import { BottomTabBar } from "./BottomTabBar";
 import { CaptureButton, CaptureFab } from "./CaptureButton";
 import { CommandPalette } from "./CommandPalette";
+import { OfflineBanner } from "./OfflineBanner";
 import { PromptBanner } from "./PromptBanner";
 import { SeasonSwitcher } from "./SeasonSwitcher";
 import { ShortcutSheet } from "./ShortcutSheet";
@@ -49,7 +50,12 @@ export function AppShell() {
       seasonSwitcher: <SeasonSwitcher />,
       openSearch: () => setPaletteOpen(true),
       capture: <CaptureButton />,
-      banner: <PromptBanner />,
+      banner: (
+        <>
+          <OfflineBanner />
+          <PromptBanner />
+        </>
+      ),
     }),
     [],
   );

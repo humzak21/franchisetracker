@@ -1,5 +1,4 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { Columns3 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
@@ -16,6 +15,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { seriesColors, useTheme } from "@/design/theme";
 import { CompareTable } from "./CompareTable";
 import { PlayerSearch } from "./PlayerSearch";
+import { useQuery } from "@/lib/convex/useQuery";
 
 const MAX = 4;
 type Split = "regular" | "postseason";

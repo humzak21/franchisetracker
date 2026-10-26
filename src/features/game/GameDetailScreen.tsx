@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { ChevronLeft, ChevronRight, ImageUp } from "lucide-react";
 import { useRef } from "react";
 import { api } from "@convex/_generated/api";
@@ -20,6 +20,7 @@ import { useSwipe } from "@/lib/hooks/useSwipe";
 import { BoxScore } from "./BoxScore";
 import { HeadToHead } from "./HeadToHead";
 import { TeamStatsCompare } from "./TeamStatsCompare";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /** Game detail: score bug, three stars, team stats, notes, head-to-head, and the full box score. */
 export function GameDetailScreen({ gameId }: { gameId: string }) {

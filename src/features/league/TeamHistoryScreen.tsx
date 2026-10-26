@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { Users } from "lucide-react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@convex/_generated/api";
@@ -15,6 +14,7 @@ import { PositionBadge } from "@/components/player/PositionBadge";
 import { TeamLogo } from "@/components/team/TeamLogo";
 import { Badge, Skeleton } from "@/components/ui/misc";
 import { TeamHeadToHead } from "./TeamHeadToHead";
+import { useQuery } from "@/lib/convex/useQuery";
 
 type History = FunctionReturnType<typeof api.league.teamHistory.get>;
 type SeasonRow = History["seasons"][number];

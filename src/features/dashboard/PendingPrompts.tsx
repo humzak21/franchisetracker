@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { ChevronRight, ClipboardList, NotebookPen } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { NEED_PRIORITY_LABELS, PROMPT_LABELS } from "@shared/seasons/reports";
@@ -7,6 +6,7 @@ import { Section } from "@/components/layout/Section";
 import { PositionBadge } from "@/components/player/PositionBadge";
 import { Badge } from "@/components/ui/misc";
 import { Skeleton } from "@/components/ui/misc";
+import { useQuery } from "@/lib/convex/useQuery";
 
 const MAX_NEEDS = 5;
 

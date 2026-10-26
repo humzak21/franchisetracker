@@ -3,6 +3,12 @@ import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
+const CONVEX_USE_QUERY = {
+  name: "convex/react",
+  importNames: ["useQuery"],
+  message: "Import useQuery from @/lib/convex/useQuery: it keeps results for reading offline.",
+};
+
 export default tseslint.config(
   {
     ignores: [
@@ -34,12 +40,19 @@ export default tseslint.config(
     rules: { "react-hooks/rules-of-hooks": "off" },
   },
   {
+    // Screens read through the offline-aware wrapper (src/lib/convex/useQuery.ts).
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/lib/convex/useQuery.ts"],
+    rules: { "no-restricted-imports": ["error", { paths: [CONVEX_USE_QUERY] }] },
+  },
+  {
     // Layering rule from FEATURES.md 2.1: features never import from each other.
     files: ["src/features/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
+          paths: [CONVEX_USE_QUERY],
           patterns: [
             {
               group: ["@/features/*"],

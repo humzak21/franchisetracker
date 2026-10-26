@@ -1,11 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Bandage } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { TRANSACTION_LABELS, weekLabel, type WeekKey } from "@shared/domain";
 import { PositionBadge } from "@/components/player/PositionBadge";
 import { Badge, Skeleton } from "@/components/ui/misc";
+import { useQuery } from "@/lib/convex/useQuery";
 
 const when = (weekKey: WeekKey | undefined) => (weekKey ? weekLabel(weekKey) : "Offseason");
 

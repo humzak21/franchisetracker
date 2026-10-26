@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import { ClipboardList } from "lucide-react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
@@ -10,6 +9,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/misc";
 import { GradeBadge } from "./GradeBadge";
 import { PickCard } from "./PickCard";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /** A season's draft as grouped round cards (FEATURES.md 5.9): the user team's picks, or every pick. */
 export function DraftClassView({ seasonId }: { seasonId: Id<"seasons"> }) {

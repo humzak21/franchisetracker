@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { CalendarDays, History } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { PLAYOFF_RESULT_LABELS, weekPhase, type WeekPhase } from "@shared/domain";
@@ -18,6 +17,7 @@ import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import { ScheduleCalendar } from "./ScheduleCalendar";
 import { ScheduleCharts } from "./ScheduleCharts";
 import { ScheduleRow, type ScheduleGame } from "./ScheduleRow";
+import { useQuery } from "@/lib/convex/useQuery";
 
 type View = "weeks" | "calendar" | "charts";
 

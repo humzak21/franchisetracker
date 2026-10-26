@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import { ScrollText } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
@@ -17,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { Select } from "@/components/ui/select";
 import { TimelineItem } from "./TimelineItem";
+import { useQuery } from "@/lib/convex/useQuery";
 
 type KindFilter = TimelineKind | "all";
 const PAGE = 5;

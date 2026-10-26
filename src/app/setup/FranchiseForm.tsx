@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/misc";
 import { teamCssVars, useTheme } from "@/design/theme";
 import { cn } from "@/lib/cn";
 import { errorMessage } from "@/lib/errors";
+import { useQuery } from "@/lib/convex/useQuery";
 
 export const labelClass = "text-[11px] font-semibold tracking-[0.08em] text-subtle-foreground uppercase";
 

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { FileText } from "lucide-react";
 import { useCallback } from "react";
 import { api } from "@convex/_generated/api";
@@ -14,6 +14,7 @@ import { NeedsChecklist } from "./NeedsChecklist";
 import { PromptEditor } from "./PromptEditor";
 import { SeasonHeader } from "./SeasonHeader";
 import { SeasonSummaryPanel } from "./SeasonSummaryPanel";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /**
  * One season's report (FEATURES.md 5.7): the pre- and post-season prompts, around the league and

@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { ListChecks } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -24,6 +23,7 @@ import { Badge } from "@/components/ui/misc";
 import { Select } from "@/components/ui/select";
 import { phonePrimary } from "./careerStats";
 import type { PlayerPage } from "./types";
+import { useQuery } from "@/lib/convex/useQuery";
 
 type Row = FunctionReturnType<typeof api.players.gameLog.bySeason>[number];
 

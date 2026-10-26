@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { Plus, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { api } from "@convex/_generated/api";
@@ -12,6 +12,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/cn";
 import { errorMessage } from "@/lib/errors";
+import { useQuery } from "@/lib/convex/useQuery";
 
 function AddPickSheet({
   years,

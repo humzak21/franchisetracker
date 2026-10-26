@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
@@ -12,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge, Skeleton } from "@/components/ui/misc";
 import { DeleteFranchise } from "./DeleteFranchise";
 import { errorMessage } from "@/lib/errors";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /**
  * Franchises (FEATURES.md 5.12): every franchise with its team and latest season, switching

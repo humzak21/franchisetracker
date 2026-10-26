@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import {
@@ -11,6 +10,7 @@ import {
 } from "@shared/stats";
 import { FactChip } from "@/components/data/FactChip";
 import { Section } from "@/components/layout/Section";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /** Franchise records the player holds and their streaks; hidden until there is one of either. */
 export function PlayerHighlights({ playerId }: { playerId: Id<"players"> }) {

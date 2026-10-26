@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import { ScanFace, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
@@ -13,6 +12,7 @@ import { Page } from "@/components/layout/Page";
 import { Button } from "@/components/ui/button";
 import { FaceMatchSheet } from "./FaceMatchSheet";
 import { byDepthOrder, rosterColumns, type RosterRow } from "./rosterColumns";
+import { useQuery } from "@/lib/convex/useQuery";
 
 type SideFilter = Side | "all";
 type GroupFilter = PositionGroup | "all";

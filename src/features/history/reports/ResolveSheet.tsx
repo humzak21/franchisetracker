@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { ArrowLeftRight, ClipboardList } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { api } from "@convex/_generated/api";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/misc";
 import { errorMessage } from "@/lib/errors";
 import type { Need } from "./types";
+import { useQuery } from "@/lib/convex/useQuery";
 
 function Choice({
   icon,

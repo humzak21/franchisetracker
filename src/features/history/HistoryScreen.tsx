@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { ChevronRight, FileText, Landmark, ScrollText, type LucideIcon } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { isPreFranchise } from "@shared/history/nflverse";
@@ -12,6 +11,7 @@ import { Skeleton } from "@/components/ui/misc";
 import { DecadeGrid } from "./DecadeGrid";
 import { EditHistory } from "./EditHistory";
 import { TrophyRoom } from "./TrophyRoom";
+import { useQuery } from "@/lib/convex/useQuery";
 
 const PLACES: { to: string; icon: LucideIcon; title: string; description: string }[] = [
   {

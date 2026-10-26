@@ -1,9 +1,9 @@
-import { useQuery } from "convex/react";
 import { ClipboardList } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { EmptyState } from "@/components/data/EmptyState";
 import { Skeleton } from "@/components/ui/misc";
 import { GradeBadge } from "./GradeBadge";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /** Every class the user team drafted (FEATURES.md 5.9), newest first, with its first pick and grade. */
 export function ClassesView({ onOpen }: { onOpen: (year: number) => void }) {

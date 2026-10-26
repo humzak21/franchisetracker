@@ -1,5 +1,4 @@
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useQuery } from "convex/react";
 import { LogOut } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { Page } from "@/components/layout/Page";
@@ -17,6 +16,7 @@ import { HistorySettings } from "./HistorySettings";
 import { IdentitySettings } from "./IdentitySettings";
 import { ShortcutSettings } from "./ShortcutSettings";
 import { UsageSettings } from "./UsageSettings";
+import { useQuery } from "@/lib/convex/useQuery";
 
 function Account() {
   const me = useQuery(api.account.me, {});

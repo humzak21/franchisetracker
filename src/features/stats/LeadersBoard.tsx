@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { ListOrdered } from "lucide-react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
@@ -16,6 +15,7 @@ import { Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import { cn } from "@/lib/cn";
 import { byRegistryOrder, type Split } from "./split";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /** All-time leaders (FEATURES.md 5.5): the franchise's career top ten per stat, as ranked lists. */
 export function LeadersBoard({ split }: { split: Split }) {

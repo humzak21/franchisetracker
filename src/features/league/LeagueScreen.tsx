@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useSeason } from "@/app/season";
 import { Page } from "@/components/layout/Page";
@@ -10,6 +9,7 @@ import { ChampionsView } from "./ChampionsView";
 import { PlayoffsView } from "./PlayoffsView";
 import { RivalsView } from "./RivalsView";
 import { StandingsView } from "./StandingsView";
+import { useQuery } from "@/lib/convex/useQuery";
 
 type View = "standings" | "playoffs" | "champions" | "table" | "rivals";
 
