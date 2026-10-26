@@ -1,0 +1,90 @@
+import { defineTable } from "convex/server";
+import { v } from "convex/values";
+import { vNeedPriority, vPlayoffResult, vPosition, vPromptStatus, vSeasonStatus } from "../lib/validators";
+
+const vPrompt = v.object({
+  status: vPromptStatus,
+  answeredAt: v.optional(v.number()),
+  /** Dismissing hides the prompt for the session; it stays pending until answered. */
+  dismissedAt: v.optional(v.number()),
+});
+
+export const franchiseTables = {
+  franchises: defineTable({
+    name: v.string(),
+    userTeamId: v.id("teams"),
+    startYear: v.number(),
+    settings: v.object({
+      gamesPerSeason: v.number(),
+      playoffTeams: v.number(),
+      /**
+       * Per-stat overrides of the registry's elite thresholds, keyed by stat key.
+       * `tier1` is the first highlight level, `tier2` the higher one.
+       */
+      thresholdOverrides: v.optional(
+        v.record(v.string(), v.object({ tier1: v.number(), tier2: v.optional(v.number()) })),
+      ),
+      /** OpenRouter model choices for extraction. */
+      models: v.optional(
+        v.object({
+          primary: v.optional(v.string()),
+          fallback: v.optional(v.string()),
+          temperature: v.optional(v.number()),
+          maxTokens: v.optional(v.number()),
+        }),
+      ),
+    }),
+    isActive: v.boolean(),
+  }).index("by_isActive", ["isActive"]),
+
+  seasons: defineTable({
+    franchiseId: v.id("franchises"),
+    year: v.number(),
+    status: vSeasonStatus,
+    /** User-team record cache, refreshed whenever a game is committed. */
+    userRecord: v.optional(
+      v.object({
+        w: v.number(),
+        l: v.number(),
+        t: v.number(),
+        divisionRank: v.optional(v.number()),
+        seed: v.optional(v.number()),
+        playoffResult: v.optional(vPlayoffResult),
+      }),
+    ),
+    coaching: v.optional(
+      v.object({
+        headCoach: v.optional(v.string()),
+        offensiveCoordinator: v.optional(v.string()),
+        defensiveCoordinator: v.optional(v.string()),
+        offensiveScheme: v.optional(v.string()),
+        defensiveScheme: v.optional(v.string()),
+      }),
+    ),
+    salaryCap: v.optional(v.number()),
+    notes: v.optional(v.string()),
+  }).index("by_franchiseId_and_year", ["franchiseId", "year"]),
+
+  /** One per season. */
+  seasonReports: defineTable({
+    franchiseId: v.id("franchises"),
+    seasonId: v.id("seasons"),
+    preseasonThoughts: v.optional(v.string()),
+    postseasonThoughts: v.optional(v.string()),
+    aroundTheLeague: v.optional(v.string()),
+    prompts: v.object({ preseason: vPrompt, postseason: vPrompt }),
+    /** Offseason needs checklist; a handful of rows per season, so inline. */
+    needs: v.array(
+      v.object({
+        key: v.string(),
+        position: vPosition,
+        priority: vNeedPriority,
+        note: v.optional(v.string()),
+        resolvedByTransactionId: v.optional(v.id("transactions")),
+        resolvedByDraftPickId: v.optional(v.id("draftPicks")),
+      }),
+    ),
+  })
+    .index("by_seasonId", ["seasonId"])
+    .index("by_franchiseId", ["franchiseId"]),
+};

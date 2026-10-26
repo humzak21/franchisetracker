@@ -1,0 +1,202 @@
+@import "tailwindcss";
+
+/* `.light` scopes (gallery frames) opt back out of dark inside a dark document. */
+@custom-variant dark (&:where(.dark, .dark *):not(:where(.light, .light *)));
+
+/*
+ * Design tokens. Colors are CSS variables so the franchise team's colors can be injected at
+ * runtime (see theme.tsx). Components use the Tailwind names below, never raw values.
+ */
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Barlow Condensed", "Inter Variable", ui-sans-serif, sans-serif;
+
+  /* Container query sizes: components own their phone layout via @container, not the viewport. */
+  --container-tablet: 40rem;
+  --container-desktop: 64rem;
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-fade-in: fade-in 180ms var(--ease-out-quint);
+  --animate-rise-in: rise-in 220ms var(--ease-out-quint);
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--foreground);
+  --color-muted: var(--surface-2);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--border-strong);
+  --color-ring: var(--team-accent);
+
+  /* Team-driven accents. */
+  --color-primary: var(--team-accent);
+  --color-primary-foreground: var(--team-accent-foreground);
+  --color-team: var(--team-primary);
+  --color-team-foreground: var(--team-primary-foreground);
+  --color-team-2: var(--team-secondary);
+  --color-elite-1: var(--elite-1);
+  --color-elite-2: var(--elite-2);
+  --color-elite-2-foreground: var(--elite-2-foreground);
+
+  /* Semantic. */
+  --color-win: var(--win);
+  --color-loss: var(--loss);
+  --color-tie: var(--tie);
+  --color-ot: var(--ot);
+  --color-warn: var(--warn);
+  --color-low-conf: var(--low-conf);
+  --color-destructive: var(--loss);
+}
+
+/* Team defaults live on :root only so ThemeScope can override them per frame. */
+:root {
+  /* Team defaults (Patriots). Overwritten at runtime from the franchise's team. */
+  --team-primary: #002244;
+  --team-secondary: #c60c30;
+  --team-primary-foreground: #ffffff;
+  --team-accent: #c60c30;
+  --team-accent-foreground: #ffffff;
+}
+
+:root,
+.light {
+  --background: oklch(0.985 0.003 255);
+  --foreground: oklch(0.21 0.02 258);
+  --surface: oklch(1 0 0);
+  --surface-2: oklch(0.965 0.005 255);
+  --surface-3: oklch(0.93 0.008 255);
+  --muted-foreground: oklch(0.48 0.02 258);
+  --subtle-foreground: oklch(0.62 0.015 258);
+  --border: oklch(0.21 0.02 258 / 0.1);
+  --border-strong: oklch(0.21 0.02 258 / 0.18);
+
+  --win: oklch(0.56 0.15 152);
+  --loss: oklch(0.56 0.2 25);
+  --tie: oklch(0.62 0.13 80);
+  --ot: oklch(0.55 0.17 295);
+  --warn: oklch(0.66 0.16 65);
+  --low-conf: oklch(0.7 0.17 65);
+
+  --elite-1: color-mix(in oklch, var(--team-accent) 14%, transparent);
+  --elite-2: var(--team-accent);
+  --elite-2-foreground: var(--team-accent-foreground);
+
+  --shadow-color: 220 40% 10%;
+  color-scheme: light;
+}
+
+.dark {
+  --background: oklch(0.155 0.012 258);
+  --foreground: oklch(0.965 0.005 255);
+  --surface: oklch(0.195 0.014 258);
+  --surface-2: oklch(0.235 0.016 258);
+  --surface-3: oklch(0.28 0.018 258);
+  --muted-foreground: oklch(0.7 0.018 258);
+  --subtle-foreground: oklch(0.56 0.018 258);
+  --border: oklch(1 0 0 / 0.08);
+  --border-strong: oklch(1 0 0 / 0.14);
+
+  --win: oklch(0.74 0.16 152);
+  --loss: oklch(0.68 0.19 25);
+  --tie: oklch(0.8 0.13 85);
+  --ot: oklch(0.72 0.15 295);
+  --warn: oklch(0.8 0.15 75);
+  --low-conf: oklch(0.82 0.15 75);
+
+  --elite-1: color-mix(in oklch, var(--team-accent) 22%, transparent);
+
+  --shadow-color: 220 60% 2%;
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01", "ss03";
+    /* Reactive data makes pull-to-refresh pointless; disable it to avoid accidental reloads. */
+    overscroll-behavior-y: none;
+    min-height: 100dvh;
+  }
+  /* 15px minimum body text on phones (FEATURES.md 9). */
+  @media (max-width: 639px) {
+    body {
+      font-size: 15px;
+    }
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--team-accent) 35%, transparent);
+  }
+}
+
+@layer utilities {
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum", "cv11";
+  }
+  .font-display {
+    letter-spacing: 0.01em;
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pl-safe {
+    padding-left: env(safe-area-inset-left);
+  }
+  .pr-safe {
+    padding-right: env(safe-area-inset-right);
+  }
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .shadow-elevated {
+    box-shadow:
+      0 1px 2px hsl(var(--shadow-color) / 0.12),
+      0 8px 24px -6px hsl(var(--shadow-color) / 0.28);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

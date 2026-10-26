@@ -1,0 +1,12 @@
+dist
+dev-dist
+coverage
+convex/_generated
+src/routeTree.gen.ts
+package-lock.json
+skills-lock.json
+.agents
+.claude
+docs
+*.md
+public
