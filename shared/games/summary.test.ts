@@ -32,6 +32,11 @@ describe("game math", () => {
     expect(userScore(game("w1", 27, 24, false))).toEqual({ us: 27, them: 24 });
     expect(userScore({ weekKey: "w4", status: "bye" })).toBeNull();
     expect(resultOf(game("w3", 17, 17))).toBe("T");
+    // Imported games know only our score and theirs, not home and away.
+    expect(userScore({ weekKey: "w1", status: "played", userScore: 24, opponentScore: 27 })).toEqual({
+      us: 24,
+      them: 27,
+    });
   });
 
   it("orders weeks chronologically, not alphabetically", () => {
