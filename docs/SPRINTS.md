@@ -14,32 +14,32 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 - Reset the repository: remove the Xcode scaffold and the old remote contents, keep the Convex deployment config, add `.gitignore`, `README.md`, `docs/`.
 - Scaffold Vite, React 19, TypeScript strict, Tailwind v4, shadcn/ui, TanStack Router with file-based routes, Convex React client, ESLint and Prettier, Vitest.
-- `shared/` package: stat registry with every stat from the workbook (passing, rushing, receiving, defense, kicking, punting, returns), stat math (passer rating, averages, per game, pace), formatters, thresholds, domain enums (positions, position groups, week keys, acquisition types, award types, playoff rounds).
-- Convex schema v1 for every domain in `FEATURES.md` section 4, split per domain and composed. Seed all 32 teams with colors and divisions. Create one franchise and its seasons 2025 to 2034 as empty shells.
+- `shared/` package: stat registry with every stat Madden box scores and season screens show (passing, rushing, receiving, defense, kicking, punting, returns), stat math (passer rating, averages, per game, pace), formatters, thresholds, domain enums (positions, position groups, week keys, acquisition types, award types, playoff rounds).
+- Convex schema v1 for every domain in `FEATURES.md` section 4, split per domain and composed. Seed all 32 teams with colors and divisions.
 - App shell: team-colored sidebar on desktop, bottom tab bar with a "More" sheet and floating capture button on phones, page header with back navigation and the season switcher, command palette stub, keyboard shortcut and gesture providers, theme tokens, light and dark, safe-area insets.
 - Primitive components built phone-first and scaled up: `Page`, `Section`, `SplitPane` (stacks or swipes on phones), `DataTable` with `StatCell` and the phone mode from `FEATURES.md` 9 (primary and secondary columns, expandable rows, column picker, toolbar sheet), `PlayerChip`, `TeamChip`, `TeamLogo`, `ScoreBug`, `RankBadge`, `Highlight`, `EmptyState`, `Sparkline`, `StatCard`, `RankRibbon`, `BottomSheet`.
 - Component gallery route (`/dev/components`) that renders every primitive at desktop and phone width side by side with fixture data.
-- PWA manifest, icons, standalone display. Deploy the front end to Vercel (production deploy key in `CONVEX_DEPLOY_KEY`) and install it on the Mac and on the iPhone home screen. The deployed shell holds only the seeded teams and empty seasons until the login gate below lands.
+- PWA manifest, icons, standalone display. Deploy the front end to Vercel (production deploy key in `CONVEX_DEPLOY_KEY`) and install it on the Mac and on the iPhone home screen. The deployed shell holds only the seeded teams until the login gate below lands.
 
 **Done when:** the shell runs against Convex, every primitive is rendered in the gallery with fixture data in both themes at both widths, the app is installed on the phone, and `tsc`, lint and tests pass.
 
 ---
 
-## Sprint 1 — Import the workbook and read it beautifully (L)
+## Sprint 1 — Login, franchise setup and the core read screens (L)
 
-**Goal:** all ten seasons from the spreadsheet in the database, viewable on the core read screens.
+**Goal:** a private app where a new franchise can be created and its seasons read beautifully on the core screens. There is no spreadsheet import: franchises are new, real NFL history before them comes from an external source (Sprint 4), and franchise data is captured as it is played (Sprint 2 onward).
 
 - Login gate, before any franchise data reaches production: the whole app behind Sign in with Vercel. OIDC provider in `convex/auth.config.ts`, an owner allowlist, a `requireOwner` helper in `convex/lib/auth.ts` called by every public function, a sign-in screen that renders before the shell, and sign-out in Settings. Works the same in the installed PWA on the phone. `convex-test` covers signed-out and wrong-account calls being refused. Setup steps live in `docs/AUTH-SETUP.md`.
-- `scripts/import-xlsx`: parse Home, Reporting, Schedule, Roster, Player Stats, League Stats, Awards, Draft History. Resolve players into entities with alias handling (name variants, jersey changes). Parse the free-text stars into player references with the stat line kept as a caption. Split "27.3 - T-3rd" into value, rank and tie. Split acquisition strings. Idempotent: re-running updates rather than duplicates.
-- Season-level stats from the workbook land in `seasonPlayerStats` flagged `source: import` so they coexist with log-derived totals until games are backfilled.
+- Franchise setup (`FEATURES.md` 5.0): until a franchise exists, every screen shows setup instead. Name, user team from the 32, first season defaulting to the current real NFL season. Creates the franchise and its first season.
+- A small sample season (`dev/fixtures:seedFixtures`) for tests, CI and empty local backends.
 - Schedule screen: week list with results, byes, playoff rows, stars as chips, notes preview; season switcher wired.
 - Game detail v1: score bug, stars, notes editor, opponent record, head-to-head panel. Box score section shows the empty state that invites a screenshot.
 - Roster screen: grouped table with position filter, sort, search, acquisition and grade note; season switcher.
-- Player page v1: hero, roster history, career stats table from imported season stats with totals row, notes.
-- History home: generated decade grids, totals, trophy room with real-history entries editable.
-- Phone: schedule with swipe between weeks, roster table in phone mode with position filter in a toolbar sheet, player career table in phone mode with the totals row pinned, decade grids as stacked season cards.
+- Player page v1: hero, roster history, career stats table from season totals with a totals row, notes.
+- History home: generated decade grids, totals, trophy room with editable real-history entries.
+- Phone: schedule and game detail with swipe between games, roster table in phone mode with position filter in a toolbar sheet, player career table in phone mode with the totals row pinned, decade grids as stacked season cards.
 
-**Done when:** every season from the workbook is browsable on the Mac and on the phone, player pages for Maye, Diggs and Henderson look right at both widths, and nothing in the import is lossy (a diff script compares workbook cells to database rows).
+**Done when:** signed out shows only the sign-in screen; a fresh deployment walks through franchise setup on the Mac and on the phone; the sample season reads cleanly on every core screen at both widths in both themes; and Playwright covers each screen.
 
 ---
 
@@ -63,7 +63,7 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 ## Sprint 3 — Stats, highlights, records (M)
 
-**Goal:** every number the spreadsheet computed by hand is now derived and better.
+**Goal:** every number is derived from game logs, never typed.
 
 - Season stats screen by position group with registry-driven columns, per-game averages, threshold-game counts, best-game columns and totals row; elite highlighting tiers with configurable thresholds in Settings.
 - Records engine: single game, season and career records per stat with incremental recompute on commit; records book screen; "record broken" milestones.
@@ -73,13 +73,16 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 - Postseason split toggle everywhere stats appear.
 - Phone: season stats per position group in phone table mode with sensible primary columns per group (for example QB: comp/att, yards, TD, INT, rating), records book as cards grouped by scope, leaders as ranked lists, streaks as chips.
 
-**Done when:** season stats for an imported season match the workbook, a committed game moves the records and leaders, highlights render in both themes, and every stats screen is readable at phone width without losing a column.
+**Done when:** season stats derived from committed games match a hand check, a committed game moves the records and leaders, highlights render in both themes, and every stats screen is readable at phone width without losing a column.
 
 ---
 
-## Sprint 4 — Players and faces (M)
+## Sprint 4 — Real NFL history, players and faces (L)
 
-**Goal:** player pages feel like a card collection.
+**Goal:** the league's real past is in the app, and player pages feel like a card collection.
+
+- Choose the real NFL history source (`FEATURES.md` 4.8; candidates: nflverse public data releases, the ESPN site API) and record the decision in `docs/`.
+- Import for every season before the franchise's first: all 32 teams' records, standings, playoff results and titles; real players with careers and season totals up to the start; draft history. Convex actions, idempotent, run at franchise creation and refreshable from Settings. Pre-franchise seasons are marked as such on every screen that shows them.
 
 - ESPN action: search by name, fetch headshot and bio for real players, cache in storage, user confirms the match from the player page or in bulk from the roster. Team logos from ESPN cached and used in `TeamLogo`.
 - Monogram card generator for fictional players in team colors.
@@ -90,13 +93,13 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 - Players index with search, filters and sort by position, OVR, age, seasons with the team.
 - Phone: player hero and stat cards stacked with section jump links, OVR chart in its phone variant, compare as a swipeable set of player columns with a sticky stat label rail, headshot confirmation as a bottom sheet.
 
-**Done when:** real players show headshots, fictional ones show monogram cards, Maye's OVR line spans 2025 onward, compare works, and the player page reads cleanly top to bottom on the phone.
+**Done when:** real players show headshots, fictional ones show monogram cards, a real player's page shows their pre-franchise career followed by franchise seasons, a team's history screen shows real seasons before the franchise, compare works, and the player page reads cleanly top to bottom on the phone.
 
 ---
 
 ## Sprint 5 — Season reporting, history, Hall of Fame (M)
 
-**Goal:** the narrative layer the spreadsheet's Reporting tab was for, done properly.
+**Goal:** the narrative layer: what you thought going into and coming out of each season, and the legends.
 
 - Season lifecycle: statuses, advance-season action, Super Bowl week detection.
 - Pre-season prompt on season start that persists on the dashboard until answered; post-season prompt after the Super Bowl week; around-the-league notes; needs checklist with priority, carried into the offseason and resolvable by a transaction or draft pick.
@@ -137,7 +140,7 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 - Transactions log, injury report, trade tracker with retrospective notes, cap view with expiring contracts.
 - Phone: standings as division cards with seed badges, bracket as a vertical round-by-round list, awards weekly grid as a week picker with conference segments, draft rounds as grouped cards, transactions as a filterable feed.
 
-**Done when:** the League section answers "who won the AFC in 2029", awards and draft screens are populated for every imported season, the cap view matches the roster, and each of these screens is complete on the phone.
+**Done when:** the League section answers "who won the AFC in 2029", awards and draft screens are populated for every played season, the cap view matches the roster, and each of these screens is complete on the phone.
 
 ---
 
@@ -166,7 +169,7 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 - Test coverage on stat math, registry integrity, extraction validators, import diff, and the commit and recompute path with `convex-test`.
 - Authorization audit (single user, token endpoint), error reporting, rate limit on the HTTP endpoint.
 
-**Done when:** a fresh clone, `npm install`, `npx convex dev` and the import script reproduce the whole app, the launch readiness checklist passes, and a full walkthrough of every screen on the phone finds nothing the desktop can do that the phone cannot.
+**Done when:** a fresh clone, `npm install`, `npx convex dev` and franchise setup reproduce a working app, the launch readiness checklist passes, and a full walkthrough of every screen on the phone finds nothing the desktop can do that the phone cannot.
 
 ---
 

@@ -3,7 +3,7 @@
 A Football Manager style front end for a Madden franchise. Single user, Convex backend, one responsive React app that is a full client on both the Mac and the iPhone.
 
 - **Product spec (source of truth):** `docs/FEATURES.md`. **Build order:** `docs/SPRINTS.md`. Read the sprint you are working on before writing code, and keep both docs current when scope changes.
-- **Source data:** the original workbook (`Madden 26 Pats.xlsx`) is a one-time import source, not a runtime dependency.
+- **Data origin:** franchises are new. Real NFL seasons before a franchise's first season come from an external NFL data source (Sprint 4, `docs/FEATURES.md` 4.8); everything after is captured as the franchise is played. There is no spreadsheet or workbook import; do not build one.
 
 ## Commands
 
