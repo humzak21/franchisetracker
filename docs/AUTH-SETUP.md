@@ -15,17 +15,19 @@ sign-in that exists only on the local deployment.
    create a client secret. Copy the client ID and the secret.
 3. **Manage → Permissions:** enable `openid`, `email` and `profile`. (`offline_access` is not
    needed: Convex Auth keeps its own sessions.)
-4. **Manage → Authorization Callback URLs:** add one URL per Convex deployment that should
-   allow sign-in. The format is `<deployment site URL>/api/auth/callback/vercel`:
-   - Production: `https://<prod-deployment>.convex.site/api/auth/callback/vercel`
+4. **Manage → Authorization Callback URLs:** the callback lives on the **Convex** deployment, not on
+   the Vercel project, so don't pick the project from the dropdown. Add a custom URL per Convex
+   deployment that should allow sign-in, in the form `<deployment site URL>/api/auth/callback/vercel`:
+   - Production: `https://unique-deer-29.convex.site/api/auth/callback/vercel`
    - Cloud dev (optional): `https://prestigious-iguana-83.convex.site/api/auth/callback/vercel`
 5. **General → Sign-In Access:** choose **Members of the team**. Vercel then refuses anyone
    outside your team before the app's own allowlist runs.
 
 ## 2. Configure each Convex deployment
 
-Run these against the deployment you are setting up: production with `--prod`, or the cloud dev
-deployment after `npm run use:cloud`.
+Run these against the deployment you are setting up. `--prod` finds the production deployment through
+the project in `.env.local`, so run `npm run use:cloud` first if this checkout points at the local
+backend. For the cloud dev deployment, drop `--prod`.
 
 ```bash
 npm run auth:keys -- --prod
