@@ -85,7 +85,7 @@ describe("ingestion", () => {
     expect(box.teams[0]!.lines.find((l) => l.name === "Drake Maye")?.stats.passYds).toBe(290);
 
     const page = await owner.query(api.players.player.get, { playerId: maye.playerId! });
-    const logs = page.seasons.find((s) => s.stats.source === "logs");
+    const logs = page.seasons.find((s) => s.year === SAMPLE_START_YEAR + 1);
     expect(logs?.stats).toMatchObject({ gamesPlayed: 1, split: "regular", totals: { passYds: 290 } });
     const career = await t.run((ctx) =>
       ctx.db
@@ -126,7 +126,7 @@ describe("ingestion", () => {
     const draft = second.review.extraction!.draft;
     if (draft.target !== "game_box_score") throw new Error("wrong target");
     const page = await owner.query(api.players.player.get, { playerId: draft.lines[0]!.playerId! });
-    expect(page.seasons.find((s) => s.stats.source === "logs")?.stats.gamesPlayed).toBe(1);
+    expect(page.seasons.find((s) => s.year === SAMPLE_START_YEAR + 1)?.stats.gamesPlayed).toBe(1);
   });
 
   test("team stats attach to the game tagged from game detail", async () => {

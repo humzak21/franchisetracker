@@ -10,10 +10,12 @@
 
 import type * as account from "../account.js";
 import type * as auth from "../auth.js";
+import type * as dev_fixtureLines from "../dev/fixtureLines.js";
 import type * as dev_fixtures from "../dev/fixtures.js";
 import type * as external_openrouter from "../external/openrouter.js";
 import type * as franchise_create from "../franchise/create.js";
 import type * as franchise_franchises from "../franchise/franchises.js";
+import type * as franchise_settings from "../franchise/settings.js";
 import type * as franchise_setup from "../franchise/setup.js";
 import type * as games_boxScore from "../games/boxScore.js";
 import type * as games_schedule from "../games/schedule.js";
@@ -59,7 +61,15 @@ import type * as schema_league from "../schema/league.js";
 import type * as schema_players from "../schema/players.js";
 import type * as schema_stats from "../schema/stats.js";
 import type * as schema_transactions from "../schema/transactions.js";
+import type * as stats_load from "../stats/load.js";
+import type * as stats_milestones from "../stats/milestones.js";
 import type * as stats_recompute from "../stats/recompute.js";
+import type * as stats_records from "../stats/records.js";
+import type * as stats_refresh from "../stats/refresh.js";
+import type * as stats_refreshRecords from "../stats/refreshRecords.js";
+import type * as stats_refreshStreaks from "../stats/refreshStreaks.js";
+import type * as stats_season from "../stats/season.js";
+import type * as stats_streaks from "../stats/streaks.js";
 
 import type {
   ApiFromModules,
@@ -70,10 +80,12 @@ import type {
 declare const fullApi: ApiFromModules<{
   account: typeof account;
   auth: typeof auth;
+  "dev/fixtureLines": typeof dev_fixtureLines;
   "dev/fixtures": typeof dev_fixtures;
   "external/openrouter": typeof external_openrouter;
   "franchise/create": typeof franchise_create;
   "franchise/franchises": typeof franchise_franchises;
+  "franchise/settings": typeof franchise_settings;
   "franchise/setup": typeof franchise_setup;
   "games/boxScore": typeof games_boxScore;
   "games/schedule": typeof games_schedule;
@@ -119,7 +131,15 @@ declare const fullApi: ApiFromModules<{
   "schema/players": typeof schema_players;
   "schema/stats": typeof schema_stats;
   "schema/transactions": typeof schema_transactions;
+  "stats/load": typeof stats_load;
+  "stats/milestones": typeof stats_milestones;
   "stats/recompute": typeof stats_recompute;
+  "stats/records": typeof stats_records;
+  "stats/refresh": typeof stats_refresh;
+  "stats/refreshRecords": typeof stats_refreshRecords;
+  "stats/refreshStreaks": typeof stats_refreshStreaks;
+  "stats/season": typeof stats_season;
+  "stats/streaks": typeof stats_streaks;
 }>;
 
 /**

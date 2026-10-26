@@ -53,11 +53,15 @@ export const statTables = {
     .index("by_playerId", ["playerId"])
     .index("by_franchiseId_and_positionGroup", ["franchiseId", "positionGroup"]),
 
-  /** Franchise records per stat key per scope. Holder fields are flattened so they can be indexed. */
+  /**
+   * Franchise records per stat, scope and split, with the top ten behind the holder (the
+   * all-time leaders board). Holder fields are flattened so they can be indexed.
+   */
   records: defineTable({
     franchiseId: v.id("franchises"),
     statKey: v.string(),
     scope: vRecordScope,
+    split: vStatSplit,
     ...playerRefFields,
     teamId: v.optional(v.id("teams")),
     value: v.number(),
@@ -73,12 +77,29 @@ export const statTables = {
         year: v.optional(v.number()),
       }),
     ),
+    top: v.array(
+      v.object({ playerId: v.id("players"), value: v.number(), seasonId: v.id("seasons"), year: v.number() }),
+    ),
   })
-    .index("by_franchiseId_and_scope_and_statKey", ["franchiseId", "scope", "statKey"])
+    .index("by_franchiseId_and_split_and_scope_and_statKey", ["franchiseId", "split", "scope", "statKey"])
+    .index("by_playerId", ["playerId"]),
+
+  /** Team and player streaks, current and longest, refreshed on every commit. */
+  streaks: defineTable({
+    franchiseId: v.id("franchises"),
+    /** Absent for team streaks. */
+    playerId: v.optional(v.id("players")),
+    key: v.string(),
+    current: v.number(),
+    longest: v.number(),
+  })
+    .index("by_franchiseId_and_playerId", ["franchiseId", "playerId"])
     .index("by_playerId", ["playerId"]),
 
   milestones: defineTable({
     franchiseId: v.id("franchises"),
+    /** Stable per game and player (`<kind>:<stat>`), so recommitting a game never duplicates one. */
+    key: v.string(),
     seasonId: v.id("seasons"),
     weekKey: v.optional(vWeekKey),
     kind: vMilestoneKind,
@@ -95,5 +116,6 @@ export const statTables = {
   })
     .index("by_franchiseId_and_acknowledged", ["franchiseId", "acknowledged"])
     .index("by_seasonId_and_weekKey", ["seasonId", "weekKey"])
+    .index("by_gameId", ["gameId"])
     .index("by_playerId", ["playerId"]),
 };
