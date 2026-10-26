@@ -1,12 +1,24 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useNavigate } from "@tanstack/react-router";
 import { Command } from "cmdk";
-import { Calendar, Camera, Keyboard, LayoutGrid, LogOut, Moon, Search } from "lucide-react";
+import {
+  Calendar,
+  Camera,
+  Keyboard,
+  Landmark,
+  LayoutGrid,
+  LogOut,
+  Moon,
+  NotebookPen,
+  ScrollText,
+  Search,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Kbd } from "@/components/ui/misc";
 import { useTheme } from "@/design/theme";
 import { useCapture } from "../capture/CaptureProvider";
+import { useFranchise } from "../franchise";
 import { NAV_ITEMS } from "../nav";
 import { useSeason } from "../season";
 
@@ -49,7 +61,8 @@ const groupClass =
 export function CommandPalette({ open, onOpenChange, onShowShortcuts }: CommandPaletteProps) {
   const navigate = useNavigate();
   const capture = useCapture();
-  const { seasons, setYear } = useSeason();
+  const { seasons, season, setYear } = useSeason();
+  const franchise = useFranchise();
   const { toggle } = useTheme();
   const { signOut } = useAuthActions();
   const run = (fn: () => void) => () => {
@@ -100,6 +113,22 @@ export function CommandPalette({ open, onOpenChange, onShowShortcuts }: CommandP
             <Command.Group heading="Actions" className={groupClass}>
               <Item icon={<Camera />} onSelect={run(() => capture.open())}>
                 Capture screenshots
+              </Item>
+              {season && season.year >= (franchise?.franchise.startYear ?? Infinity) && (
+                <Item
+                  icon={<NotebookPen />}
+                  onSelect={run(() =>
+                    navigate({ to: "/history/reports/$year", params: { year: String(season.year) } }),
+                  )}
+                >
+                  {`Open the ${season.year} season report`}
+                </Item>
+              )}
+              <Item icon={<Landmark />} onSelect={run(() => navigate({ to: "/history/hall-of-fame" }))}>
+                Hall of Fame
+              </Item>
+              <Item icon={<ScrollText />} onSelect={run(() => navigate({ to: "/history/timeline" }))}>
+                Timeline
               </Item>
               <Item icon={<Moon />} onSelect={run(toggle)}>
                 Toggle light and dark theme

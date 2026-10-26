@@ -140,6 +140,15 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 **Done when:** advancing to a new season triggers the prompt, the prompt survives dismissal, needs flow into the next offseason, the HoF wall looks worthy of hanging a jersey, and all of it can be written and read from the phone.
 
+**As built:**
+
+- Lifecycle is pure logic in `shared/seasons/lifecycle.ts`. Every game commit moves the season forward from its games (first regular-season result → `regular`, a playoff game → `postseason`, a played Super Bowl → `complete`) and settles where the playoff run ended; status never moves back. A season the user team is out of, or one whose Super Bowl was not captured, is closed with "Super Bowl week done" on the Home season card (no playoff games means a missed postseason). "Start <year>" then adds the next season with the same staff and its pre-season report due.
+- Due prompts (`shared/seasons/reports.ts`): the pre-season report of the season being played and the post-season report of the one just finished, until filed. Report rows are created on first write, so seasons from before this sprint need no backfill. The banner under every page header snoozes for 12 hours when dismissed (`dismissedAt` is stored, so it holds across devices); the Home "Pending" card never hides. Filing saves the latest text first.
+- Needs are written on a season's report for the offseason after it and show on Home until resolved, by one of the user team's transactions or draft picks from that season or the next, or by hand with a note (`resolvedAt`, `resolvedNote`), because the transaction and draft screens arrive in Sprint 7. They are not copied forward into later offseasons.
+- Hall of Fame plaques cache the career with the user team (franchise and real seasons with the team, log-derived preferred) and refresh on every save; one plaque per player, coaches and staff by name from the wall. A retired number needs a number. The jersey is the `HangingJersey` primitive; `SwipeRow` and `StaffLine` are new primitives too, all in the gallery.
+- The timeline reads the latest five seasons and loads older ones on request. It shows game notes and every playoff game, season notes and report text, the user team's transactions and awards, and inductions (a class inducted after the last season sits with the newest one).
+- The season lifecycle is covered by `convex-test` only: Playwright shares one backend across projects, so the smoke tests never finish a season or file a report.
+
 ---
 
 ## Sprint 6 — Ingestion v2: every other screen (L)

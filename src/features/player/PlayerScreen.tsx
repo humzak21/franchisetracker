@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { Columns3, Gauge, ScanFace } from "lucide-react";
+import { Columns3, Gauge, Landmark, ScanFace } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/misc";
 import { CareerStatsTable } from "./CareerStatsTable";
 import { EspnMatchSheet } from "./EspnMatchSheet";
 import { GameLog } from "./GameLog";
+import { HallOfFameSheet } from "./HallOfFameSheet";
 import { IdentityPanel } from "./IdentityPanel";
 import { OvrProgression } from "./OvrProgression";
 import { PlayerHero } from "./PlayerHero";
@@ -39,10 +40,12 @@ const SECTIONS = [
  */
 export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
   const page = useQuery(api.players.player.get, { playerId });
+  const plaque = useQuery(api.hof.entries.forPlayer, { playerId });
   const updateNotes = useMutation(api.players.player.updateNotes);
   const ensureHeadshot = useAction(api.players.headshots.ensure);
   const [espnOpen, setEspnOpen] = useState(false);
   const [ratingsOpen, setRatingsOpen] = useState(false);
+  const [hofOpen, setHofOpen] = useState(false);
   const position = page?.player.position;
   const latest = page?.history[page.history.length - 1];
 
@@ -81,6 +84,16 @@ export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
                 <Button size="sm" variant="outline" onClick={() => setEspnOpen(true)}>
                   <ScanFace /> {page.player.espnId ? "ESPN match" : "Find on ESPN"}
                 </Button>
+                {plaque && (
+                  <Button
+                    size="sm"
+                    variant={plaque.entry ? "primary" : "outline"}
+                    onClick={() => setHofOpen(true)}
+                  >
+                    <Landmark />{" "}
+                    {plaque.entry ? `Hall of Fame · ${plaque.entry.inductedYear}` : "Hall of Fame"}
+                  </Button>
+                )}
               </>
             }
           />
@@ -122,6 +135,16 @@ export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
             open={espnOpen}
             onOpenChange={setEspnOpen}
           />
+          {plaque && (
+            <HallOfFameSheet
+              key={`${plaque.entry?._id ?? "new"}-${String(hofOpen)}`}
+              playerId={playerId}
+              name={page.player.displayName}
+              plaque={plaque}
+              open={hofOpen}
+              onOpenChange={setHofOpen}
+            />
+          )}
           {latest && (
             <RatingsSheet
               key={latest.entry._id}

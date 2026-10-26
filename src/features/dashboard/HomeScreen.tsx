@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Badge, Skeleton } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { MilestoneFeed } from "./MilestoneFeed";
+import { PendingPrompts } from "./PendingPrompts";
+import { SeasonCard } from "./SeasonCard";
 import { TeamStreaks } from "./TeamStreaks";
 
 /** Seasons played in the franchise; imported real NFL seasons before it live in History. */
@@ -108,7 +110,11 @@ export function HomeScreen() {
       )}
       {active && (
         <div className="@container space-y-8">
+          <PendingPrompts />
           <Hero active={active} />
+          <Section title="This season">
+            <SeasonCard active={active} />
+          </Section>
           <Section title="Milestones">
             <MilestoneFeed />
           </Section>
@@ -117,7 +123,7 @@ export function HomeScreen() {
           </Section>
           <Section
             title="Seasons"
-            description="One per season played; the next is added when you advance (Sprint 5)."
+            description="One per season played; start the next from the season card once this one is done."
           >
             <SeasonGrid active={active} />
           </Section>

@@ -12,13 +12,22 @@ type FilterBarProps<T extends string> = {
   value: T;
   onChange: (value: T) => void;
   options: readonly FilterOption<T>[];
+  /** `chips` keeps the chips inline (scrolling sideways) even on a phone, for a screen's main filter. */
+  variant?: "auto" | "chips";
   className?: string;
 };
 
-function Chips<T extends string>({ value, onChange, options, wrap }: FilterBarProps<T> & { wrap: boolean }) {
+function Chips<T extends string>({
+  label,
+  value,
+  onChange,
+  options,
+  wrap,
+}: FilterBarProps<T> & { wrap: boolean }) {
   return (
     <div
       role="radiogroup"
+      aria-label={label}
       className={cn("flex gap-1.5", wrap ? "flex-wrap" : "scrollbar-none overflow-x-auto")}
       data-swipe-ignore
     >
@@ -51,6 +60,7 @@ function Chips<T extends string>({ value, onChange, options, wrap }: FilterBarPr
  * A single-choice filter (position, side, phase). Inline chips when there is room; under
  * 640 px a button that opens the same chips in a bottom sheet (FEATURES.md 9 toolbar sheet).
  * It fills the width it is given and decides from that, so give it a full row or grid cell.
+ * `variant="chips"` skips the sheet: the timeline's type chips stay one tap away on a phone.
  */
 export function FilterBar<T extends string>(props: FilterBarProps<T>) {
   const { ref, compact } = useElementWidth<HTMLDivElement>();
@@ -59,7 +69,7 @@ export function FilterBar<T extends string>(props: FilterBarProps<T>) {
 
   return (
     <div ref={ref} className={cn("w-full min-w-0", props.className)}>
-      {compact ? (
+      {compact && props.variant !== "chips" ? (
         <>
           <Button
             variant="outline"

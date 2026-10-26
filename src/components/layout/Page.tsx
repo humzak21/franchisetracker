@@ -75,6 +75,7 @@ export function Page({ title, eyebrow, back, season = false, actions, children, 
           </div>
         </div>
       </header>
+      {chrome?.banner}
       <main
         className={cn(
           "mx-auto w-full max-w-[1600px] flex-1 px-4 pt-4 pb-28 @tablet:px-6 @tablet:pt-6 @tablet:pb-10",
