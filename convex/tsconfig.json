@@ -1,0 +1,20 @@
+{
+  /* TypeScript config for Convex functions. `convex dev` type-checks with this file. */
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "rootDir": "..",
+    "strict": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
+    "jsx": "react-jsx"
+  },
+  "include": ["./**/*", "../shared/**/*"],
+  "exclude": ["./_generated", "../shared/**/*.test.ts"]
+}
