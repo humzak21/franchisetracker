@@ -17,6 +17,7 @@ import { GameLog } from "./GameLog";
 import { HallOfFameSheet } from "./HallOfFameSheet";
 import { IdentityPanel } from "./IdentityPanel";
 import { OvrProgression } from "./OvrProgression";
+import { PlayerActivity } from "./PlayerActivity";
 import { PlayerHero } from "./PlayerHero";
 import { PlayerHighlights } from "./PlayerHighlights";
 import { PlayerStatCards } from "./PlayerStatCards";
@@ -29,6 +30,7 @@ const SECTIONS = [
   { id: "career", label: "Career" },
   { id: "games", label: "Game log" },
   { id: "rosters", label: "Rosters" },
+  { id: "activity", label: "Awards" },
   { id: "identity", label: "Identity" },
   { id: "notes", label: "Notes" },
 ] as const;
@@ -117,6 +119,9 @@ export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
           </Section>
           <Section id="rosters" title="Roster history">
             <RosterHistoryTable page={page} />
+          </Section>
+          <Section id="activity" title="Awards and moves">
+            <PlayerActivity playerId={playerId} />
           </Section>
           <Section id="identity" title="Identity">
             <IdentityPanel key={page.player._id + page.player.displayName} page={page} />

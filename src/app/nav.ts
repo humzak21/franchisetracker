@@ -19,10 +19,8 @@ export type NavItem = {
   label: string;
   to: string;
   icon: LucideIcon;
-  /** One line describing the screen, used by the command palette and planned-screen states. */
+  /** One line describing the screen, used by the command palette. */
   description: string;
-  /** Sprint that delivers the screen (docs/SPRINTS.md); planned screens show it. */
-  sprint: number;
   /** Shown in the phone bottom tab bar; everything else lives in the More sheet. */
   phoneTab?: boolean;
 };
@@ -35,7 +33,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     to: "/",
     icon: House,
     description: "Season at a glance, prompts and milestones",
-    sprint: 8,
     phoneTab: true,
   },
   {
@@ -44,7 +41,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     to: "/schedule",
     icon: CalendarDays,
     description: "Weeks, results, three stars and game detail",
-    sprint: 1,
     phoneTab: true,
   },
   {
@@ -53,7 +49,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     to: "/roster",
     icon: Shield,
     description: "Roster, depth chart and contracts",
-    sprint: 1,
     phoneTab: true,
   },
   {
@@ -62,7 +57,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     to: "/players",
     icon: Users,
     description: "Players index, search, player pages and compare",
-    sprint: 4,
   },
   {
     id: "stats",
@@ -70,7 +64,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     to: "/stats",
     icon: ListOrdered,
     description: "Season stats, leaders, team stats and records",
-    sprint: 3,
     phoneTab: true,
   },
   {
@@ -79,7 +72,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     to: "/league",
     icon: Landmark,
     description: "Standings, brackets and other teams",
-    sprint: 7,
   },
   {
     id: "history",
@@ -87,7 +79,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     to: "/history",
     icon: Trophy,
     description: "Decade grids, trophy room, reports and Hall of Fame",
-    sprint: 1,
   },
   {
     id: "awards",
@@ -95,7 +86,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     to: "/awards",
     icon: Medal,
     description: "Weekly and yearly awards",
-    sprint: 7,
   },
   {
     id: "draft",
@@ -103,7 +93,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     to: "/draft",
     icon: ClipboardList,
     description: "Draft history, grades and pick inventory",
-    sprint: 7,
   },
   {
     id: "transactions",
@@ -111,7 +100,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     to: "/transactions",
     icon: ArrowLeftRight,
     description: "Signings, trades, releases and injuries",
-    sprint: 7,
   },
   {
     id: "inbox",
@@ -119,7 +107,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     to: "/inbox",
     icon: Inbox,
     description: "Screenshots waiting for review",
-    sprint: 2,
   },
   {
     id: "settings",
@@ -127,7 +114,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     to: "/settings",
     icon: Settings,
     description: "Franchise, thresholds, models and data",
-    sprint: 2,
   },
 ];
 

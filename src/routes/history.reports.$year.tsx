@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { NotFoundScreen } from "@/app/shell/PlannedScreen";
+import { NotFoundScreen } from "@/app/shell/StatusScreens";
 import { SeasonReportScreen } from "@/features/history/reports/SeasonReportScreen";
 
 export const Route = createFileRoute("/history/reports/$year")({

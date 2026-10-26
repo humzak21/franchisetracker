@@ -31,6 +31,14 @@ export function rosterColumns(team: TeamLike, year: number): DataColumn<RosterRo
           <PlayerChip
             size="sm"
             showPosition={false}
+            caption={
+              r.injury ? (
+                <span className="text-loss">
+                  {r.injury.onIr ? "IR · " : ""}
+                  {[r.injury.injuryType, r.injury.lengthLabel].filter(Boolean).join(" · ")}
+                </span>
+              ) : undefined
+            }
             player={{
               displayName: r.player.displayName,
               position: r.entry.position,

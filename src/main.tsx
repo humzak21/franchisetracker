@@ -7,7 +7,7 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { AppProviders } from "./app/providers";
-import { ErrorScreen } from "./app/shell/PlannedScreen";
+import { ErrorScreen } from "./app/shell/StatusScreens";
 import { routeTree } from "./routeTree.gen";
 
 const router = createRouter({

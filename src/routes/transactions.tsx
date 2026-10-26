@@ -1,6 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlannedScreen } from "@/app/shell/PlannedScreen";
+import { TransactionsScreen } from "@/features/transactions/TransactionsScreen";
 
-export const Route = createFileRoute("/transactions")({
-  component: () => <PlannedScreen nav="transactions" />,
-});
+export const Route = createFileRoute("/transactions")({ component: TransactionsScreen });
