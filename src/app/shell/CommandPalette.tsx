@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Kbd } from "@/components/ui/misc";
 import { useTheme } from "@/design/theme";
+import { useCapture } from "../capture/CaptureProvider";
 import { NAV_ITEMS } from "../nav";
 import { useSeason } from "../season";
 
@@ -47,6 +48,7 @@ const groupClass =
  */
 export function CommandPalette({ open, onOpenChange, onShowShortcuts }: CommandPaletteProps) {
   const navigate = useNavigate();
+  const capture = useCapture();
   const { seasons, setYear } = useSeason();
   const { toggle } = useTheme();
   const { signOut } = useAuthActions();
@@ -96,8 +98,8 @@ export function CommandPalette({ open, onOpenChange, onShowShortcuts }: CommandP
               ))}
             </Command.Group>
             <Command.Group heading="Actions" className={groupClass}>
-              <Item icon={<Camera />} onSelect={run(() => navigate({ to: "/inbox" }))}>
-                Upload screenshots
+              <Item icon={<Camera />} onSelect={run(() => capture.open())}>
+                Capture screenshots
               </Item>
               <Item icon={<Moon />} onSelect={run(toggle)}>
                 Toggle light and dark theme

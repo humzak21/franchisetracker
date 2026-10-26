@@ -7,6 +7,7 @@ import { useTheme } from "@/design/theme";
 import { DESKTOP_QUERY, useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { useFranchise } from "../franchise";
 import { NAV_ITEMS, navItem } from "../nav";
+import { NavBadge, useNavCount } from "./NavBadge";
 
 const SettingsIcon = navItem("settings").icon;
 const RAIL_ITEMS = NAV_ITEMS.filter((n) => n.id !== "settings");
@@ -17,6 +18,7 @@ const RAIL_ITEMS = NAV_ITEMS.filter((n) => n.id !== "settings");
  */
 export function Sidebar() {
   const active = useFranchise();
+  const inbox = useNavCount("inbox");
   const { resolved, toggle } = useTheme();
   // Labels are visible on desktop; the icon rail needs tooltips.
   const rail = !useMediaQuery(DESKTOP_QUERY);
@@ -51,8 +53,14 @@ export function Sidebar() {
                 activeOptions={{ exact: item.to === "/" }}
                 className="group flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium opacity-75 transition-[background-color,opacity] hover:bg-white/10 hover:opacity-100 data-[status=active]:bg-white/15 data-[status=active]:opacity-100 data-[status=active]:shadow-[inset_3px_0_0_var(--team-secondary)] max-lg:justify-center max-lg:px-0"
               >
-                <item.icon className="size-[18px] shrink-0" strokeWidth={2} />
+                <span className="relative">
+                  <item.icon className="size-[18px] shrink-0" strokeWidth={2} />
+                  {item.id === "inbox" && (
+                    <NavBadge dot count={inbox} className="absolute -top-0.5 -right-1 lg:hidden" />
+                  )}
+                </span>
                 <span className="hidden lg:inline">{item.label}</span>
+                {item.id === "inbox" && <NavBadge count={inbox} className="ml-auto hidden lg:inline" />}
               </Link>
             </MaybeTooltip>
           </li>

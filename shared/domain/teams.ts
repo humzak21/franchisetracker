@@ -60,3 +60,42 @@ export const NFL_TEAMS: readonly TeamSeed[] = [
 export function findTeamSeed(abbr: string): TeamSeed | undefined {
   return NFL_TEAMS.find((team) => team.abbr === abbr.toUpperCase());
 }
+
+/** Abbreviations other sources (and older Madden screens) use for the same franchises. */
+const TEAM_ABBR_ALIASES: Record<string, string> = {
+  JAC: "JAX",
+  WSH: "WAS",
+  OAK: "LV",
+  SD: "LAC",
+  STL: "LAR",
+  LA: "LAR",
+  ARZ: "ARI",
+  GNB: "GB",
+  KAN: "KC",
+  NWE: "NE",
+  NOR: "NO",
+  SFO: "SF",
+  TAM: "TB",
+};
+
+/**
+ * Resolves a team as printed on a screenshot ("NE", "Patriots", "New England Patriots",
+ * "OAK") to its abbreviation, or null. A bare city shared by two teams ("New York") is null.
+ */
+export function resolveTeamAbbr(text: string | null | undefined): string | null {
+  if (!text) return null;
+  const cleaned = text.trim().replace(/\s+/g, " ");
+  const upper = cleaned.toUpperCase();
+  if (findTeamSeed(upper)) return upper;
+  if (TEAM_ABBR_ALIASES[upper]) return TEAM_ABBR_ALIASES[upper];
+  const lower = cleaned.toLowerCase();
+  const byName = NFL_TEAMS.filter(
+    (t) =>
+      lower === t.name.toLowerCase() ||
+      lower === `${t.city} ${t.name}`.toLowerCase() ||
+      lower.endsWith(` ${t.name.toLowerCase()}`),
+  );
+  if (byName.length === 1) return byName[0]!.abbr;
+  const byCity = NFL_TEAMS.filter((t) => lower === t.city.toLowerCase());
+  return byCity.length === 1 ? byCity[0]!.abbr : null;
+}

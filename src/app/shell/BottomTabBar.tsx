@@ -5,6 +5,7 @@ import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { useTheme } from "@/design/theme";
 import { cn } from "@/lib/cn";
 import { MORE_ITEMS, PHONE_TABS, sectionOf } from "../nav";
+import { NavBadge, useNavCount } from "./NavBadge";
 
 const tabClass =
   "flex min-h-14 flex-1 flex-col items-center justify-center gap-1 text-[10px] font-semibold tracking-wide uppercase";
@@ -15,6 +16,7 @@ export function BottomTabBar({ onSearch }: { onSearch: () => void }) {
   const section = useRouterState({ select: (s) => sectionOf(s.location.pathname) });
   const { resolved, toggle } = useTheme();
   const inMore = MORE_ITEMS.some((item) => item.id === section);
+  const inbox = useNavCount("inbox");
 
   return (
     <>
@@ -41,7 +43,10 @@ export function BottomTabBar({ onSearch }: { onSearch: () => void }) {
               onClick={() => setMoreOpen(true)}
               className={cn(tabClass, inMore ? "text-primary" : "text-subtle-foreground")}
             >
-              <Ellipsis className="size-[22px]" />
+              <span className="relative">
+                <Ellipsis className="size-[22px]" />
+                <NavBadge dot count={inbox} className="absolute -top-0.5 -right-1" />
+              </span>
               More
             </button>
           </li>
@@ -55,10 +60,11 @@ export function BottomTabBar({ onSearch }: { onSearch: () => void }) {
               <Link
                 to={item.to}
                 onClick={() => setMoreOpen(false)}
-                className="flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-xl border border-border bg-surface-2 text-[13px] font-medium data-[status=active]:border-primary data-[status=active]:text-primary"
+                className="relative flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-xl border border-border bg-surface-2 text-[13px] font-medium data-[status=active]:border-primary data-[status=active]:text-primary"
               >
                 <item.icon className="size-6" strokeWidth={1.75} />
                 {item.label}
+                {item.id === "inbox" && <NavBadge count={inbox} className="absolute top-2 right-2" />}
               </Link>
             </li>
           ))}

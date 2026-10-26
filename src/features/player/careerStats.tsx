@@ -3,10 +3,11 @@ import { positionGroupOf, type Position, type PositionGroup } from "@shared/doma
 import {
   aggregateLines,
   CATEGORY_GROUPS,
+  preferLogs,
   STAT_CATEGORIES,
   STAT_CATEGORY_LABELS,
   STAT_REGISTRY,
-  statsInCategory,
+  statsWithData,
   statValue,
   type StatKey,
   type StatLine,
@@ -19,14 +20,10 @@ export type CareerRow = { id: string; year: number | null; teamAbbr: string; gam
 
 /** One row per season (log-derived totals win over imported ones), regular season only. */
 export function careerRows(seasons: PlayerPage["seasons"]): CareerRow[] {
-  const byKey = new Map<string, PlayerPage["seasons"][number]>();
-  for (const s of seasons) {
-    if (s.stats.split !== "regular") continue;
-    const key = `${s.year}-${s.team._id}`;
-    const existing = byKey.get(key);
-    if (!existing || (existing.stats.source === "import" && s.stats.source === "logs")) byKey.set(key, s);
-  }
-  return [...byKey.values()].map((s) => ({
+  const regular = seasons
+    .filter((s) => s.stats.split === "regular")
+    .map((s) => ({ ...s, teamKey: s.team._id, source: s.stats.source }));
+  return preferLogs(regular).map((s) => ({
     id: `${s.year}-${s.team.abbr}`,
     year: s.year,
     teamAbbr: s.team.abbr,
@@ -45,12 +42,6 @@ export function totalsRow(rows: readonly CareerRow[]): CareerRow {
   };
 }
 
-const hasValue = (rows: readonly CareerRow[], key: StatKey) =>
-  rows.some((r) => {
-    const v = statValue(key, r.line, { games: r.games });
-    return v !== null && v !== 0;
-  });
-
 /**
  * Stats worth a column: recorded raw stats, plus derived stats whose inputs were all recorded.
  * Categories for the player's own position group come first.
@@ -59,11 +50,9 @@ export function visibleStats(position: Position, rows: readonly CareerRow[]): St
   const group = positionGroupOf(position);
   const own = STAT_CATEGORIES.filter((c) => CATEGORY_GROUPS[c].includes(group));
   const rest = STAT_CATEGORIES.filter((c) => !own.includes(c));
-  return [...own, ...rest].flatMap((category) =>
-    statsInCategory(category).filter((key) => {
-      const def = STAT_REGISTRY[key];
-      return def.kind === "raw" ? hasValue(rows, key) : def.dependsOn.every((dep) => hasValue(rows, dep));
-    }),
+  return statsWithData(
+    [...own, ...rest],
+    rows.map((r) => ({ line: r.line, games: r.games })),
   );
 }
 

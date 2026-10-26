@@ -15,7 +15,8 @@ export function aggregateLines(lines: readonly StatLine[]): StatLine {
   for (const line of lines) {
     for (const key of Object.keys(line) as RawStatKey[]) {
       const value = line[key];
-      if (value === undefined) continue;
+      // Stored maps are untyped records; ignore anything that is not a registered raw stat.
+      if (value === undefined || !isRawStatKey(key)) continue;
       const current = totals[key];
       if (current === undefined) totals[key] = value;
       else totals[key] = RAW_STATS[key].aggregation === "max" ? Math.max(current, value) : current + value;

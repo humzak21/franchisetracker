@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  nextWeek,
   recordBefore,
   resultOf,
   seasonSummary,
@@ -56,5 +57,18 @@ describe("game math", () => {
   it("gives the record entering a week", () => {
     expect(recordBefore(season, "w10")).toEqual({ w: 2, l: 0, t: 1 });
     expect(recordBefore(season, "w1")).toEqual({ w: 0, l: 0, t: 0 });
+  });
+});
+
+describe("nextWeek", () => {
+  it("follows the latest final score and starts at Week 1", () => {
+    expect(nextWeek([])).toBe("w1");
+    const games = [
+      { weekKey: "w1" as const, status: "played" as const, userIsHome: true, homeScore: 20, awayScore: 10 },
+      { weekKey: "w3" as const, status: "played" as const, userIsHome: false, homeScore: 7, awayScore: 14 },
+      { weekKey: "w4" as const, status: "bye" as const },
+      { weekKey: "pre1" as const, status: "played" as const, userIsHome: true, homeScore: 3, awayScore: 0 },
+    ];
+    expect(nextWeek(games)).toBe("w4");
   });
 });

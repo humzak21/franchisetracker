@@ -1,6 +1,7 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
-import { vScalar, vUploadSource, vUploadStatus, vWarningSeverity, vWeekKey } from "../lib/validators";
+import { vDraft, vDraftWarning, vFieldConfidence, vTargetKey } from "../lib/draftValidators";
+import { vScalar, vUploadSource, vUploadStatus, vWeekKey } from "../lib/validators";
 
 export const ingestionTables = {
   uploads: defineTable({
@@ -11,34 +12,40 @@ export const ingestionTables = {
     height: v.optional(v.number()),
     source: vUploadSource,
     /** Ingestion target registry key (`shared/ingestion/targets.ts`); absent until tagged. */
-    targetKey: v.optional(v.string()),
+    targetKey: v.optional(vTargetKey),
     seasonId: v.optional(v.id("seasons")),
     weekKey: v.optional(vWeekKey),
-    /** Pre-tagged game from an "Import screenshot" button. */
+    /** Pre-tagged game from an "Import screenshot" button; set on commit to the game written. */
     gameId: v.optional(v.id("games")),
-    /** Groups multi-image targets (a box score across several screenshots). */
+    /**
+     * Groups the screenshots extracted together (a box score across several screens). Every
+     * upload has one; a lone screenshot is a set of one keyed by its own id.
+     */
     setKey: v.optional(v.string()),
     status: vUploadStatus,
     error: v.optional(v.string()),
     createdAt: v.number(),
   })
+    .index("by_franchiseId", ["franchiseId"])
     .index("by_franchiseId_and_status", ["franchiseId", "status"])
     .index("by_franchiseId_and_setKey", ["franchiseId", "setKey"])
     .index("by_gameId", ["gameId"]),
 
   extractions: defineTable({
     franchiseId: v.id("franchises"),
+    /** The set's first upload; `setKey` ties the extraction to every screenshot it read. */
     uploadId: v.id("uploads"),
-    targetKey: v.string(),
+    setKey: v.string(),
+    targetKey: vTargetKey,
     model: v.string(),
     /** Model output verbatim. */
     rawJson: v.string(),
-    /** Normalized draft; its shape is the target's JSON schema in `shared/ingestion`. */
-    draft: v.any(),
-    confidence: v.array(v.object({ path: v.string(), value: v.number() })),
-    warnings: v.array(
-      v.object({ path: v.optional(v.string()), message: v.string(), severity: vWarningSeverity }),
-    ),
+    /** Normalized draft as extracted (`shared/ingestion/types.ts`); corrections diff against it. */
+    draft: vDraft,
+    /** The draft with the user's review edits so far, saved as they go so a review survives a reload. */
+    reviewDraft: v.optional(vDraft),
+    confidence: v.array(vFieldConfidence),
+    warnings: v.array(vDraftWarning),
     tokenUsage: v.optional(
       v.object({
         prompt: v.number(),
@@ -48,12 +55,14 @@ export const ingestionTables = {
       }),
     ),
     latencyMs: v.optional(v.number()),
-  }).index("by_uploadId", ["uploadId"]),
+  })
+    .index("by_uploadId", ["uploadId"])
+    .index("by_setKey", ["setKey"]),
 
   /** User fixes to extracted fields; feed few-shot examples. */
   corrections: defineTable({
     franchiseId: v.id("franchises"),
-    targetKey: v.string(),
+    targetKey: vTargetKey,
     fieldPath: v.string(),
     extractedValue: vScalar,
     correctedValue: vScalar,

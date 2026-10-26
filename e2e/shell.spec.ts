@@ -27,7 +27,7 @@ for (const theme of ["dark", "light"] as const) {
 test("navigation chrome matches the device", async ({ page }, info) => {
   await gotoHome(page);
   const sidebar = page.getByRole("navigation", { name: "Main" }).filter({ hasText: "Transactions" }).first();
-  const capture = page.getByRole("link", { name: "Capture screenshots" });
+  const capture = page.getByRole("button", { name: "Capture screenshots" });
   if (isPhone(info.project.name)) {
     await expect(page.getByRole("button", { name: "More" })).toBeVisible();
     await expect(capture).toBeVisible();
