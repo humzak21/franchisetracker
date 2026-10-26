@@ -40,7 +40,15 @@ export function eliteTier(
   return meets(threshold.tier1) ? 1 : 0;
 }
 
-export type GameThreshold = { key: string; stat: StatKey; min: number; label: string; short: string };
+export type GameThreshold = {
+  key: string;
+  stat: StatKey;
+  min: number;
+  label: string;
+  short: string;
+  /** Common enough to mark in a box score but not news: no milestone. */
+  minor?: true;
+};
 
 /** Single-game performances that count toward "threshold games" and get highlighted in box scores. */
 export const GAME_THRESHOLDS = [
@@ -55,7 +63,7 @@ export const GAME_THRESHOLDS = [
   },
   { key: "rush100", stat: "rushYds", min: 100, label: "100-yard rushing game", short: "100+" },
   { key: "rec100", stat: "recYds", min: 100, label: "100-yard receiving game", short: "100+" },
-  { key: "rec5", stat: "rec", min: 5, label: "5+ catches", short: "5+ REC" },
+  { key: "rec5", stat: "rec", min: 5, label: "5+ catches", short: "5+ REC", minor: true },
   { key: "scrimmage3td", stat: "scrimmageTd", min: 3, label: "3+ touchdowns", short: "3 TD" },
   { key: "sacks2", stat: "sacks", min: 2, label: "2+ sacks", short: "2+ SK" },
   { key: "int2", stat: "defInt", min: 2, label: "2+ interceptions", short: "2+ INT" },

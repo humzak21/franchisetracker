@@ -47,7 +47,11 @@ describe("players/player", () => {
     const page = await owner.query(api.players.player.get, { playerId: maye.player._id });
     expect(page.history).toHaveLength(1);
     expect(page.history[0]).toMatchObject({ year: SAMPLE_START_YEAR, team: { abbr: "NE" } });
-    expect(page.seasons[0]?.stats.totals.passYds).toBe(4228);
+    expect(page.seasons[0]?.stats).toMatchObject({
+      source: "logs",
+      gamesPlayed: 5,
+      totals: { passYds: 1403 },
+    });
   });
 
   test("updateNotes saves and clears notes", async () => {

@@ -82,7 +82,7 @@ export async function commitBoxScore(
   franchise: Doc<"franchises">,
   game: Doc<"games">,
   draft: BoxScore,
-): Promise<void> {
+): Promise<Id<"players">[]> {
   const previous = [];
   for (const teamId of [game.homeTeamId, game.awayTeamId]) {
     if (!teamId) continue;
@@ -124,4 +124,5 @@ export async function commitBoxScore(
     await recomputePlayerSeason(ctx, player, game.seasonId);
     await recomputeCareer(ctx, player);
   }
+  return [...affected.keys()];
 }

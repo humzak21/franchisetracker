@@ -6,7 +6,8 @@ import { v } from "convex/values";
 import { diffDrafts } from "../../shared/ingestion/diff";
 import { blocksCommit } from "../../shared/ingestion/validate";
 import { validateDraft } from "../../shared/ingestion/targets";
-import type { Doc } from "../_generated/dataModel";
+import { internal } from "../_generated/api";
+import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, query, type QueryCtx } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { vDraft, vDraftWarning, vFieldConfidence, type StoredDraft } from "../lib/draftValidators";
@@ -174,15 +175,17 @@ export const commit = mutation({
 
     const lead = [...uploads].sort((a, b) => a._creationTime - b._creationTime)[0]!;
     const game = await upsertGame(ctx, franchise, lead, draft.game);
+    let playerIds: Id<"players">[] = [];
     switch (draft.target) {
       case "game_box_score":
-        await commitBoxScore(ctx, franchise, game, draft);
+        playerIds = await commitBoxScore(ctx, franchise, game, draft);
         break;
       case "team_game_stats":
         await commitTeamStats(ctx, franchise, game, draft);
         break;
     }
     await refreshSeasonRecord(ctx, game.seasonId);
+    await ctx.scheduler.runAfter(0, internal.stats.refresh.afterGame, { gameId: game._id, playerIds });
 
     for (const change of diffDrafts(extraction.draft, draft).slice(0, MAX_CORRECTIONS)) {
       await ctx.db.insert("corrections", {

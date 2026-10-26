@@ -31,6 +31,7 @@ import {
 } from "./fixtures";
 import { SegmentedDemo, SheetDemo, TeamPickerDemo } from "./demos";
 import { INGESTION_SPECIMENS } from "./ingestionSpecimens";
+import { STATS_SPECIMENS } from "./statsSpecimens";
 import { TABLE_SPECIMENS } from "./tableSpecimens";
 
 export type Specimen = { id: string; name: string; note?: string; render: () => ReactNode };
@@ -66,6 +67,7 @@ export const SPECIMENS: Specimen[] = [
   },
   ...TABLE_SPECIMENS,
   ...INGESTION_SPECIMENS,
+  ...STATS_SPECIMENS,
   {
     id: "statcell",
     name: "StatCell · Highlight",

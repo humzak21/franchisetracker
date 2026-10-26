@@ -8,9 +8,10 @@ import { Section } from "@/components/layout/Section";
 import { Skeleton } from "@/components/ui/misc";
 import { CareerStatsTable } from "./CareerStatsTable";
 import { PlayerHero } from "./PlayerHero";
+import { PlayerHighlights } from "./PlayerHighlights";
 import { RosterHistoryTable } from "./RosterHistoryTable";
 
-/** Player page v1 (FEATURES.md 5.4): hero, career stats, roster history and notes. */
+/** Player page (FEATURES.md 5.4): hero, records and streaks, career stats, roster history and notes. */
 export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
   const page = useQuery(api.players.player.get, { playerId });
   const updateNotes = useMutation(api.players.player.updateNotes);
@@ -30,9 +31,10 @@ export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
       ) : (
         <div className="space-y-8">
           <PlayerHero page={page} />
+          <PlayerHighlights playerId={playerId} />
           <Section
             title="Career stats"
-            description="Regular season, from imported season totals and game logs."
+            description="From game logs, and imported totals for seasons before the franchise."
           >
             <CareerStatsTable page={page} />
           </Section>

@@ -9,6 +9,7 @@ import { Headshot } from "@/components/player/Headshot";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { ExtractionSettings } from "./ExtractionSettings";
+import { HighlightSettings } from "./HighlightSettings";
 import { ShortcutSettings } from "./ShortcutSettings";
 
 function Account() {
@@ -39,12 +40,13 @@ export function SettingsScreen() {
     <Page title="Settings">
       <div className="mx-auto max-w-3xl space-y-8">
         <Account />
+        <HighlightSettings />
         <ExtractionSettings />
         <ShortcutSettings />
         <EmptyState
           icon={SlidersHorizontal}
           title="More settings arrive with their sprints"
-          description="Highlight thresholds (Sprint 3), the real NFL history refresh (Sprint 4), and export and backup (Sprint 9)."
+          description="The real NFL history refresh (Sprint 4), and export and backup (Sprint 9)."
         />
       </div>
     </Page>

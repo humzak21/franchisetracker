@@ -1,6 +1,6 @@
 /**
  * A sample franchise for tests, CI and empty local backends: a first season with a handful of
- * games (one bye, one overtime loss), a roster slice and season totals, plus an empty second
+ * games (one bye, one overtime loss) and their box scores, a roster slice, plus an empty second
  * season so the season switcher has somewhere to go.
  *
  * Non-destructive: does nothing when a franchise the owner created exists, or when the sample
@@ -13,6 +13,9 @@ import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import { createFranchise } from "../franchise/create";
 import { must } from "../lib/errors";
+import { refreshAfterGame } from "../stats/refresh";
+import { recomputeCareer, recomputePlayerSeason } from "../stats/recompute";
+import { SAMPLE_LINES } from "./fixtureLines";
 
 export const SAMPLE_FRANCHISE_NAME = "Sample Franchise";
 export const SAMPLE_START_YEAR = 2026;
@@ -111,32 +114,6 @@ const GAMES: [WeekKey, string, boolean, number, number, boolean, [number, number
   ["w6", "NO", true, 28, 14, false, [1, 4]],
 ];
 
-const SEASON_TOTALS: Record<string, Record<string, number>> = {
-  Maye: {
-    passCmp: 363,
-    passAtt: 525,
-    passYds: 4228,
-    passTd: 42,
-    passInt: 18,
-    passSacked: 19,
-    rushAtt: 28,
-    rushYds: 267,
-    rushTd: 5,
-  },
-  Henderson: {
-    rushAtt: 244,
-    rushYds: 1079,
-    rushTd: 11,
-    rushLong: 54,
-    rec: 32,
-    recYds: 209,
-    recTd: 2,
-    recLong: 35,
-  },
-  Diggs: { rec: 120, recYds: 1687, recTd: 21, recLong: 64 },
-  Douglas: { rec: 87, recYds: 935, recTd: 10, recLong: 55 },
-};
-
 async function teamId(ctx: MutationCtx, abbr: string): Promise<Id<"teams">> {
   const team = await ctx.db
     .query("teams")
@@ -217,10 +194,11 @@ export const seedFixtures = internalMutation({
 
     let w = 0;
     let l = 0;
+    const gameIds: Id<"games">[] = [];
     for (const [weekKey, abbr, userIsHome, us, them, overtime, [ow, ol]] of GAMES) {
       const opponentTeamId = await teamId(ctx, abbr);
       const result = us > them ? "W" : us < them ? "L" : "T";
-      await ctx.db.insert("games", {
+      const gameId = await ctx.db.insert("games", {
         franchiseId: franchise._id,
         seasonId: season._id,
         weekKey,
@@ -241,6 +219,20 @@ export const seedFixtures = internalMutation({
         ],
         status: "played",
       });
+      gameIds.push(gameId);
+      for (const [last, stats] of Object.entries(SAMPLE_LINES[weekKey as keyof typeof SAMPLE_LINES])) {
+        const playerId = must(playerIds.get(last), last);
+        await ctx.db.insert("gameStatLines", {
+          franchiseId: franchise._id,
+          seasonId: season._id,
+          gameId,
+          playerId,
+          teamId: ne,
+          weekKey,
+          position: ROSTER.find((p) => p.last === last)?.position,
+          stats,
+        });
+      }
       if (result === "W") w++;
       else if (result === "L") l++;
     }
@@ -251,18 +243,13 @@ export const seedFixtures = internalMutation({
       status: "bye",
     });
 
-    for (const [last, totals] of Object.entries(SEASON_TOTALS)) {
-      await ctx.db.insert("seasonPlayerStats", {
-        franchiseId: franchise._id,
-        seasonId: season._id,
-        playerId: must(playerIds.get(last), last),
-        teamId: ne,
-        source: "import",
-        split: "regular",
-        gamesPlayed: 17,
-        totals,
-      });
+    // Aggregates, records, streaks and milestones come from the lines, as after a real commit.
+    for (const playerId of playerIds.values()) {
+      const player = must(await ctx.db.get("players", playerId), "Sample player");
+      await recomputePlayerSeason(ctx, player, season._id);
+      await recomputeCareer(ctx, player);
     }
+    for (const gameId of gameIds) await refreshAfterGame(ctx, gameId, [...playerIds.values()]);
     await ctx.db.patch("seasons", season._id, { userRecord: { w, l, t: 0 } });
     return { seeded: true };
   },
