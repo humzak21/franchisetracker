@@ -63,7 +63,7 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
   };
   const postseason = weekPhase(game.weekKey) === "postseason";
   // Short week labels keep the title on one line on phones; playoff rounds read better in full.
-  const title = `${weekLabel(game.weekKey, postseason ? "long" : "short")} ${game.userIsHome === false ? "at" : "vs"} ${opponent?.name ?? "TBD"}`;
+  const title = `${weekLabel(game.weekKey, postseason ? "long" : "short")} ${game.userIsHome ? "vs" : "at"} ${opponent?.name ?? "TBD"}`;
 
   const nav = (
     <>
@@ -97,9 +97,8 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
     >
       <div ref={swipeArea} className="space-y-6">
         <ScoreBug
-          // When home and away are unknown (imported games), the user team takes the home slot.
-          away={game.userIsHome === false ? user : them}
-          home={game.userIsHome === false ? them : user}
+          away={game.userIsHome ? them : user}
+          home={game.userIsHome ? user : them}
           status={postseason ? `Final · ${weekLabel(game.weekKey, "long")}` : "Final"}
           overtime={game.overtime}
           userTeam={userTeam.abbr}

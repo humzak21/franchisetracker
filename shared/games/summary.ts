@@ -7,9 +7,6 @@ export type GameLike = {
   userIsHome?: boolean;
   homeScore?: number;
   awayScore?: number;
-  /** Set when home and away are unknown (the workbook records only "us" and "them"). */
-  userScore?: number;
-  opponentScore?: number;
 };
 
 export type WLT = { w: number; l: number; t: number };
@@ -20,11 +17,7 @@ export function sortByWeek<T extends { weekKey: WeekKey }>(games: readonly T[]):
 
 /** The user's and opponent's scores, or null when the game has no final score. */
 export function userScore(game: GameLike): { us: number; them: number } | null {
-  if (game.status !== "played") return null;
-  if (game.userScore !== undefined && game.opponentScore !== undefined) {
-    return { us: game.userScore, them: game.opponentScore };
-  }
-  if (game.homeScore === undefined || game.awayScore === undefined) return null;
+  if (game.status !== "played" || game.homeScore === undefined || game.awayScore === undefined) return null;
   return game.userIsHome
     ? { us: game.homeScore, them: game.awayScore }
     : { us: game.awayScore, them: game.homeScore };

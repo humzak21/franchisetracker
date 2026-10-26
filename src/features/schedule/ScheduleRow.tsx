@@ -42,9 +42,7 @@ export function ScheduleRow({ game, userTeam }: { game: ScheduleGame; userTeam?:
           {weekLabel(game.weekKey)}
         </span>
         <span className="flex min-w-0 items-center gap-1.5 [grid-area:opp]">
-          <span className="w-5 shrink-0 text-xs text-subtle-foreground">
-            {game.userIsHome === null ? "" : game.userIsHome ? "vs" : "@"}
-          </span>
+          <span className="w-5 shrink-0 text-xs text-subtle-foreground">{game.userIsHome ? "vs" : "@"}</span>
           {game.opponent && (
             <span className="flex min-w-0 items-center gap-2">
               <TeamLogo team={game.opponent} size="sm" />
