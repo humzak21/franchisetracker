@@ -26,6 +26,8 @@ test.describe("component gallery", () => {
   });
 
   test("TeamPicker selects one team at a time", async ({ page }) => {
+    // Specimens far down the page mount when scrolled to (or once their batch comes up).
+    await page.locator("#teampicker").scrollIntoViewIfNeeded();
     const frame = page.locator("#teampicker figure").first();
     const lions = frame.getByRole("radio", { name: "Detroit Lions" });
     await lions.click();

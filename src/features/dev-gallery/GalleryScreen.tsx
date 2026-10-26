@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NFL_TEAMS } from "@shared/domain";
 import { ThemeScope, useTheme } from "@/design/theme";
 import { Page } from "@/components/layout/Page";
@@ -17,6 +17,7 @@ const BATCH = 4;
 /**
  * How many specimens to render, growing a batch per frame. Every specimen renders four times,
  * charts included; mounting them all in one pass kept the page blank for seconds on a phone.
+ * A section scrolled to (or linked from the specimen nav) mounts at once, ahead of its batch.
  */
 function useProgressiveCount(total: number): number {
   const [count, setCount] = useState(BATCH);
@@ -26,6 +27,25 @@ function useProgressiveCount(total: number): number {
     return () => cancelAnimationFrame(id);
   }, [count, total]);
   return count;
+}
+
+/** Becomes true, and stays true, once the element comes within a screen of the viewport. */
+function useNearViewport<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || near) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) setNear(true);
+      },
+      { rootMargin: "100% 0px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [near]);
+  return { ref, near };
 }
 
 type FrameProps = {
@@ -62,16 +82,18 @@ function SpecimenBlock({
   specimen: Specimen;
   themes: ("dark" | "light")[];
   team: (typeof NFL_TEAMS)[number];
-  /** False until its batch comes up: the heading shows, the frames wait. */
+  /** False until its batch comes up: the heading shows, the frames wait unless scrolled to. */
   mounted: boolean;
 }) {
+  const { ref, near } = useNearViewport<HTMLElement>();
+  const shown = mounted || near;
   return (
-    <section id={specimen.id} className="scroll-mt-24 border-t border-border pt-6">
+    <section ref={ref} id={specimen.id} className="scroll-mt-24 border-t border-border pt-6">
       <h2 className="font-display text-2xl font-bold tracking-wide uppercase">{specimen.name}</h2>
       {specimen.note && <p className="mt-0.5 max-w-3xl text-sm text-muted-foreground">{specimen.note}</p>}
       <div className="mt-4 space-y-5">
-        {!mounted && <Skeleton className="h-40 rounded-xl" />}
-        {mounted &&
+        {!shown && <Skeleton className="h-40 rounded-xl" />}
+        {shown &&
           themes.map((theme) => (
             <div key={theme} className="flex flex-col gap-5 2xl:flex-row">
               <Frame label="Phone" width={PHONE_WIDTH} fluid theme={theme} team={team}>
