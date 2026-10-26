@@ -30,7 +30,7 @@ for (const theme of ["dark", "light"] as const) {
       await expect(page.getByRole("radio", { name: /To do/ })).toBeVisible();
       await expectNoHorizontalOverflow(page);
       await page.goto("/settings");
-      await expect(page.getByRole("heading", { name: "Extraction" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Extraction", exact: true })).toBeVisible();
       await expectNoHorizontalOverflow(page);
     });
   });
