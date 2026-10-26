@@ -31,7 +31,7 @@ async function repointByPlayerIndex(
 /** Rows keyed by player and season: the kept player's row wins where both have one. */
 async function mergeSeasonRows(
   ctx: MutationCtx,
-  table: "rosterEntries" | "playerSnapshots",
+  table: "rosterEntries" | "playerSnapshots" | "reportedSeasonStats",
   from: Id<"players">,
   to: Id<"players">,
 ) {
@@ -101,6 +101,7 @@ export async function mergePlayers(ctx: MutationCtx, source: Doc<"players">, tar
   const lines = await mergeGameLines(ctx, from, to);
   await mergeSeasonRows(ctx, "rosterEntries", from, to);
   await mergeSeasonRows(ctx, "playerSnapshots", from, to);
+  await mergeSeasonRows(ctx, "reportedSeasonStats", from, to);
   for (const table of [
     "awards",
     "draftPicks",

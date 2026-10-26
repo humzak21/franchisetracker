@@ -22,9 +22,12 @@ export type JsonSchema = {
   enum?: readonly (string | null)[];
 };
 
-const nullable = (type: string, description?: string): JsonSchema => ({ type: [type, "null"], description });
+export const nullable = (type: string, description?: string): JsonSchema => ({
+  type: [type, "null"],
+  description,
+});
 
-function object(properties: Record<string, JsonSchema>, description?: string): JsonSchema {
+export function object(properties: Record<string, JsonSchema>, description?: string): JsonSchema {
   return {
     type: "object",
     description,
@@ -35,7 +38,7 @@ function object(properties: Record<string, JsonSchema>, description?: string): J
 }
 
 /** Fields every extracted row carries so review can show what the model was unsure of. */
-const rowMeta = {
+export const rowMeta = {
   confidence: { type: "number", description: "0 to 1: how sure you are this whole row is read correctly." },
   unclear_fields: {
     type: "array",

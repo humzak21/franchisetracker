@@ -19,7 +19,11 @@ export function SetCard({ set, selecting, selected, onToggle }: SetCardProps) {
   const cover = set.images[0]?.url;
   const target =
     set.targetKey && isTargetKey(set.targetKey) ? INGESTION_TARGETS[set.targetKey].label : "Untagged";
-  const where = [set.year, set.weekKey ? weekLabel(set.weekKey, "long") : null].filter(Boolean).join(" · ");
+  const seasonScreen =
+    set.targetKey && isTargetKey(set.targetKey) && INGESTION_TARGETS[set.targetKey].scope === "season";
+  const where = [set.year, set.weekKey && !seasonScreen ? weekLabel(set.weekKey, "long") : null]
+    .filter(Boolean)
+    .join(" · ");
   const status = STATUS[set.status];
 
   const body = (

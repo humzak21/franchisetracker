@@ -105,6 +105,14 @@ export function StatusBanner({ data }: { data: Review }) {
       </>
     );
   }
+  const isRows = data.extraction !== null && "rows" in data.extraction.draft;
+  if (status === "committed" && isRows) {
+    return (
+      <Banner tone="win" icon={<CircleCheck className="text-win" />}>
+        Committed. The accepted rows are saved; rows left unaccepted were not.
+      </Banner>
+    );
+  }
   if (status === "committed" && game) {
     return (
       <Banner
@@ -131,7 +139,7 @@ export function StatusBanner({ data }: { data: Review }) {
   }
   const replaces =
     data.extraction?.draft.target === "game_box_score" ? game?.hasBoxScore : game?.hasTeamStats;
-  if (game && replaces) {
+  if (game && replaces && !isRows) {
     return (
       <Banner tone="warn" icon={<Replace className="text-warn" />}>
         This game already has{" "}

@@ -22,14 +22,20 @@ export function ReviewActions({ setKey, committed }: { setKey: string; committed
   const [rerun, setRerun] = useState(false);
   const blocked = blocksCommit(warnings);
   const errors = warnings.filter((w) => w.severity === "error").length;
+  const rows = "rows" in draft ? draft.rows.filter((r) => r.accepted).length : null;
 
   const onCommit = async () => {
     if (blocked || busy || committed) return;
     setBusy(true);
     setError(null);
     try {
-      const { gameId } = await commit({ setKey, draft });
-      void navigate({ to: "/games/$gameId", params: { gameId } });
+      const { gameId, playerId, nextSetKey } = await commit({ setKey, draft });
+      // A game or a card lands on what it wrote; a list moves on to the next set waiting for review.
+      if (gameId) void navigate({ to: "/games/$gameId", params: { gameId } });
+      else if (playerId) void navigate({ to: "/players/$playerId", params: { playerId } });
+      else if (draft.target === "season_player_stats") void navigate({ to: "/stats/reconcile" });
+      else if (nextSetKey) void navigate({ to: "/inbox/$setKey", params: { setKey: nextSetKey } });
+      else void navigate({ to: "/inbox" });
     } catch (err) {
       setError(errorMessage(err, "Commit failed. Nothing was written."));
       setBusy(false);
@@ -66,7 +72,11 @@ export function ReviewActions({ setKey, committed }: { setKey: string; committed
             onClick={() => void onCommit()}
           >
             {busy ? <LoaderCircle className="animate-spin" /> : <Check />}
-            {committed ? "Committed" : "Commit"}
+            {committed
+              ? "Committed"
+              : rows === null
+                ? "Commit"
+                : `Commit ${rows} row${rows === 1 ? "" : "s"}`}
             <Kbd aria-hidden className="hidden border-white/30 bg-white/10 text-current lg:inline-flex">
               ⌘↵
             </Kbd>

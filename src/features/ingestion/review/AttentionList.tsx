@@ -36,7 +36,9 @@ export function AttentionList() {
   const newPlayers =
     draft.target === "game_box_score"
       ? draft.lines.filter((l) => l.playerId === null && l.match.status === "new").length
-      : 0;
+      : "rows" in draft
+        ? draft.rows.filter((r) => r.accepted && r.playerId === null && r.match?.status === "new").length
+        : 0;
   if (newPlayers > 0) {
     general.push({
       severity: "info",

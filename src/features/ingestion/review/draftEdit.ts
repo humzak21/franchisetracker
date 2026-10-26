@@ -4,6 +4,8 @@
  */
 import { isRawStatKey, getStat } from "@shared/stats";
 import { isTeamStatKey, TEAM_STATS } from "@shared/stats/teamRegistry";
+import { CHECK_BELOW, ROW_CHECK_BELOW } from "@shared/ingestion/normalize";
+import { isRowDraft, rowTarget } from "@shared/ingestion/targets";
 import type { Draft, DraftWarning, FieldConfidence } from "@shared/ingestion/types";
 
 type Node = Record<string, unknown> | unknown[];
@@ -58,7 +60,7 @@ function statLabel(key: string): string {
   return key;
 }
 
-/** "D. Maye · Passing yards", "Home score", "NE · Total yards". */
+/** "D. Maye · Passing yards", "Home score", "NE · Total yards", "BUF · Wins". */
 export function fieldLabel(draft: Draft, path: string): string {
   const [root, id, field, key] = path.split(".");
   if (root === "game") return HEADER_LABELS[id ?? ""] ?? id ?? path;
@@ -69,12 +71,25 @@ export function fieldLabel(draft: Draft, path: string): string {
     if (field === "teamAbbr") return `${who} · Team`;
     return who;
   }
+  if (isRowDraft(draft)) {
+    const { spec } = rowTarget(draft.target);
+    if (root === "meta") return spec.meta.find((f) => f.key === id)?.label ?? id ?? path;
+    const row = draft.rows.find((r) => r.id === id);
+    const who = row?.name ?? row?.teamAbbr ?? "Row";
+    if (field === "values" && key)
+      return `${who} · ${spec.fields(draft).find((f) => f.key === key)?.label ?? statLabel(key)}`;
+    if (field === "teamAbbr") return `${who} · Team`;
+    return who;
+  }
   if (root === "teams" && draft.target === "team_game_stats") {
     const team = draft.teams[Number(id)]?.teamAbbr ?? `Team ${Number(id) + 1}`;
     return key ? `${team} · ${statLabel(key)}` : team;
   }
   return path;
 }
+
+/** The confidence below which a field is called out in this draft. */
+export const checkBelow = (draft: Draft) => (isRowDraft(draft) ? ROW_CHECK_BELOW : CHECK_BELOW);
 
 export type AttentionItem = {
   path: string;
@@ -83,8 +98,6 @@ export type AttentionItem = {
   warning: DraftWarning | null;
 };
 
-/** Fields below this are listed for a look before commit. */
-export const CHECK_BELOW = 0.8;
 const SEVERITY_RANK = { error: 0, warning: 1, info: 2 } as const;
 
 /**
@@ -98,7 +111,7 @@ export function attentionItems(
 ): AttentionItem[] {
   const byPath = new Map<string, AttentionItem>();
   for (const c of confidence) {
-    if (c.value >= CHECK_BELOW || getAt(draft, c.path) === undefined) continue;
+    if (c.value >= checkBelow(draft) || getAt(draft, c.path) === undefined) continue;
     byPath.set(c.path, {
       path: c.path,
       label: fieldLabel(draft, c.path),

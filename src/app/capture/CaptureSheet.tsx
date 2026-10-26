@@ -4,7 +4,7 @@ import { Camera, ImagePlus, LoaderCircle, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { nextWeek } from "@shared/games/summary";
+import { INGESTION_TARGETS, suggestedWeek } from "@shared/ingestion/targets";
 import { CaptureFields, captureReady, type CaptureFieldsValue } from "@/components/forms/CaptureFields";
 import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { Button } from "@/components/ui/button";
@@ -63,28 +63,26 @@ function CaptureForm({
   const camera = useRef<HTMLInputElement>(null);
   const library = useRef<HTMLInputElement>(null);
 
-  // Default the week to the one after the latest result in the chosen season.
+  // Default the week from the schedule: the next game for a game screen, the week just played for a weekly one.
   const schedule = useQuery(
     api.games.schedule.bySeason,
     fields.seasonId ? { seasonId: fields.seasonId } : "skip",
   );
-  const suggestedWeek = useMemo(
+  const games = useMemo(
     () =>
-      schedule
-        ? nextWeek(
-            schedule.games.map((g) => ({
-              weekKey: g.weekKey,
-              status: g.status,
-              // Rows are from the user's side already: "home" here is just "us".
-              userIsHome: true,
-              homeScore: g.us ?? undefined,
-              awayScore: g.them ?? undefined,
-            })),
-          )
-        : null,
+      (schedule?.games ?? []).map((g) => ({
+        weekKey: g.weekKey,
+        status: g.status,
+        // Rows are from the user's side already: "home" here is just "us".
+        userIsHome: true,
+        homeScore: g.us ?? undefined,
+        awayScore: g.them ?? undefined,
+      })),
     [schedule],
   );
-  const context = { ...fields, weekKey: fields.weekKey ?? suggestedWeek };
+  const suggested = schedule && fields.targetKey ? suggestedWeek(fields.targetKey, games) : null;
+  const seasonScreen = fields.targetKey !== null && INGESTION_TARGETS[fields.targetKey].scope === "season";
+  const context = { ...fields, weekKey: seasonScreen ? null : (fields.weekKey ?? suggested) };
 
   const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
   useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);

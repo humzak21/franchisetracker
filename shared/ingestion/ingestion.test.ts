@@ -5,7 +5,7 @@ import { matchPlayer, nameScore, nameTokens, type NameCandidate } from "./nameMa
 import { normalizeBoxScore, normalizeTeamStats } from "./normalize";
 import { boxScoreSchema, teamStatsSchema, type JsonSchema } from "./schema";
 import { buildPrompt } from "./prompt";
-import { INGESTION_TARGETS, TARGET_KEYS, validateDraft } from "./targets";
+import { INGESTION_TARGETS, TARGET_KEYS, normalizeFor, schemaFor, validateDraft } from "./targets";
 import { blocksCommit, validateBoxScore } from "./validate";
 
 const row = (extra: Record<string, unknown>) => ({
@@ -81,9 +81,9 @@ describe("schemas", () => {
   });
   test("every target declares a schema, normalizer and validator", () => {
     for (const key of TARGET_KEYS) {
-      const def = INGESTION_TARGETS[key];
-      expect(def.schema().type).toBe("object");
-      expect(def.normalize({}).draft.target).toBe(key);
+      expect(schemaFor(key).type).toBe("object");
+      expect(normalizeFor(key, {}).draft.target).toBe(key);
+      expect(INGESTION_TARGETS[key].scope).toMatch(/game|week|season/);
     }
   });
 });

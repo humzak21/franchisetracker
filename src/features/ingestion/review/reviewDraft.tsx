@@ -13,9 +13,8 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { validateDraft } from "@shared/ingestion/targets";
 import type { Draft, DraftWarning, FieldConfidence } from "@shared/ingestion/types";
-import { setAt } from "./draftEdit";
+import { checkBelow, setAt } from "./draftEdit";
 import type { FieldFlag } from "./NumberField";
-import { CHECK_BELOW } from "./draftEdit";
 
 export type ReviewDraft = Draft<Id<"players">>;
 
@@ -83,9 +82,9 @@ export function ReviewDraftProvider({
       if (severities.includes("error")) return "error";
       if (severities.includes("warning")) return "warning";
       const c = confidence.find((entry) => entry.path === path);
-      return c && c.value < CHECK_BELOW ? "doubt" : null;
+      return c && c.value < checkBelow(draft) ? "doubt" : null;
     },
-    [warnings, confidence],
+    [warnings, confidence, draft],
   );
 
   const value = useMemo(

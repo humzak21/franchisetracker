@@ -67,7 +67,8 @@ describe("ingestion", () => {
     maye.stats.passYds = 290;
     const diggs = draft.lines.find((l) => l.name === "S. Diggs")!;
     diggs.stats.recYds = 137;
-    const { gameId } = await owner.mutation(api.ingestion.review.commit, { setKey, draft });
+    const committed = await owner.mutation(api.ingestion.review.commit, { setKey, draft });
+    const gameId = committed.gameId!;
 
     const game = await t.run((ctx) => ctx.db.get("games", gameId));
     expect(game).toMatchObject({
@@ -233,13 +234,26 @@ describe("ingestion", () => {
 });
 
 describe("shortcut endpoint", () => {
-  const form = (target?: string) => {
+  const form = (target?: string, week: string | null = "w1") => {
     const body = new FormData();
     body.append("image", new Blob([new Uint8Array(32)], { type: "image/jpeg" }), "box.jpg");
     if (target) body.append("target", target);
-    body.append("week", "w1");
+    if (week) body.append("week", week);
     return body;
   };
+
+  test("infers the week from the target when the Shortcut sends none", async () => {
+    const { t, owner } = await setup();
+    const token = await owner.action(api.ingestion.tokens.create, { label: "iPhone" });
+    const headers = { Authorization: `Bearer ${token}` };
+    for (const target of ["game_box_score", "weekly_awards", "standings"]) {
+      await t.fetch("/shortcut/upload", { method: "POST", headers, body: form(target, null) });
+    }
+    const sets = await owner.query(api.ingestion.inbox.list, {});
+    const week = (target: string) => sets.find((s) => s.targetKey === target)?.weekKey ?? null;
+    // The sample season's latest result is week 6.
+    expect([week("game_box_score"), week("weekly_awards"), week("standings")]).toEqual(["w7", "w6", null]);
+  });
 
   test("refuses a missing or revoked token and accepts a valid one", async () => {
     const { t, owner } = await setup();
@@ -248,13 +262,15 @@ describe("shortcut endpoint", () => {
     const headers = { Authorization: `Bearer ${token}` };
 
     const menu = await t.fetch("/shortcut/targets", { headers });
-    expect(await menu.json()).toMatchObject({
+    const body = (await menu.json()) as { targetLabels: string[] };
+    expect(body).toMatchObject({
       season: SAMPLE_START_YEAR,
       suggestedWeek: "Week 7",
-      targetLabels: ["Box score", "Team game stats"],
-      targetByLabel: { "Box score": "game_box_score" },
+      targetByLabel: { "Box score": "game_box_score", Standings: "standings" },
       weekByLabel: { "Week 1": "w1" },
+      asksWeekByLabel: { "Box score": true, "Weekly awards": true, Standings: false },
     });
+    expect(body.targetLabels.slice(0, 2)).toEqual(["Box score", "Team game stats"]);
     const bad = await t.fetch("/shortcut/upload", { method: "POST", headers, body: form("nonsense") });
     expect(bad.status).toBe(400);
     const ok = await t.fetch("/shortcut/upload", { method: "POST", headers, body: form() });

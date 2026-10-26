@@ -1,6 +1,5 @@
 import { WEEK_KEYS, weekLabel, type WeekKey } from "@shared/domain";
-import { INGESTION_TARGETS, TARGET_KEYS, type TargetKey } from "@shared/ingestion/targets";
-import { Segmented } from "@/components/ui/segmented";
+import { INGESTION_TARGETS, SCOPE_LABELS, TARGET_KEYS, type TargetKey } from "@shared/ingestion/targets";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/cn";
 
@@ -21,10 +20,18 @@ type CaptureFieldsProps<S extends string> = {
   className?: string;
 };
 
+const SCOPE_ORDER = ["game", "week", "season"] as const;
 const labelClass = "text-[11px] font-semibold tracking-[0.08em] text-subtle-foreground uppercase";
 const UNTAGGED = "later";
 
-/** What a set of screenshots is and where it goes: target, season and week. Inbox, capture sheet and tag sheet. */
+/** Season screens (standings, leaders) are filed under the season alone. */
+const needsWeek = (target: TargetKey | null) =>
+  target === null || INGESTION_TARGETS[target].scope !== "season";
+
+/**
+ * What a set of screenshots is and where it goes: target, season and, unless it is a season
+ * screen, week. Inbox, capture sheet and tag sheet. Targets are grouped by what they cover.
+ */
 export function CaptureFields<S extends string>({
   seasons,
   value,
@@ -34,21 +41,30 @@ export function CaptureFields<S extends string>({
   className,
 }: CaptureFieldsProps<S>) {
   const targets = [
-    ...TARGET_KEYS.map((key) => ({ value: key as string, label: INGESTION_TARGETS[key].label })),
+    ...[...TARGET_KEYS]
+      .sort(
+        (a, b) =>
+          SCOPE_ORDER.indexOf(INGESTION_TARGETS[a].scope) - SCOPE_ORDER.indexOf(INGESTION_TARGETS[b].scope),
+      )
+      .map((key) => ({
+        value: key as string,
+        label: INGESTION_TARGETS[key].label,
+        group: SCOPE_LABELS[INGESTION_TARGETS[key].scope],
+      })),
     ...(allowUntagged ? [{ value: UNTAGGED, label: "Tag later" }] : []),
   ];
+  const week = needsWeek(value.targetKey);
   return (
     <div className={cn("space-y-4", className)}>
       <div className="space-y-1.5">
         <span className={labelClass}>Screen</span>
-        <Segmented
-          className="flex w-full"
+        <Select
+          aria-label="Screen"
           value={value.targetKey ?? UNTAGGED}
-          onChange={(next) =>
+          onValueChange={(next) =>
             onChange({ ...value, targetKey: next === UNTAGGED ? null : (next as TargetKey) })
           }
           options={targets}
-          aria-label="Screen"
         />
         <p className="text-xs text-muted-foreground">
           {value.targetKey
@@ -61,7 +77,7 @@ export function CaptureFields<S extends string>({
           <span className={labelClass}>Game</span> <span className="ml-2 font-medium">{game}</span>
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
+        <div className={cn("grid gap-3", week ? "grid-cols-2" : "grid-cols-1")}>
           <label className="space-y-1.5">
             <span className={labelClass}>Season</span>
             <Select
@@ -72,25 +88,27 @@ export function CaptureFields<S extends string>({
               options={seasons.map((s) => ({ value: s._id, label: String(s.year) }))}
             />
           </label>
-          <label className="space-y-1.5">
-            <span className={labelClass}>Week</span>
-            <Select
-              aria-label="Week"
-              value={value.weekKey ?? ""}
-              placeholder="Week"
-              onValueChange={(week) => onChange({ ...value, weekKey: week as WeekKey })}
-              options={WEEK_KEYS.map((key) => ({ value: key, label: weekLabel(key, "long") }))}
-            />
-          </label>
+          {week && (
+            <label className="space-y-1.5">
+              <span className={labelClass}>Week</span>
+              <Select
+                aria-label="Week"
+                value={value.weekKey ?? ""}
+                placeholder="Week"
+                onValueChange={(week) => onChange({ ...value, weekKey: week as WeekKey })}
+                options={WEEK_KEYS.map((key) => ({ value: key, label: weekLabel(key, "long") }))}
+              />
+            </label>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-/** True when the fields say enough to extract: a target and a game, or a season and week. */
+/** True when the fields say enough to extract: a target, and a game or a season (and week, unless a season screen). */
 export function captureReady<S extends string>(value: CaptureFieldsValue<S>, game?: string): boolean {
-  return (
-    value.targetKey !== null && (game !== undefined || (value.seasonId !== null && value.weekKey !== null))
-  );
+  if (value.targetKey === null) return false;
+  if (game !== undefined) return true;
+  return value.seasonId !== null && (value.weekKey !== null || !needsWeek(value.targetKey));
 }

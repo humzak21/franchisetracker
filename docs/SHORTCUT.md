@@ -9,8 +9,8 @@ you create in Settings. Tokens are stored hashed and can be revoked at any time.
 
 | Endpoint | Method | What it does |
 |---|---|---|
-| `<site>/shortcut/targets` | GET | The menu: `targetLabels`, `targetByLabel`, `weekLabels`, `weekByLabel`, `season`, `suggestedWeek` |
-| `<site>/shortcut/upload` | POST | Multipart form: one or more `image` files, plus `target`, `week`, optional `season` (year) |
+| `<site>/shortcut/targets` | GET | The menu: `targetLabels`, `targetByLabel`, `asksWeekByLabel`, `weekLabels`, `weekByLabel`, `season`, `suggestedWeek` |
+| `<site>/shortcut/upload` | POST | Multipart form: one or more `image` files, plus `target`, optional `week` and `season` (year) |
 
 `<site>` is the deployment's site URL (`https://<deployment>.convex.site`). Settings shows the full
 upload URL under **Apple Shortcut → Endpoint**; the targets URL is the same with `/targets` in place
@@ -38,7 +38,10 @@ actions in order. Text in `code` is typed exactly; `[Token]` is the token from s
    with key = `Chosen Item` from step 4. Rename the result to `Target`.
 6. **Get Dictionary Value** → `weekLabels` in `Menu`, then **Choose from List**, prompt `Which week?`.
    (`suggestedWeek` in `Menu` is the week after your latest result if you want to show it in the
-   prompt.)
+   prompt.) Season screens (standings, leaders, season stats, the draft) have no week: wrap steps 6
+   and 7 in **If** `asksWeekByLabel` → `Chosen Item` from step 4 is true. Or skip the week
+   altogether: the endpoint infers it (the next game for a box score, the week just played for
+   weekly awards and the injury report).
 7. **Get Dictionary Value** → `weekByLabel` in `Menu`, then **Get Dictionary Value** with key =
    `Chosen Item` from step 6. Rename the result to `Week`.
 8. **Get Contents of URL** → `<site>/shortcut/upload`
@@ -50,7 +53,12 @@ actions in order. Text in `code` is typed exactly; `[Token]` is the token from s
 9. **Show Notification** → `Sent to FranchiseTracker` (the response is `{ "ok": true, "images": N }`).
 
 A box score spread across several screens is sent in one go: select all of them in Photos, then
-share. They are grouped into one set and read together.
+share. They are grouped into one set and read together. The same goes for a list that needs
+several screenshots (standings, leaders, a roster, the draft): they are read one by one and merged
+into one list, so send the whole batch at once.
+
+The menu is generated from the target registry, so a new screen type appears in it without
+touching the Shortcut.
 
 To skip the menus, leave out steps 3 to 7 and the `target`/`week` fields: the screenshots arrive
 untagged and wait in the inbox for you to tag them.

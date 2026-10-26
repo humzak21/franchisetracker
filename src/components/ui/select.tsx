@@ -2,7 +2,8 @@ import { ChevronDown } from "lucide-react";
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
-export type SelectOption = { value: string; label: string };
+/** `group` puts consecutive options under a heading (the phone's picker shows it too). */
+export type SelectOption = { value: string; label: string; group?: string };
 
 type SelectProps = Omit<ComponentProps<"select">, "onChange"> & {
   options: readonly SelectOption[];
@@ -10,6 +11,16 @@ type SelectProps = Omit<ComponentProps<"select">, "onChange"> & {
   /** Shown as an unselectable first option while nothing is chosen. */
   placeholder?: string;
 };
+
+function groupRuns(options: readonly SelectOption[]) {
+  const runs: { group: string | undefined; items: SelectOption[] }[] = [];
+  for (const option of options) {
+    const last = runs.at(-1);
+    if (last && last.group === option.group) last.items.push(option);
+    else runs.push({ group: option.group, items: [option] });
+  }
+  return runs;
+}
 
 /**
  * A native select styled like `Input`. Native on purpose: phones open their own wheel or sheet,
@@ -29,11 +40,20 @@ export function Select({ options, onValueChange, placeholder, className, value, 
             {placeholder}
           </option>
         )}
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
+        {groupRuns(options).map(({ group, items }, i) => {
+          const list = items.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ));
+          return group ? (
+            <optgroup key={`${group}-${i}`} label={group}>
+              {list}
+            </optgroup>
+          ) : (
+            list
+          );
+        })}
       </select>
       <ChevronDown
         aria-hidden

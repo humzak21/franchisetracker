@@ -6,3 +6,5 @@ export * from "./schema";
 export * from "./targets";
 export * from "./types";
 export * from "./validate";
+export * from "./rows/engine";
+export * from "./rows/types";

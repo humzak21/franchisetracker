@@ -34,7 +34,8 @@ export function TagSheet({ setKeys, images, defaults, open, onOpenChange, onDone
     setKeys.length > 1 && fields.targetKey !== null && INGESTION_TARGETS[fields.targetKey].multiImage;
 
   const submit = async () => {
-    if (!fields.targetKey || !fields.seasonId || !fields.weekKey) return;
+    if (!fields.targetKey || !fields.seasonId || !captureReady(fields)) return;
+    const seasonScreen = INGESTION_TARGETS[fields.targetKey].scope === "season";
     setError(null);
     try {
       await tag({
@@ -42,7 +43,7 @@ export function TagSheet({ setKeys, images, defaults, open, onOpenChange, onDone
         merge,
         targetKey: fields.targetKey,
         seasonId: fields.seasonId,
-        weekKey: fields.weekKey,
+        weekKey: seasonScreen ? undefined : (fields.weekKey ?? undefined),
       });
       onDone();
     } catch (err) {
@@ -55,7 +56,13 @@ export function TagSheet({ setKeys, images, defaults, open, onOpenChange, onDone
       open={open}
       onOpenChange={onOpenChange}
       title={`Tag ${images} screenshot${images === 1 ? "" : "s"}`}
-      description={merge ? "They will be read together as one game." : undefined}
+      description={
+        merge
+          ? fields.targetKey && INGESTION_TARGETS[fields.targetKey].kind === "rows"
+            ? "They will be read one by one and merged into one list."
+            : "They will be read together as one game."
+          : undefined
+      }
       footer={
         <Button
           variant="primary"

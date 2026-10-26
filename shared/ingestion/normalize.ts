@@ -20,19 +20,26 @@ import type {
 
 export type Normalized<D> = { draft: D; confidence: FieldConfidence[]; warnings: DraftWarning[] };
 
-type Obj = Record<string, unknown>;
-const isObj = (value: unknown): value is Obj =>
+export type Obj = Record<string, unknown>;
+export const isObj = (value: unknown): value is Obj =>
   typeof value === "object" && value !== null && !Array.isArray(value);
-const num = (value: unknown): number | null =>
+export const num = (value: unknown): number | null =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
-const str = (value: unknown): string | null =>
+export const str = (value: unknown): string | null =>
   typeof value === "string" && value.trim() !== "" ? value.trim() : null;
 const numList = (value: unknown): number[] =>
   Array.isArray(value) ? value.map(num).filter((n): n is number => n !== null) : [];
-const rows = (value: unknown): Obj[] => (Array.isArray(value) ? value.filter(isObj) : []);
-const clamp01 = (value: number | null) => (value === null ? 0.5 : Math.min(1, Math.max(0, value)));
+export const rows = (value: unknown): Obj[] => (Array.isArray(value) ? value.filter(isObj) : []);
+export const clamp01 = (value: number | null) => (value === null ? 0.5 : Math.min(1, Math.max(0, value)));
 /** Fields the model flagged as unclear are reviewed before anything it was sure of. */
-const UNCLEAR_CONFIDENCE = 0.35;
+export const UNCLEAR_CONFIDENCE = 0.35;
+/** Fields below this confidence are listed for a look before commit; rows below it start unaccepted. */
+export const CHECK_BELOW = 0.8;
+/**
+ * In a list, a doubtful row already starts unaccepted, so only the fields the model called
+ * unclear are singled out within it.
+ */
+export const ROW_CHECK_BELOW = 0.5;
 
 function header(raw: Obj, warnings: DraftWarning[]): GameHeader {
   const team = (field: "home_team" | "away_team", path: string) => {
@@ -53,7 +60,12 @@ function header(raw: Obj, warnings: DraftWarning[]): GameHeader {
   };
 }
 
-function rowConfidence(row: Obj, prefix: string, fields: Record<string, string>, out: FieldConfidence[]) {
+export function rowConfidence(
+  row: Obj,
+  prefix: string,
+  fields: Record<string, string>,
+  out: FieldConfidence[],
+) {
   const base = clamp01(num(row.confidence));
   const unclear = new Set(
     Array.isArray(row.unclear_fields) ? row.unclear_fields.filter((f) => typeof f === "string") : [],

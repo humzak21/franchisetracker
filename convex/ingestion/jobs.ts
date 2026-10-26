@@ -1,6 +1,6 @@
 /** Data access for the extraction action, which has no `ctx.db` of its own. */
 import { v } from "convex/values";
-import { isTargetKey } from "../../shared/ingestion/targets";
+import { INGESTION_TARGETS, isTargetKey } from "../../shared/ingestion/targets";
 import { weekLabel } from "../../shared/domain";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx } from "../_generated/server";
@@ -58,7 +58,9 @@ export const load = internalQuery({
         : null;
     const opponent = game?.opponentTeamId ? teams.get(game.opponentTeamId) : undefined;
     const season = lead.seasonId ? await ctx.db.get("seasons", lead.seasonId) : null;
-    const weekKey = game?.weekKey ?? lead.weekKey;
+    // A season screen (standings, leaders) is not about any one week.
+    const weekKey =
+      INGESTION_TARGETS[lead.targetKey].scope === "season" ? undefined : (game?.weekKey ?? lead.weekKey);
     const userIsHome = game?.userIsHome ?? true;
 
     const corrections = await ctx.db
