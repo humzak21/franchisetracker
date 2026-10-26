@@ -6,7 +6,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { action, internalMutation, internalQuery } from "../_generated/server";
-import { requireOwner, requireSignedIn } from "../lib/auth";
+import { requireOwner, requireOwnerAction } from "../lib/auth";
 import { cacheHeadshots } from "../external/media";
 import { vEspnLeague } from "../lib/validators";
 import type { EspnLeague } from "../../shared/players/espnMatch";
@@ -75,7 +75,7 @@ export const ensure = action({
   args: { playerId: v.id("players") },
   returns: v.null(),
   handler: async (ctx, { playerId }) => {
-    await requireSignedIn(ctx);
+    await requireOwnerAction(ctx);
     const pending: { playerId: Id<"players">; espnId: number; league?: EspnLeague }[] = await ctx.runQuery(
       internal.players.headshots.pendingForPlayer,
       { playerId },

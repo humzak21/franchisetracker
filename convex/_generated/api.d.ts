@@ -82,6 +82,7 @@ import type * as lib_hof from "../lib/hof.js";
 import type * as lib_media from "../lib/media.js";
 import type * as lib_needs from "../lib/needs.js";
 import type * as lib_owner from "../lib/owner.js";
+import type * as lib_rateLimits from "../lib/rateLimits.js";
 import type * as lib_refs from "../lib/refs.js";
 import type * as lib_reports from "../lib/reports.js";
 import type * as lib_testOwner from "../lib/testOwner.js";
@@ -207,6 +208,7 @@ declare const fullApi: ApiFromModules<{
   "lib/media": typeof lib_media;
   "lib/needs": typeof lib_needs;
   "lib/owner": typeof lib_owner;
+  "lib/rateLimits": typeof lib_rateLimits;
   "lib/refs": typeof lib_refs;
   "lib/reports": typeof lib_reports;
   "lib/testOwner": typeof lib_testOwner;
@@ -278,4 +280,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+};

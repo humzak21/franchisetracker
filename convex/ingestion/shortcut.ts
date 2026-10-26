@@ -1,6 +1,7 @@
 /**
  * The Apple Shortcut endpoint (docs/SHORTCUT.md): the only unauthenticated surface besides
- * Convex Auth's own routes, guarded by a revocable bearer token instead of a session.
+ * Convex Auth's own routes, guarded by a revocable bearer token instead of a session and by
+ * rate limits (`guard`).
  *
  *   GET  /shortcut/targets   the menu: targets from the registry, week keys, the current season
  *   POST /shortcut/upload    multipart `image` files plus `target`, optional `week` and `season` (year);
@@ -14,6 +15,7 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { httpAction, internalQuery, type ActionCtx } from "../_generated/server";
 import { activeFranchise } from "../lib/franchise";
+import { rateLimiter } from "../lib/rateLimits";
 import { vWeekKey } from "../lib/validators";
 import { MAX_SET_SIZE } from "./sets";
 import { sha256Hex } from "./tokens";
@@ -27,6 +29,27 @@ async function authorized(ctx: ActionCtx, request: Request): Promise<boolean> {
   const token = /^Bearer\s+(\S+)$/i.exec(request.headers.get("Authorization") ?? "")?.[1];
   if (!token) return false;
   return await ctx.runMutation(internal.ingestion.tokens.verify, { tokenHash: await sha256Hex(token) });
+}
+
+const tooMany = (retryAfter: number) =>
+  new Response(JSON.stringify({ error: "Too many requests; try again shortly" }), {
+    status: 429,
+    headers: { "Content-Type": "application/json", "Retry-After": String(Math.ceil(retryAfter / 1000)) },
+  });
+
+/**
+ * The endpoint's gate: a valid token, within the rate limits. Valid tokens draw from a bucket
+ * sized for real captures, which caps what a leaked token can store or spend on extraction.
+ * Bad tokens are throttled on their own bucket, so junk requests never lock out the owner.
+ * Returns the response to send instead, or null to go ahead.
+ */
+async function guard(ctx: ActionCtx, request: Request): Promise<Response | null> {
+  if (!(await authorized(ctx, request))) {
+    const throttled = await rateLimiter.limit(ctx, "shortcutBadTokens");
+    return throttled.ok ? json({ error: "Invalid or revoked token" }, 401) : tooMany(throttled.retryAfter);
+  }
+  const allowed = await rateLimiter.limit(ctx, "shortcutRequests");
+  return allowed.ok ? null : tooMany(allowed.retryAfter);
 }
 
 /**
@@ -61,7 +84,8 @@ export const season = internalQuery({
 });
 
 export const targets = httpAction(async (ctx, request) => {
-  if (!(await authorized(ctx, request))) return json({ error: "Invalid or revoked token" }, 401);
+  const refused = await guard(ctx, request);
+  if (refused) return refused;
   const current = await ctx.runQuery(internal.ingestion.shortcut.season, {});
   // Shortcuts' "Choose from List" shows a list of strings; the dictionaries map a label back to its key.
   const targetLabels = TARGET_KEYS.map((key) => INGESTION_TARGETS[key].label);
@@ -81,7 +105,8 @@ export const targets = httpAction(async (ctx, request) => {
 });
 
 export const upload = httpAction(async (ctx, request) => {
-  if (!(await authorized(ctx, request))) return json({ error: "Invalid or revoked token" }, 401);
+  const refused = await guard(ctx, request);
+  if (refused) return refused;
   let form: FormData;
   try {
     form = await request.formData();
