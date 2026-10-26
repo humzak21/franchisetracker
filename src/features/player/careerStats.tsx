@@ -11,6 +11,7 @@ import {
   statValue,
   type StatKey,
   type StatLine,
+  type ThresholdOverrides,
 } from "@shared/stats";
 import { statColumn, type DataColumn } from "@/components/data/DataTable";
 import { StatCell } from "@/components/data/StatCell";
@@ -18,10 +19,13 @@ import type { PlayerPage } from "./types";
 
 export type CareerRow = { id: string; year: number | null; teamAbbr: string; games: number; line: StatLine };
 
-/** One row per season (log-derived totals win over imported ones), regular season only. */
-export function careerRows(seasons: PlayerPage["seasons"]): CareerRow[] {
+/** One row per season (log-derived totals win over imported ones) for the regular season or playoffs. */
+export function careerRows(
+  seasons: PlayerPage["seasons"],
+  split: "regular" | "postseason" = "regular",
+): CareerRow[] {
   const regular = seasons
-    .filter((s) => s.stats.split === "regular")
+    .filter((s) => s.stats.split === split)
     .map((s) => ({ ...s, teamKey: s.team._id, source: s.stats.source }));
   return preferLogs(regular).map((s) => ({
     id: `${s.year}-${s.team.abbr}`,
@@ -75,7 +79,10 @@ export function phonePrimary(position: Position, stats: readonly StatKey[]): str
 }
 
 /** Season label column plus one registry column per stat. Season rows get elite highlights; totals don't. */
-export function careerColumns(stats: readonly StatKey[]): DataColumn<CareerRow>[] {
+export function careerColumns(
+  stats: readonly StatKey[],
+  thresholds?: ThresholdOverrides,
+): DataColumn<CareerRow>[] {
   const season: DataColumn<CareerRow> = {
     id: "season",
     header: "Season",
@@ -101,7 +108,9 @@ export function careerColumns(stats: readonly StatKey[]): DataColumn<CareerRow>[
     const value = (r: CareerRow) => statValue(key, r.line, { games: r.games });
     return {
       ...statColumn<CareerRow>(key, value, { group: STAT_CATEGORY_LABELS[STAT_REGISTRY[key].category] }),
-      cell: (r: CareerRow) => <StatCell stat={key} value={value(r)} highlight={r.year !== null} />,
+      cell: (r: CareerRow) => (
+        <StatCell stat={key} value={value(r)} highlight={r.year !== null} thresholds={thresholds} />
+      ),
     };
   });
   return [season, games, ...statCols];

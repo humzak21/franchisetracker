@@ -84,6 +84,15 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 **Done when:** season stats derived from committed games match a hand check, a committed game moves the records and leaders, highlights render in both themes, and every stats screen is readable at phone width without losing a column.
 
+**As built:**
+
+- Pure engines in `shared/stats` (`records.ts`, `streaks.ts`, `milestones.ts`, `groups.ts`), unit tested. Records and leaders are one ranking: the `records` row holds the holder, the previous holder and the top ten, per split and scope, so the records book and the leaders board are each one indexed read.
+- Everything counts the user team's log-derived season rows only; imported real history (Sprint 4) never mixes in. Single-game rankings take each player-season's best game, so a player's second-best game in a season is not on the single-game top ten (the record itself is exact).
+- After every commit a scheduled mutation (`stats/refresh:afterGame`) rebuilds the records book (writing only changed rows), refreshes team and affected players' streaks, and syncs that game's milestones by stable key: recommitting never duplicates one, and an acknowledged milestone stays acknowledged.
+- A record "falls" only to a bigger number; a correction that lowers the holder's value rewrites the record without a milestone. Win streak milestones fire at 3, 5, 8, 10, 13 and 16.
+- Milestones: threshold games (except 5-catch games, which are box-score highlights only), career highs once a player has three earlier games, first season past a tier-1 threshold, franchise records and win streaks. The feed is on Home ahead of the full dashboard in Sprint 8.
+- The sample franchise is now built from box scores (`convex/dev/fixtureLines.ts`) rather than imported season totals, so every sample number goes through the same derivation as a real game.
+
 ---
 
 ## Sprint 4 — Real NFL history, players and faces (L)

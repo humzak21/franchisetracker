@@ -13,6 +13,8 @@ export type StatGroup = {
   categories: readonly StatCategory[];
   /** Kept in the phone table; everything else goes in the tap-to-expand card. */
   phone: readonly StatKey[];
+  /** The stat the table sorts by first. */
+  lead: StatKey;
 };
 
 export const STAT_GROUPS: readonly StatGroup[] = [
@@ -22,6 +24,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     positions: ["QB"],
     categories: ["passing", "rushing"],
     phone: ["passCmp", "passAtt", "passYds", "passTd", "passInt", "passRating"],
+    lead: "passYds",
   },
   {
     id: "rb",
@@ -29,6 +32,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     positions: ["RB"],
     categories: ["rushing", "receiving"],
     phone: ["rushAtt", "rushYds", "rushTd", "rushAvg"],
+    lead: "rushYds",
   },
   {
     id: "wrte",
@@ -36,6 +40,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     positions: ["WR", "TE"],
     categories: ["receiving", "rushing"],
     phone: ["rec", "recYds", "recTd", "recAvg"],
+    lead: "recYds",
   },
   {
     id: "dl",
@@ -43,6 +48,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     positions: ["DL"],
     categories: ["defense"],
     phone: ["tackles", "sacks", "tacklesForLoss"],
+    lead: "sacks",
   },
   {
     id: "lb",
@@ -50,6 +56,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     positions: ["LB"],
     categories: ["defense"],
     phone: ["tackles", "sacks", "defInt"],
+    lead: "tackles",
   },
   {
     id: "db",
@@ -57,15 +64,31 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     positions: ["DB"],
     categories: ["defense"],
     phone: ["tackles", "defInt", "passDeflections"],
+    lead: "defInt",
   },
-  { id: "k", label: "K", positions: ["K"], categories: ["kicking"], phone: ["fgm", "fga", "fgPct", "xpm"] },
-  { id: "p", label: "P", positions: ["P"], categories: ["punting"], phone: ["punts", "puntAvg", "puntIn20"] },
+  {
+    id: "k",
+    label: "K",
+    positions: ["K"],
+    categories: ["kicking"],
+    phone: ["fgm", "fga", "fgPct", "xpm"],
+    lead: "fgm",
+  },
+  {
+    id: "p",
+    label: "P",
+    positions: ["P"],
+    categories: ["punting"],
+    phone: ["punts", "puntAvg", "puntIn20"],
+    lead: "puntYds",
+  },
   {
     id: "returns",
     label: "Returns",
     positions: null,
     categories: ["returns"],
     phone: ["kickReturnYds", "puntReturnYds", "kickReturnTd"],
+    lead: "kickReturnYds",
   },
 ];
 

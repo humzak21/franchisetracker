@@ -51,7 +51,7 @@ const label = (key: RawStatKey) => RAW_STATS[key].label.toLowerCase();
 
 export function detectMilestones(game: PlayerGame): DetectedMilestone[] {
   const out: DetectedMilestone[] = [];
-  for (const t of gameHighlights(game.line)) {
+  for (const t of gameHighlights(game.line).filter((t) => !("minor" in t))) {
     const value = statValue(t.stat, game.line) ?? t.min;
     out.push({
       key: `game:${t.key}`,

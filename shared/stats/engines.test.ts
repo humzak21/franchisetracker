@@ -4,9 +4,27 @@ import { rankStat, RECORD_STATS, type SeasonRow } from "./records";
 import { playerStreaks, runs, teamStreaks } from "./streaks";
 
 const rows: SeasonRow[] = [
-  { playerId: "a", seasonId: "s1", year: 2026, totals: { rushYds: 900, rushLong: 60 }, bests: { rushYds: 180 } },
-  { playerId: "a", seasonId: "s2", year: 2027, totals: { rushYds: 1200, rushLong: 45 }, bests: { rushYds: 150 } },
-  { playerId: "b", seasonId: "s2", year: 2027, totals: { rushYds: 1200, rushLong: 70 }, bests: { rushYds: 180 } },
+  {
+    playerId: "a",
+    seasonId: "s1",
+    year: 2026,
+    totals: { rushYds: 900, rushLong: 60 },
+    bests: { rushYds: 180 },
+  },
+  {
+    playerId: "a",
+    seasonId: "s2",
+    year: 2027,
+    totals: { rushYds: 1200, rushLong: 45 },
+    bests: { rushYds: 150 },
+  },
+  {
+    playerId: "b",
+    seasonId: "s2",
+    year: 2027,
+    totals: { rushYds: 1200, rushLong: 70 },
+    bests: { rushYds: 180 },
+  },
 ];
 
 describe("rankStat", () => {

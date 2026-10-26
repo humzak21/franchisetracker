@@ -10,6 +10,8 @@ import { TeamLogo } from "@/components/team/TeamLogo";
 import { Button } from "@/components/ui/button";
 import { Badge, Skeleton } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
+import { MilestoneFeed } from "./MilestoneFeed";
+import { TeamStreaks } from "./TeamStreaks";
 
 function Hero({ active }: { active: ActiveFranchise }) {
   const { franchise, userTeam, seasons } = active;
@@ -100,6 +102,12 @@ export function HomeScreen() {
       {active && (
         <div className="@container space-y-8">
           <Hero active={active} />
+          <Section title="Milestones">
+            <MilestoneFeed />
+          </Section>
+          <Section title="Streaks">
+            <TeamStreaks />
+          </Section>
           <Section
             title="Seasons"
             description="One per season played; the next is added when you advance (Sprint 5)."
@@ -116,7 +124,7 @@ export function HomeScreen() {
               <EmptyState
                 icon={Camera}
                 title="Log a game from a photo"
-                description="Box score screenshots, reviewed then committed. Sprint 2."
+                description="Snap the box score; review it in the inbox and commit."
                 action={
                   <Button asChild variant="primary" size="sm">
                     <Link to="/inbox">Open inbox</Link>
