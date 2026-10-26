@@ -8,7 +8,6 @@ test("history shows totals, the trophy room and decade grids", async ({ page }) 
     await expect(page.getByRole("heading", { name: title })).toBeVisible();
   }
   await expect(page.getByRole("heading", { name: "2020s" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "2030s" })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
 

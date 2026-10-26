@@ -10,7 +10,8 @@ const modules = import.meta.glob("/convex/**/*.ts");
 describe("history/trophies", () => {
   test("adds and removes real-history entries", async () => {
     const t = convexTest(schema, modules);
-    await t.mutation(internal.franchise.seed.seedInitial, {});
+    await t.mutation(internal.league.seed.seedTeams, {});
+    await t.mutation(internal.dev.fixtures.seedFixtures, {});
     const owner = await asOwner(t);
     const entryId = await owner.mutation(api.history.trophies.addEntry, {
       year: 2019,
@@ -18,7 +19,7 @@ describe("history/trophies", () => {
       note: " LIII ",
     });
     const overview = await owner.query(api.history.trophies.overview, {});
-    expect(overview.seasons).toHaveLength(10);
+    expect(overview.seasons.map((s) => s.year)).toEqual([2026, 2027]);
     expect(overview.entries).toMatchObject([{ year: 2019, kind: "superBowl", note: "LIII" }]);
     await owner.mutation(api.history.trophies.removeEntry, { entryId });
     expect((await owner.query(api.history.trophies.overview, {})).entries).toEqual([]);
@@ -26,7 +27,7 @@ describe("history/trophies", () => {
 
   test("rejects impossible years and signed-out writes", async () => {
     const t = convexTest(schema, modules);
-    await t.mutation(internal.franchise.seed.seedInitial, {});
+    await t.mutation(internal.league.seed.seedTeams, {});
     const owner = await asOwner(t);
     await expect(
       owner.mutation(api.history.trophies.addEntry, { year: 19, kind: "division" }),

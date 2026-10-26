@@ -15,7 +15,7 @@ afterEach(() => {
 describe("owner gate", () => {
   test("signed-out callers are refused", async () => {
     const t = convexTest(schema, modules);
-    await t.mutation(internal.franchise.seed.seedInitial, {});
+    await t.mutation(internal.league.seed.seedTeams, {});
     await expect(t.query(api.franchise.franchises.getActive, {})).rejects.toThrow(/Sign in required/);
     await expect(t.query(api.league.teams.list, {})).rejects.toThrow(/Sign in required/);
   });

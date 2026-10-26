@@ -33,14 +33,12 @@ export default defineConfig({
   ],
   webServer: [
     {
-      // Pushes functions to the local backend, turns on test sign-in, seeds the league and (only
-      // when 2025 is empty, as in CI) a small sample season, then keeps watching.
-      command:
-        "npm run local:setup && npx convex run franchise/seed:seedInitial && CONVEX_DEPLOYMENT=anonymous:anonymous-agent npx convex dev --run dev/fixtures:seedFixtures --tail-logs disable",
-      port: 3210,
-      wait: { stdout: /Finished running function/ },
+      // Local Convex backend with test sign-in, the teams and the sample franchise. Port 3299 opens
+      // only once all of that is done (see scripts/e2e-backend.mjs).
+      command: "node scripts/e2e-backend.mjs",
+      port: 3299,
       reuseExistingServer: !CI,
-      timeout: 180_000,
+      timeout: 240_000,
       stdout: "pipe",
     },
     {

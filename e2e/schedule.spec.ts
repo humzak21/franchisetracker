@@ -1,16 +1,14 @@
 import type { Page } from "@playwright/test";
-import { expect, expectNoHorizontalOverflow, isPhone, test } from "./fixtures";
+import { SAMPLE_YEAR, expect, expectNoHorizontalOverflow, isPhone, test } from "./fixtures";
 
-/** Picks 2025 explicitly: it holds the sample season in CI and the real one after an import. */
-async function openSchedule2025(page: Page) {
+/** The sample franchise's current season is the one with games. */
+async function openSchedule(page: Page) {
   await page.goto("/schedule");
-  await page.getByRole("button", { name: /change season/ }).click();
-  await page.getByRole("button", { name: /^2025/ }).click();
-  await expect(page.getByText("2025 season")).toBeVisible();
+  await expect(page.getByText(`${SAMPLE_YEAR} season`)).toBeVisible();
 }
 
 test("schedule lists weeks with results, a bye and a season summary", async ({ page }) => {
-  await openSchedule2025(page);
+  await openSchedule(page);
   await expect(page.getByRole("heading", { name: "Regular season" })).toBeVisible();
   await expect(page.getByText("Bye week").first()).toBeVisible();
   await expect(page.locator('a[href^="/games/"]').first()).toBeVisible();
@@ -22,7 +20,7 @@ test("schedule lists weeks with results, a bye and a season summary", async ({ p
 test("game detail shows the score bug, stars and saves notes", async ({ page }, info) => {
   // Each project edits a different game so parallel runs never overwrite each other's note.
   const gameIndex = ["desktop", "phone", "phone-large"].indexOf(info.project.name);
-  await openSchedule2025(page);
+  await openSchedule(page);
   await page.locator('a[href^="/games/"]').nth(Math.max(gameIndex, 0)).click();
   await expect(page).toHaveURL(/\/games\//);
   // The score bug renders a phone and a wide layout; only one is visible.
@@ -39,7 +37,7 @@ test("game detail shows the score bug, stars and saves notes", async ({ page }, 
   const openNotes = async () => {
     if (isPhone(info.project.name)) await page.getByRole("radio", { name: "Notes" }).click();
   };
-  // The e2e backend is the local dev deployment, which may hold the real import: restore the note.
+  // The e2e backend is the local dev deployment, which may hold your own data: restore the note.
   await openNotes();
   const notes = page.getByLabel("Game notes");
   const original = await notes.inputValue();
@@ -57,7 +55,7 @@ test("game detail shows the score bug, stars and saves notes", async ({ page }, 
 });
 
 test("next game navigation moves through the season", async ({ page }) => {
-  await openSchedule2025(page);
+  await openSchedule(page);
   await page.locator('a[href^="/games/"]').first().click();
   const first = page.url();
   await page.getByRole("button", { name: "Next game" }).click();

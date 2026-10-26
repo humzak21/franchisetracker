@@ -14,7 +14,7 @@ const KIND_OPTIONS = TROPHY_KINDS.map((kind) => ({
   label: TROPHY_LABELS[kind].title.split(" ")[0]!,
 }));
 
-/** Add or remove real-history titles (the Patriots' history before the franchise began). */
+/** Add or remove real-history titles (the team's history before the franchise began). */
 export function EditHistory({
   entries,
   beforeYear,

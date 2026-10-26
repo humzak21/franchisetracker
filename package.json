@@ -11,10 +11,10 @@
     "dev:frontend": "vite",
     "dev:backend": "convex dev",
     "local:setup": "CONVEX_AGENT_MODE=anonymous CONVEX_DEPLOYMENT=anonymous:anonymous-agent convex dev --once && node scripts/local-auth-env.mjs",
-    "use:local": "npm run local:setup && convex run franchise/seed:seedInitial",
+    "use:local": "npm run local:setup && convex run league/seed:seedTeams",
     "use:cloud": "CONVEX_DEPLOYMENT=dev:prestigious-iguana-83 convex dev --once",
     "auth:keys": "node scripts/auth-keys.mjs",
-    "seed": "convex run franchise/seed:seedInitial",
+    "seed": "convex run league/seed:seedTeams",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "deploy": "convex deploy --cmd \"npm run build\" --cmd-url-env-var-name VITE_CONVEX_URL",
@@ -27,7 +27,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "check": "npm run typecheck && npm run lint && npm run test",
-    "check:all": "npm run check && npm run test:e2e"
+    "check:all": "npm run check && npm run test:e2e",
+    "seed:sample": "convex run dev/fixtures:seedFixtures"
   },
   "dependencies": {
     "@convex-dev/auth": "^0.0.96",

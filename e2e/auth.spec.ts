@@ -1,4 +1,4 @@
-import { expect, expectNoHorizontalOverflow, signInAsTestOwner, test } from "./fixtures";
+import { SAMPLE_FRANCHISE, expect, expectNoHorizontalOverflow, signInAsTestOwner, test } from "./fixtures";
 
 test.describe("signed out", () => {
   test.use({ signedIn: false });
@@ -8,7 +8,7 @@ test.describe("signed out", () => {
       await page.goto(path);
       await expect(page.getByRole("button", { name: "Sign in with Vercel" })).toBeVisible();
       await expect(page.getByRole("navigation", { name: "Main" })).toHaveCount(0);
-      await expect(page.getByText("Patriots Dynasty")).toHaveCount(0);
+      await expect(page.getByText(SAMPLE_FRANCHISE)).toHaveCount(0);
     }
     await expectNoHorizontalOverflow(page);
   });

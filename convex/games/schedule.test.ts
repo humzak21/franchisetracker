@@ -2,6 +2,7 @@
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api, internal } from "../_generated/api";
+import { SAMPLE_START_YEAR } from "../dev/fixtures";
 import { asOwner } from "../lib/testOwner";
 import schema from "../schema";
 
@@ -9,12 +10,12 @@ const modules = import.meta.glob("/convex/**/*.ts");
 
 async function setup() {
   const t = convexTest(schema, modules);
-  await t.mutation(internal.franchise.seed.seedInitial, {});
+  await t.mutation(internal.league.seed.seedTeams, {});
   await t.mutation(internal.dev.fixtures.seedFixtures, {});
   const owner = await asOwner(t);
   const active = (await owner.query(api.franchise.franchises.getActive, {}))!;
-  const season2025 = active.seasons.find((s) => s.year === 2025)!;
-  return { t, owner, seasonId: season2025._id };
+  const sampleSeason = active.seasons.find((s) => s.year === SAMPLE_START_YEAR)!;
+  return { t, owner, seasonId: sampleSeason._id };
 }
 
 describe("games/schedule", () => {
@@ -37,7 +38,7 @@ describe("games/schedule", () => {
     expect(detail.previousGameId).toBe(games.find((g) => g.weekKey === "w3")!._id);
     expect(detail.nextGameId).toBe(games.find((g) => g.weekKey === "w6")!._id);
     expect(detail.headToHead.record).toEqual({ w: 1, l: 0, t: 0 });
-    expect(detail.headToHead.games[0]).toMatchObject({ year: 2025, us: 34, them: 30 });
+    expect(detail.headToHead.games[0]).toMatchObject({ year: SAMPLE_START_YEAR, us: 34, them: 30 });
   });
 
   test("notes save trimmed and clear when empty", async () => {

@@ -1,12 +1,12 @@
 import type { Page } from "@playwright/test";
-import { expect, expectNoHorizontalOverflow, isPhone, test } from "./fixtures";
+import { SAMPLE_YEAR, expect, expectNoHorizontalOverflow, isPhone, test } from "./fixtures";
 
-/** The 2025 season always has a roster: the sample season in CI, the real import locally. */
-async function openRoster2025(page: Page) {
+/** The sample franchise's current season always has a roster. */
+async function openRoster(page: Page) {
   await page.goto("/roster");
   await expect(page.getByRole("heading", { level: 1, name: "Roster" })).toBeVisible();
-  await expect(page.getByText("2025 season")).toBeVisible();
-  const table = page.getByRole("table", { name: "2025 roster" });
+  await expect(page.getByText(`${SAMPLE_YEAR} season`)).toBeVisible();
+  const table = page.getByRole("table", { name: `${SAMPLE_YEAR} roster` });
   await expect(table.getByRole("link").first()).toBeVisible({ timeout: 20_000 });
   return table;
 }
@@ -16,7 +16,7 @@ for (const theme of ["dark", "light"] as const) {
     test.use({ theme });
 
     test("roster renders players without overflow", async ({ page }) => {
-      const table = await openRoster2025(page);
+      const table = await openRoster(page);
       expect(await table.getByRole("link").count()).toBeGreaterThan(0);
       await expectNoHorizontalOverflow(page);
     });
@@ -24,7 +24,7 @@ for (const theme of ["dark", "light"] as const) {
 }
 
 test("filtering to defense shows only defensive positions", async ({ page }, info) => {
-  const table = await openRoster2025(page);
+  const table = await openRoster(page);
   if (isPhone(info.project.name)) {
     await page.getByRole("button", { name: /^Side:/ }).click();
     await page
@@ -42,7 +42,7 @@ test("filtering to defense shows only defensive positions", async ({ page }, inf
 });
 
 test("a player row links to the player page", async ({ page }) => {
-  const table = await openRoster2025(page);
+  const table = await openRoster(page);
   await table.getByRole("link", { name: /Stefon Diggs/ }).click();
   await expect(page).toHaveURL(/\/players\/[^/]+$/);
   await expect(page.getByRole("heading", { level: 1, name: "Stefon Diggs" })).toBeVisible();

@@ -79,7 +79,7 @@ function SeasonCard({ season, onOpen }: { season: Season; onOpen: () => void }) 
   );
 }
 
-/** One decade of seasons: a grid like the workbook's on wide screens, stacked season cards on phones. */
+/** One decade of seasons: a grid on wide screens, stacked season cards on phones. */
 export function DecadeGrid({ seasons, totals }: { seasons: Season[]; totals: DecadeTotals }) {
   const { ref, compact } = useElementWidth<HTMLDivElement>();
   const { setYearFor } = useSeason();

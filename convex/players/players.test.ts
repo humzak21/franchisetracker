@@ -2,6 +2,7 @@
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, test } from "vitest";
 import { api, internal } from "../_generated/api";
+import { SAMPLE_START_YEAR } from "../dev/fixtures";
 import { asOwner } from "../lib/testOwner";
 import schema from "../schema";
 
@@ -13,11 +14,11 @@ afterEach(() => {
 
 async function seeded() {
   const t = convexTest(schema, modules);
-  await t.mutation(internal.franchise.seed.seedInitial, {});
+  await t.mutation(internal.league.seed.seedTeams, {});
   await t.mutation(internal.dev.fixtures.seedFixtures, {});
   const season = await t.run(async (ctx) => {
     const seasons = await ctx.db.query("seasons").take(20);
-    return seasons.find((s) => s.year === 2025)!;
+    return seasons.find((s) => s.year === SAMPLE_START_YEAR)!;
   });
   return { t, owner: await asOwner(t), seasonId: season._id };
 }
@@ -45,7 +46,7 @@ describe("players/player", () => {
     const maye = roster.entries.find((e) => e.player.displayName === "Drake Maye")!;
     const page = await owner.query(api.players.player.get, { playerId: maye.player._id });
     expect(page.history).toHaveLength(1);
-    expect(page.history[0]).toMatchObject({ year: 2025, team: { abbr: "NE" } });
+    expect(page.history[0]).toMatchObject({ year: SAMPLE_START_YEAR, team: { abbr: "NE" } });
     expect(page.seasons[0]?.stats.totals.passYds).toBe(4228);
   });
 

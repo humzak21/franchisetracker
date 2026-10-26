@@ -53,7 +53,7 @@ export function ScheduleScreen() {
           size="page"
           icon={CalendarDays}
           title={`No games for ${season?.year ?? "this season"} yet`}
-          description="Import the workbook to fill past seasons, or capture a box score to log a game."
+          description="Capture a box score to log a game; the season fills in as you play."
           action={
             <Button asChild variant="primary">
               <Link to="/inbox">Capture a game</Link>

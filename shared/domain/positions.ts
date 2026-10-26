@@ -1,6 +1,6 @@
 /**
  * Positions and position groups. Position keys follow Madden 26 depth chart
- * naming; `POSITION_ALIASES` folds the spellings the workbook and screenshots use.
+ * naming; `POSITION_ALIASES` folds the spellings Madden screens and older games use.
  */
 
 export const POSITIONS = [
@@ -76,7 +76,7 @@ export const POSITION_GROUP_LABELS: Record<PositionGroup, string> = {
   LS: "Long Snappers",
 };
 
-/** Alternate spellings seen in the workbook, Madden screens and older games. */
+/** Alternate spellings seen on Madden screens and in older games. */
 export const POSITION_ALIASES: Record<string, Position> = {
   RB: "HB",
   LEDGE: "LEDG",

@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/design/theme";
 import { AuthGate } from "./auth/AuthGate";
 import { FranchiseProvider, useFranchise } from "./franchise";
 import { KeyboardProvider } from "./keyboard";
+import { FranchiseGate } from "./setup/FranchiseGate";
 
 const url = import.meta.env.VITE_CONVEX_URL as string | undefined;
 if (!url) throw new Error("VITE_CONVEX_URL is not set. Run `npm run use:local` once to create .env.local.");
@@ -28,7 +29,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
         <FranchiseProvider>
           <TeamTheme>
             <TooltipProvider delayDuration={300}>
-              <KeyboardProvider>{children}</KeyboardProvider>
+              <KeyboardProvider>
+                <FranchiseGate>{children}</FranchiseGate>
+              </KeyboardProvider>
             </TooltipProvider>
           </TeamTheme>
         </FranchiseProvider>

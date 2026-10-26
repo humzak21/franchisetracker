@@ -1,5 +1,5 @@
 import { NAV_ITEMS } from "../src/app/nav";
-import { expect, expectNoHorizontalOverflow, gotoHome, isPhone, test } from "./fixtures";
+import { SAMPLE_YEAR, expect, expectNoHorizontalOverflow, gotoHome, isPhone, test } from "./fixtures";
 
 for (const theme of ["dark", "light"] as const) {
   test.describe(`${theme} theme`, () => {
@@ -8,7 +8,9 @@ for (const theme of ["dark", "light"] as const) {
     test("home renders live franchise data", async ({ page }) => {
       await gotoHome(page);
       await expect(page.locator("html")).toHaveClass(theme === "dark" ? /dark/ : /^(?!.*dark)/);
-      await expect(page.getByRole("button", { name: /^20(2[5-9]|3[0-4])/ })).toHaveCount(10);
+      await expect(
+        page.getByRole("button", { name: new RegExp(`^(${SAMPLE_YEAR}|${SAMPLE_YEAR + 1})`) }),
+      ).toHaveCount(2);
       await expectNoHorizontalOverflow(page);
     });
 
@@ -50,14 +52,15 @@ test("phone More sheet reaches every secondary screen", async ({ page }, info) =
 
 test("season switcher is remembered per screen", async ({ page }) => {
   await page.goto("/schedule");
-  await page.getByRole("button", { name: /Season 2025, change season/ }).click();
-  await page.getByRole("button", { name: /^2027/ }).click();
-  await expect(page.getByText("2027 season")).toBeVisible();
+  const next = SAMPLE_YEAR + 1;
+  await page.getByRole("button", { name: `Season ${SAMPLE_YEAR}, change season` }).click();
+  await page.getByRole("button", { name: new RegExp(`^${next}`) }).click();
+  await expect(page.getByText(`${next} season`)).toBeVisible();
 
   await page.goto("/roster");
-  await expect(page.getByText("2025 season")).toBeVisible();
+  await expect(page.getByText(`${SAMPLE_YEAR} season`)).toBeVisible();
   await page.goto("/schedule");
-  await expect(page.getByText("2027 season")).toBeVisible();
+  await expect(page.getByText(`${next} season`)).toBeVisible();
 });
 
 test("search palette navigates to a screen", async ({ page }, info) => {

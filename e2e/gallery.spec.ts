@@ -22,6 +22,14 @@ test.describe("component gallery", () => {
     await expect(phoneFrame.getByText("100-yard games")).toBeVisible();
   });
 
+  test("TeamPicker selects one team at a time", async ({ page }) => {
+    const frame = page.locator("#teampicker figure").first();
+    const lions = frame.getByRole("radio", { name: "Detroit Lions" });
+    await lions.click();
+    await expect(lions).toHaveAttribute("aria-checked", "true");
+    await expect(frame.getByRole("radio", { checked: true })).toHaveCount(1);
+  });
+
   test("every specimen renders in both themes", async ({ page }) => {
     const sections = page.locator("section[id]");
     expect(await sections.count()).toBeGreaterThanOrEqual(12);

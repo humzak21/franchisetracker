@@ -97,7 +97,7 @@ export function RosterScreen() {
             title={empty ? `No roster for ${season?.year ?? "this season"} yet` : "No players match"}
             description={
               empty
-                ? "The workbook import fills rosters for past seasons; later sprints add roster screenshots."
+                ? "Rosters come from roster screenshots (Sprint 6) and the real NFL history import (Sprint 4)."
                 : "Try another side or position."
             }
           />

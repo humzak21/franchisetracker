@@ -95,3 +95,14 @@ export const PLAYOFF_RESULT_LABELS: Record<PlayoffResult, string> = {
   sb_loss: "Lost Super Bowl",
   champion: "Won Super Bowl",
 };
+
+/**
+ * The NFL season a date belongs to. A season is named for the year it kicks off and its
+ * league year turns over in March, so January and February still belong to last season.
+ */
+export function currentNflSeason(date: Date): number {
+  return date.getMonth() >= 2 ? date.getFullYear() : date.getFullYear() - 1;
+}
+
+/** Earliest and latest first seasons a new franchise may pick. */
+export const FIRST_SEASON_RANGE = { min: 1970, max: 2100 } as const;

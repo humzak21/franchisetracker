@@ -17,7 +17,7 @@ import {
 } from "./index";
 
 describe("passerRating", () => {
-  it("matches the workbook for Drake Maye 2025 (105.6)", () => {
+  it("matches a known line: Drake Maye 2025 (105.6)", () => {
     expect(passerRating({ cmp: 363, att: 525, yds: 4228, td: 42, int: 18 })).toBe(105.6);
   });
   it("caps at a perfect 158.3", () => {

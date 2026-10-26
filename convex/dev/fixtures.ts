@@ -1,16 +1,21 @@
 /**
- * A small, realistic sample of the 2025 season for tests, CI and empty local backends: a
- * handful of games (one bye, one overtime loss), a roster slice and imported season totals.
- * The private workbook is not in the repo, so this is what Playwright sees in CI.
+ * A sample franchise for tests, CI and empty local backends: a first season with a handful of
+ * games (one bye, one overtime loss), a roster slice and season totals, plus an empty second
+ * season so the season switcher has somewhere to go.
  *
- * Non-destructive: does nothing if the 2025 season already has games (for example after
- * the real workbook import). Run with `npx convex run dev/fixtures:seedFixtures`.
+ * Non-destructive: does nothing when a franchise the owner created exists, or when the sample
+ * season already has games. Requires the teams (`league/seed:seedTeams`).
+ * Run with `npx convex run dev/fixtures:seedFixtures`.
  */
 import { v } from "convex/values";
 import type { Position, WeekKey } from "../../shared/domain";
 import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx } from "../_generated/server";
+import { createFranchise } from "../franchise/create";
 import { must } from "../lib/errors";
+
+export const SAMPLE_FRANCHISE_NAME = "Sample Franchise";
+export const SAMPLE_START_YEAR = 2026;
 
 type FixturePlayer = {
   first: string;
@@ -144,19 +149,31 @@ export const seedFixtures = internalMutation({
   args: {},
   returns: v.object({ seeded: v.boolean() }),
   handler: async (ctx) => {
-    const franchise = must(
-      await ctx.db
-        .query("franchises")
-        .withIndex("by_isActive", (q) => q.eq("isActive", true))
-        .first(),
-      "Active franchise (run franchise/seed:seedInitial first)",
-    );
+    let franchise = await ctx.db
+      .query("franchises")
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .first();
+    if (franchise === null) {
+      const { franchiseId, seasonId } = await createFranchise(ctx, {
+        name: SAMPLE_FRANCHISE_NAME,
+        teamAbbr: "NE",
+        startYear: SAMPLE_START_YEAR,
+      });
+      await ctx.db.patch("seasons", seasonId, { status: "regular" });
+      await ctx.db.insert("seasons", { franchiseId, year: SAMPLE_START_YEAR + 1, status: "upcoming" });
+      franchise = must(await ctx.db.get("franchises", franchiseId), "Sample franchise");
+    }
+    // Never add sample data to a franchise the owner made.
+    if (franchise.name !== SAMPLE_FRANCHISE_NAME) return { seeded: false };
+    const franchiseId = franchise._id;
     const season = must(
       await ctx.db
         .query("seasons")
-        .withIndex("by_franchiseId_and_year", (q) => q.eq("franchiseId", franchise._id).eq("year", 2025))
+        .withIndex("by_franchiseId_and_year", (q) =>
+          q.eq("franchiseId", franchiseId).eq("year", SAMPLE_START_YEAR),
+        )
         .unique(),
-      "2025 season",
+      "Sample season",
     );
     const existing = await ctx.db
       .query("games")
@@ -174,7 +191,7 @@ export const seedFixtures = internalMutation({
         displayName: `${p.first} ${p.last}`,
         position: p.position,
         college: p.college,
-        ageAnchor: { age: p.age, year: 2025 },
+        ageAnchor: { age: p.age, year: SAMPLE_START_YEAR },
         isReal: true,
         retired: false,
         aliases: [],
@@ -190,7 +207,10 @@ export const seedFixtures = internalMutation({
         ovr: p.ovr,
         age: p.age,
         exp: p.exp,
-        acquisition: p.exp <= 1 ? { type: "draft", year: 2025 - p.exp } : { type: "free_agent", year: 2025 },
+        acquisition:
+          p.exp <= 1
+            ? { type: "draft", year: SAMPLE_START_YEAR - p.exp }
+            : { type: "free_agent", year: SAMPLE_START_YEAR },
         status: "active",
       });
     }

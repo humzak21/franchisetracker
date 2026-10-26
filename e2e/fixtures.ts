@@ -2,6 +2,10 @@ import { test as base, expect, type Page } from "@playwright/test";
 
 export type Theme = "dark" | "light";
 
+/** The sample franchise `dev/fixtures:seedFixtures` creates for the e2e backend (and CI). */
+export const SAMPLE_FRANCHISE = "Sample Franchise";
+export const SAMPLE_YEAR = 2026;
+
 /** Phone projects render the tab bar instead of the sidebar. */
 export const isPhone = (projectName: string) => projectName.startsWith("phone");
 
@@ -39,8 +43,8 @@ export async function expectNoHorizontalOverflow(page: Page) {
   expect(overflow, "horizontal overflow in px").toBeLessThanOrEqual(0);
 }
 
-/** Waits for live Convex data: the seeded franchise name renders in the Home hero. */
+/** Waits for live Convex data: the sample franchise name renders in the Home hero. */
 export async function gotoHome(page: Page) {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Patriots Dynasty" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("heading", { name: SAMPLE_FRANCHISE })).toBeVisible({ timeout: 20_000 });
 }

@@ -24,7 +24,7 @@ export function CareerStatsTable({ page }: { page: PlayerPage }) {
       <EmptyState
         icon={BarChart3}
         title="No stats yet"
-        description="Season totals arrive with the workbook import and from box score screenshots."
+        description="Season totals come from box score screenshots as you play, and from the real NFL history import for seasons before the franchise."
       />
     );
   }
