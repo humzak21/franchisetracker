@@ -1,3 +1,4 @@
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowDown, ArrowUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { Fragment, useState, type ReactNode } from "react";
 import { Skeleton } from "@/components/ui/misc";
@@ -22,7 +23,12 @@ type TableGridProps<T> = {
   loadingRows: number;
   empty: ReactNode;
   caption?: string;
+  /** The element the table scrolls in, for virtualizing long tables. */
+  scrollElement: () => HTMLElement | null;
 };
+
+/** Tables longer than this render only the rows in view (plus a margin). */
+const VIRTUAL_MIN_ROWS = 120;
 
 const alignClass = { left: "text-left", right: "text-right", center: "text-center" } as const;
 
@@ -139,6 +145,59 @@ export function TableGrid<T>(props: TableGridProps<T>) {
       </td>
     ));
 
+  const virtual = rows !== null && rows.length > VIRTUAL_MIN_ROWS;
+  const virtualizer = useVirtualizer({
+    count: virtual ? rows.length : 0,
+    getScrollElement: props.scrollElement,
+    estimateSize: () => (rowHeight === "h-9" ? 36 : 44),
+    overscan: 12,
+    getItemKey: (index) => (rows?.[index] ? getRowId(rows[index]) : index),
+  });
+  const items = virtualizer.getVirtualItems();
+
+  const renderRow = (row: T) => {
+    const id = getRowId(row);
+    const open = expandable && expanded.has(id);
+    const clickable = expandable || !!onRowClick;
+    return (
+      <Fragment key={id}>
+        <tr
+          className={cn("group/row transition-colors hover:bg-surface-2", clickable && "cursor-pointer")}
+          onClick={clickable ? () => (expandable ? toggle(id) : onRowClick?.(row)) : undefined}
+          aria-expanded={expandable ? open : undefined}
+        >
+          {cells(row)}
+        </tr>
+        {open && (
+          <tr className="bg-surface-2/60">
+            <td colSpan={all.length} className="border-b border-border px-3 py-3">
+              <dl className="sticky left-3 grid w-[calc(100cqw-3.5rem)] grid-cols-2 gap-x-4 gap-y-2.5">
+                {detailColumns.map((col) => (
+                  <div
+                    key={col.id}
+                    className="flex items-baseline justify-between gap-2 border-b border-border/60 pb-1.5 whitespace-normal"
+                  >
+                    <dt className="text-xs leading-tight text-muted-foreground">{col.title ?? col.header}</dt>
+                    <dd className="shrink-0 text-[13px] font-medium">{render(col, row)}</dd>
+                  </div>
+                ))}
+              </dl>
+              {onRowClick && (
+                <button
+                  type="button"
+                  onClick={() => onRowClick(row)}
+                  className="sticky left-3 mt-3 text-sm font-medium text-primary"
+                >
+                  Open
+                </button>
+              )}
+            </td>
+          </tr>
+        )}
+      </Fragment>
+    );
+  };
+
   return (
     <table className="w-full border-separate border-spacing-0 text-[13px] @tablet:text-sm">
       {props.caption && <caption className="sr-only">{props.caption}</caption>}
@@ -180,54 +239,26 @@ export function TableGrid<T>(props: TableGridProps<T>) {
             </td>
           </tr>
         )}
-        {rows?.map((row) => {
-          const id = getRowId(row);
-          const open = expandable && expanded.has(id);
-          const clickable = expandable || !!onRowClick;
-          return (
-            <Fragment key={id}>
-              <tr
-                className={cn(
-                  "group/row transition-colors hover:bg-surface-2",
-                  clickable && "cursor-pointer",
-                )}
-                onClick={clickable ? () => (expandable ? toggle(id) : onRowClick?.(row)) : undefined}
-                aria-expanded={expandable ? open : undefined}
-              >
-                {cells(row)}
-              </tr>
-              {open && (
-                <tr className="bg-surface-2/60">
-                  <td colSpan={all.length} className="border-b border-border px-3 py-3">
-                    <dl className="sticky left-3 grid w-[calc(100cqw-3.5rem)] grid-cols-2 gap-x-4 gap-y-2.5">
-                      {detailColumns.map((col) => (
-                        <div
-                          key={col.id}
-                          className="flex items-baseline justify-between gap-2 border-b border-border/60 pb-1.5 whitespace-normal"
-                        >
-                          <dt className="text-xs leading-tight text-muted-foreground">
-                            {col.title ?? col.header}
-                          </dt>
-                          <dd className="shrink-0 text-[13px] font-medium">{render(col, row)}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                    {onRowClick && (
-                      <button
-                        type="button"
-                        onClick={() => onRowClick(row)}
-                        className="sticky left-3 mt-3 text-sm font-medium text-primary"
-                      >
-                        Open
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              )}
-            </Fragment>
-          );
-        })}
+        {!virtual && rows?.map((row) => renderRow(row))}
       </tbody>
+      {virtual && rows && (
+        <>
+          <tbody aria-hidden>
+            <tr style={{ height: items[0]?.start ?? 0 }} />
+          </tbody>
+          {items.map((item) => {
+            const row = rows[item.index];
+            return row === undefined ? null : (
+              <tbody key={item.key} ref={virtualizer.measureElement} data-index={item.index} className="num">
+                {renderRow(row)}
+              </tbody>
+            );
+          })}
+          <tbody aria-hidden>
+            <tr style={{ height: virtualizer.getTotalSize() - (items.at(-1)?.end ?? 0) }} />
+          </tbody>
+        </>
+      )}
       {totals && rows && rows.length > 0 && (
         <tfoot className="num sticky bottom-0 z-20">
           <tr>{cells(totals, true)}</tr>
