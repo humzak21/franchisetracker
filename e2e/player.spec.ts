@@ -54,7 +54,13 @@ test("real NFL seasons come before the franchise ones, marked, with a game log a
   await expect(page.getByRole("heading", { level: 2, name: "Drake Maye" })).toBeVisible();
   const career = page.getByRole("table", { name: "Career stats" });
   await expect(career.getByTitle("Real NFL season before the franchise")).toHaveCount(2);
-  await expect(page.getByRole("table", { name: "Game log" }).getByText("W1")).toBeVisible();
+  // The log opens on the latest logged season; other specs may have committed a newer game.
+  await expect(
+    page
+      .getByRole("table", { name: "Game log" })
+      .getByRole("link", { name: /^W\d+$/ })
+      .first(),
+  ).toBeVisible();
   await page.getByRole("link", { name: "OVR", exact: true }).click();
   await expect(page.getByRole("heading", { name: "OVR progression" })).toBeInViewport();
   await expectNoHorizontalOverflow(page);
