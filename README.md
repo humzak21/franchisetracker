@@ -32,3 +32,9 @@ Reading screenshots needs an OpenRouter key on the Convex deployment: `npx conve
 | `npm run build` | Typecheck and build the PWA into `dist/` |
 | `npm run preview` | Serve the production build locally |
 | `npm run deploy` | Deploy Convex to production and build the front end against it |
+| `npm run test:coverage` | Line and branch coverage of `shared/` |
+| `npm run check:fresh-clone` | Clone, install and set up a first franchise from scratch (the launch check; needs port 3210 free) |
+
+## Backups and launch
+
+Every franchise is backed up nightly to Convex file storage; Settings → Data downloads, restores (as new franchises, never overwriting) and exports CSV. The release checklist, including what to check by hand before a production deploy, is [docs/LAUNCH.md](docs/LAUNCH.md).

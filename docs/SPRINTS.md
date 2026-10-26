@@ -242,6 +242,20 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 **Done when:** a fresh clone, `npm install`, `npx convex dev` and franchise setup reproduce a working app, the launch readiness checklist passes, and a full walkthrough of every screen on the phone finds nothing the desktop can do that the phone cannot.
 
+**As built:**
+
+- The launch readiness checklist is `docs/LAUNCH.md`. `npm run check:fresh-clone` automates the fresh clone check (clone, install, new local backend, first-run setup in Chromium). It found that first-run setup had been broken since Sprint 8 (the shared franchise form never called `create` without an `onCreated`), which every other test missed because they all run against the seeded sample. Fixed.
+- Authorization audit: `audit/convex.test.ts` reads every Convex function and fails the build when a public query or mutation skips `requireOwner`, an action skips the new `requireOwnerAction` (actions used to check only that someone was signed in), the HTTP endpoint skips its guard, a function lacks validators, or a query uses `.filter` or `.collect()`. It found no gaps in queries or mutations.
+- The Shortcut endpoint is rate limited with `@convex-dev/rate-limiter`: valid tokens draw from a bucket (20 at once, then one every 2 s); bad tokens are throttled on their own bucket so junk requests never lock out the owner.
+- Error reporting: uncaught errors, unhandled rejections and route errors go to `errorReports` (one row per fingerprint, capped at 100), shown in Settings → Errors. Nothing third-party.
+- Backups: every franchise, nightly (`convex/crons.ts`, fourteen kept) and on demand, as gzipped JSON in file storage, written and compressed a page at a time with `fflate`. The default runtime has no compression streams, and Node actions would need a Node version local backends may not have, so nothing uses `"use node"`. Restore runs in the browser and writes batches through owner-only mutations as new, inactive franchises, ids rewritten through a map; the transactions ↔ pick inventory cycle is patched at the end. An inactive franchise can now be deleted (typed name), its rows swept in the background, so a restore or an old franchise can be cleared away. CSV exports the active franchise's games and player seasons.
+- Offline: every query result a screen showed is kept in memory and IndexedDB (`useQuery` from `@/lib/convex/useQuery`, required by ESLint) and served only while offline, keyed per franchise; the auth gate lets a device with a cached session through when it cannot check the session; signing out clears it. The capture queue shares one flush between triggers, skips and finally drops captures the server refuses (reporting why), and retries when the app returns to the foreground.
+- `DataTable` renders only the rows in view past 120 rows (each row and its phone card in its own `tbody`, measured by `@tanstack/react-virtual`). Phone scroll performance was checked in WebKit at phone size, not on a device.
+- Recompute timing: the after-game refresh for a 13-player box score finishes inside the CLI's resolution (well under 20 ms) on the local backend with the sample; full-history franchises were not timed.
+- Touch targets: an audit of every screen at 390 px found view switchers and chips at 36 to 40 px, sort buttons at 17 px and small links; a `touch-target` utility gives small controls a 44 px hit area, primitives grew on coarse pointers, and `e2e/touch.spec.ts` keeps it that way with a reduced-motion check. Every screen was also swept for overflow at tablet width in both themes.
+- Test coverage of `shared/` is 96.7% of lines and 84.8% of branches (`npm run test:coverage`), up from 93% and 79%: the row-target normalizers and validators, registries, stat groups and the season summary gained tests.
+- The optional Tauri wrapper was not built; the installed PWA covers the Mac and the phone.
+
 ---
 
 ## Later (not scheduled)
