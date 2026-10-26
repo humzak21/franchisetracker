@@ -140,10 +140,16 @@ describe("timeline", () => {
     expect(all.seasons.map((s) => s.year)).toEqual([2027, 2026]);
     expect(all.hasOlder).toBe(false);
     const story = all.entries.filter((e) => e.year === 2026).map((e) => [e.kind, e.title]);
+    // The sample season's own moves and awards sit in it too, each in its week.
     expect(story).toEqual([
       ["season", "Pre-season report"],
+      ["transaction", "Signed: Stefon Diggs"],
       ["game", "W 31–17 vs LV"],
+      ["award", "Offensive Player of the Week: Drake Maye"],
+      ["transaction", "Trade: Veteran Linebacker"],
       ["transaction", "Signed: Drake Maye"],
+      ["award", "Rookie of the Week: TreVeyon Henderson"],
+      ["award", "Defensive Player of the Week: Christian Gonzalez"],
       ["season", "Post-season report"],
     ]);
     // Inducted long after the last season: shown with the newest season.

@@ -42,4 +42,18 @@ export const draftTables = {
   })
     .index("by_franchiseId_and_ownerTeamId_and_year", ["franchiseId", "ownerTeamId", "year"])
     .index("by_franchiseId_and_originTeamId_and_year", ["franchiseId", "originTeamId", "year"]),
+
+  /**
+   * The lightweight draft board (FEATURES.md 5.9): prospects the owner noted for the draft held
+   * before season `year`, in the owner's order.
+   */
+  draftBoard: defineTable({
+    franchiseId: v.id("franchises"),
+    year: v.number(),
+    name: v.string(),
+    position: vPosition,
+    college: v.optional(v.string()),
+    note: v.optional(v.string()),
+    rank: v.number(),
+  }).index("by_franchiseId_and_year_and_rank", ["franchiseId", "year", "rank"]),
 };

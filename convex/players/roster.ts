@@ -1,13 +1,17 @@
 import { v } from "convex/values";
+import { weekIndex } from "../../shared/domain";
 import { query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { must } from "../lib/errors";
 import { activeFranchise, playersById } from "../lib/franchise";
 import { headshotUrls } from "../lib/refs";
+import { vWeekKey } from "../lib/validators";
 import schema from "../schema";
 
 /** A full roster plus practice squad and IR stays well under this. */
 const MAX_ROSTER = 150;
+/** A season's injury reports for the whole league, with headroom. */
+const MAX_INJURIES = 1000;
 
 /** A season's roster for one team (the user team by default), each entry joined to its player. */
 export const bySeason = query({
@@ -19,6 +23,16 @@ export const bySeason = query({
         entry: schema.doc("rosterEntries"),
         player: schema.doc("players"),
         headshotUrl: v.union(v.string(), v.null()),
+        /** The player's latest injury this season, for the roster's injury badge. */
+        injury: v.union(
+          v.object({
+            injuryType: v.string(),
+            lengthLabel: v.optional(v.string()),
+            onIr: v.boolean(),
+            weekKey: v.optional(vWeekKey),
+          }),
+          v.null(),
+        ),
       }),
     ),
   }),
@@ -35,11 +49,38 @@ export const bySeason = query({
       entries.map((e) => e.playerId),
     );
     const urls = await headshotUrls(ctx, players.values());
+    const injuries = await ctx.db
+      .query("injuries")
+      .withIndex("by_seasonId_and_weekKey", (q) => q.eq("seasonId", args.seasonId))
+      .take(MAX_INJURIES);
+    const latest = new Map<(typeof injuries)[number]["playerId"], (typeof injuries)[number]>();
+    const at = (i: (typeof injuries)[number]) => (i.weekKey ? weekIndex(i.weekKey) : -1);
+    for (const i of injuries) {
+      const seen = latest.get(i.playerId);
+      if (!seen || at(i) >= at(seen)) latest.set(i.playerId, i);
+    }
     return {
       team,
       entries: entries.flatMap((entry) => {
         const player = players.get(entry.playerId);
-        return player ? [{ entry, player, headshotUrl: urls.get(player._id) ?? null }] : [];
+        const injury = latest.get(entry.playerId);
+        return player
+          ? [
+              {
+                entry,
+                player,
+                headshotUrl: urls.get(player._id) ?? null,
+                injury: injury
+                  ? {
+                      injuryType: injury.injuryType,
+                      lengthLabel: injury.lengthLabel,
+                      onIr: injury.onIr,
+                      weekKey: injury.weekKey,
+                    }
+                  : null,
+              },
+            ]
+          : [];
       }),
     };
   },
