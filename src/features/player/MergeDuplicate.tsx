@@ -48,7 +48,7 @@ export function MergeDuplicate({ playerId, name }: { playerId: Id<"players">; na
               <PlayerChip
                 size="sm"
                 player={{ displayName: h.displayName, position: h.position, headshotUrl: h.headshotUrl }}
-                caption={h.firstYear ? `${h.firstYear}–${h.lastYear}` : "No seasons yet"}
+                caption={h.firstYear ? `${h.firstYear}–${h.lastYear}` : "No stats"}
               />
               <Button size="sm" variant="outline" onClick={() => setPicked(h)}>
                 Merge in

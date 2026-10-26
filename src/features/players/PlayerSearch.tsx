@@ -10,7 +10,7 @@ export type SearchHit = FunctionReturnType<typeof api.players.directory.search>[
 
 const span = (h: SearchHit) =>
   h.firstYear === null
-    ? "No seasons yet"
+    ? "No stats"
     : h.firstYear === h.lastYear
       ? String(h.firstYear)
       : `${h.firstYear}–${h.lastYear}`;

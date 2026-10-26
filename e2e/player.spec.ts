@@ -13,6 +13,7 @@ async function openDiggs(page: Page) {
 test("player page shows the hero, career stats with totals and roster history", async ({ page }) => {
   await openDiggs(page);
   await expect(page.getByRole("heading", { level: 2, name: "Stefon Diggs" })).toBeVisible();
+  await expect(page.getByRole("figure").getByText("Stefon Diggs")).toBeVisible();
   const career = page.getByRole("table", { name: "Career stats" });
   await expect(career).toBeVisible();
   await expect(career.locator("tfoot").getByText("Career")).toBeVisible();
@@ -38,8 +39,23 @@ test("player notes save on blur", async ({ page }) => {
   await expect(page.getByText("Saved")).toBeVisible();
 });
 
-test("back link returns to the roster", async ({ page }) => {
+test("back link returns to the players index", async ({ page }) => {
   await openDiggs(page);
-  await page.getByRole("link", { name: "Back to Roster" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Roster" })).toBeVisible();
+  await page.getByRole("link", { name: "Back to Players" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Players" })).toBeVisible();
+});
+
+test("real NFL seasons come before the franchise ones, marked, with a game log after", async ({ page }) => {
+  await page.goto("/roster");
+  await page
+    .getByRole("link", { name: /Drake Maye/ })
+    .first()
+    .click({ timeout: 20_000 });
+  await expect(page.getByRole("heading", { level: 2, name: "Drake Maye" })).toBeVisible();
+  const career = page.getByRole("table", { name: "Career stats" });
+  await expect(career.getByTitle("Real NFL season before the franchise")).toHaveCount(2);
+  await expect(page.getByRole("table", { name: "Game log" }).getByText("W1")).toBeVisible();
+  await page.getByRole("link", { name: "OVR", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "OVR progression" })).toBeInViewport();
+  await expectNoHorizontalOverflow(page);
 });

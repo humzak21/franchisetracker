@@ -99,7 +99,7 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 **Goal:** the league's real past is in the app, and player pages feel like a card collection.
 
-- Choose the real NFL history source (`FEATURES.md` 4.8; candidates: nflverse public data releases, the ESPN site API) and record the decision in `docs/`.
+- Choose the real NFL history source (`FEATURES.md` 4.8; candidates: nflverse public data releases, the ESPN site API) and record the decision in `docs/` (chosen: nflverse, `docs/NFL-HISTORY.md`).
 - Import for every season before the franchise's first: all 32 teams' records, standings, playoff results and titles; real players with careers and season totals up to the start; draft history. Convex actions, idempotent, run at franchise creation and refreshable from Settings. Pre-franchise seasons are marked as such on every screen that shows them.
 
 - ESPN action: search by name, fetch headshot and bio for real players, cache in storage, user confirms the match from the player page or in bulk from the roster. Team logos from ESPN cached and used in `TeamLogo`.
@@ -112,6 +112,16 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 - Phone: player hero and stat cards stacked with section jump links, OVR chart in its phone variant, compare as a swipeable set of player columns with a sticky stat label rail, headshot confirmation as a bottom sheet.
 
 **Done when:** real players show headshots, fictional ones show monogram cards, a real player's page shows their pre-franchise career followed by franchise seasons, a team's history screen shows real seasons before the franchise, compare works, and the player page reads cleanly top to bottom on the phone.
+
+**As built:**
+
+- nflverse is the history source and ESPN the face and logo source; the decision, coverage and mechanics are in `docs/NFL-HISTORY.md`. History starts in 2002 (today's 32 teams and divisions) and includes only finished seasons; playoff results come from the playoff games because nflverse's standings file lags a season.
+- The import is a chain of scheduled steps with a job row (`historyImports`) that Settings shows; every write is an upsert and a run counter supersedes old runs. It also loads all 32 teams' real first-season rosters, so box scores resolve to the imported players, and adopts players the franchise already captured under the same name. About 15,000 players and 51,000 season rows; 76 seconds on a local backend.
+- Imported players carry their ESPN id from nflverse, so most never need a manual match; the ESPN search and bulk roster match are for everyone else. Headshots use ESPN's CDN until cached (the user team's first roster at import, any player when their page first opens).
+- Dev trait and abilities moved from the player to the roster entry. In-season OVR checkpoints are logged on the player page.
+- Pre-franchise seasons are `seasons` rows before `startYear`, marked in the season switcher, schedule, roster, stats, history and on the player page; records and leaders still count only log-derived rows.
+- Manual headshot upload waits for a later sprint.
+
 
 ---
 
