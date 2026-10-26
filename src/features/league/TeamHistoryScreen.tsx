@@ -3,7 +3,7 @@ import { useQuery } from "convex/react";
 import { Users } from "lucide-react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@convex/_generated/api";
-import { PLAYOFF_RESULT_LABELS, weekLabel } from "@shared/domain";
+import { PLAYOFF_RESULT_LABELS } from "@shared/domain";
 import { isPreFranchise } from "@shared/history/nflverse";
 import { formatOrdinal, formatRecord } from "@shared/stats";
 import { DataTable, type DataColumn } from "@/components/data/DataTable";
@@ -12,9 +12,9 @@ import { Tile, TileStrip } from "@/components/data/Tile";
 import { Page } from "@/components/layout/Page";
 import { Section } from "@/components/layout/Section";
 import { PositionBadge } from "@/components/player/PositionBadge";
-import { ResultBadge } from "@/components/team/ResultBadge";
 import { TeamLogo } from "@/components/team/TeamLogo";
 import { Badge, Skeleton } from "@/components/ui/misc";
+import { TeamHeadToHead } from "./TeamHeadToHead";
 
 type History = FunctionReturnType<typeof api.league.teamHistory.get>;
 type SeasonRow = History["seasons"][number];
@@ -110,23 +110,11 @@ export function TeamHistoryScreen({ abbr }: { abbr: string }) {
         </Section>
 
         {!data.isUserTeam && headToHead.games.length > 0 && (
-          <Section title="Head to head" description="Every franchise game against them.">
-            <ul className="grid gap-2 @tablet:grid-cols-2 @desktop:grid-cols-3">
-              {headToHead.games.map((g) => (
-                <li key={g.gameId}>
-                  <Link
-                    to="/games/$gameId"
-                    params={{ gameId: g.gameId }}
-                    className="flex min-h-12 items-center gap-3 rounded-xl border border-border bg-surface px-3 hover:bg-surface-2"
-                  >
-                    <ResultBadge result={g.result} us={g.us} them={g.them} />
-                    <span className="ml-auto text-sm text-muted-foreground">
-                      {g.year} · {weekLabel(g.weekKey)}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+          <Section
+            title="Head to head"
+            description="Every franchise game against them, with the margin of each."
+          >
+            <TeamHeadToHead headToHead={headToHead} />
           </Section>
         )}
 

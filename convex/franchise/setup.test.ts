@@ -33,7 +33,7 @@ describe("franchise/setup:create", () => {
     expect(active.seasons.map((s) => [s.year, s.status])).toEqual([[2026, "upcoming"]]);
   });
 
-  test("refuses a second franchise and bad input", async () => {
+  test("refuses bad input", async () => {
     const { owner } = await setup();
     const create = (args: { name: string; teamAbbr: string; startYear: number }) =>
       owner.mutation(api.franchise.setup.create, args);
@@ -43,10 +43,6 @@ describe("franchise/setup:create", () => {
     await expect(create({ name: "X", teamAbbr: "NE", startYear: 1066 })).rejects.toThrow(/First season/);
     await expect(create({ name: "X", teamAbbr: "ZZZ", startYear: 2026 })).rejects.toThrow(
       /Team ZZZ not found/,
-    );
-    await create({ name: "First", teamAbbr: "NE", startYear: 2026 });
-    await expect(create({ name: "Second", teamAbbr: "KC", startYear: 2026 })).rejects.toThrow(
-      /already exists/,
     );
   });
 

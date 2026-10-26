@@ -12,6 +12,7 @@ import { NotesEditor } from "@/components/forms/NotesEditor";
 import { Page } from "@/components/layout/Page";
 import { Section } from "@/components/layout/Section";
 import { SplitPane } from "@/components/layout/SplitPane";
+import { ThreeStars } from "@/components/player/ThreeStars";
 import { ScoreBug } from "@/components/team/ScoreBug";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
@@ -19,7 +20,6 @@ import { useSwipe } from "@/lib/hooks/useSwipe";
 import { BoxScore } from "./BoxScore";
 import { HeadToHead } from "./HeadToHead";
 import { TeamStatsCompare } from "./TeamStatsCompare";
-import { ThreeStars } from "./ThreeStars";
 
 /** Game detail: score bug, three stars, team stats, notes, head-to-head, and the full box score. */
 export function GameDetailScreen({ gameId }: { gameId: string }) {

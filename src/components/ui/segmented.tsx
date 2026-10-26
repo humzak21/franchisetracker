@@ -3,7 +3,10 @@ import { cn } from "@/lib/cn";
 
 export type SegmentOption<T extends string> = { value: T; label: string; count?: number };
 
-/** Segmented control. Used for split-pane switching on phones, team toggles and view modes. */
+/**
+ * Segmented control. Used for split-pane switching on phones, team toggles and view modes. Never
+ * wider than its container: with more options than fit, it scrolls sideways within itself.
+ */
 export function Segmented<T extends string>({
   value,
   onChange,
@@ -25,7 +28,10 @@ export function Segmented<T extends string>({
       value={value}
       onValueChange={(next) => next && onChange(next as T)}
       aria-label={ariaLabel}
-      className={cn("inline-flex rounded-lg bg-surface-2 p-0.5", className)}
+      className={cn(
+        "inline-flex max-w-full scrollbar-none overflow-x-auto rounded-lg bg-surface-2 p-0.5",
+        className,
+      )}
     >
       {options.map((option) => (
         <ToggleGroup.Item

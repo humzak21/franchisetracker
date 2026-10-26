@@ -1,7 +1,8 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NFL_TEAMS } from "@shared/domain";
 import { ThemeScope, useTheme } from "@/design/theme";
 import { Page } from "@/components/layout/Page";
+import { Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import { SPECIMENS, type Specimen } from "./specimens";
@@ -10,6 +11,28 @@ type ThemeChoice = "app" | "dark" | "light" | "both";
 
 const PHONE_WIDTH = 390;
 const DESKTOP_WIDTH = 960;
+/**
+ * Becomes true, and stays true, once the element comes within a screen of the viewport. Every
+ * specimen renders four times, charts included: rendering them all up front kept a phone busy for
+ * many seconds, so each section mounts its frames only when it is scrolled to (or linked to).
+ */
+function useNearViewport<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || near) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) setNear(true);
+      },
+      { rootMargin: "100% 0px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [near]);
+  return { ref, near };
+}
 
 type FrameProps = {
   label: string;
@@ -45,21 +68,24 @@ function SpecimenBlock({
   themes: ("dark" | "light")[];
   team: (typeof NFL_TEAMS)[number];
 }) {
+  const { ref, near: shown } = useNearViewport<HTMLElement>();
   return (
-    <section id={specimen.id} className="scroll-mt-24 border-t border-border pt-6">
+    <section ref={ref} id={specimen.id} className="scroll-mt-24 border-t border-border pt-6">
       <h2 className="font-display text-2xl font-bold tracking-wide uppercase">{specimen.name}</h2>
       {specimen.note && <p className="mt-0.5 max-w-3xl text-sm text-muted-foreground">{specimen.note}</p>}
       <div className="mt-4 space-y-5">
-        {themes.map((theme) => (
-          <div key={theme} className="flex flex-col gap-5 2xl:flex-row">
-            <Frame label="Phone" width={PHONE_WIDTH} fluid theme={theme} team={team}>
-              {specimen.render()}
-            </Frame>
-            <Frame label="Desktop" width={DESKTOP_WIDTH} theme={theme} team={team}>
-              {specimen.render()}
-            </Frame>
-          </div>
-        ))}
+        {!shown && <Skeleton className="h-40 rounded-xl" />}
+        {shown &&
+          themes.map((theme) => (
+            <div key={theme} className="flex flex-col gap-5 2xl:flex-row">
+              <Frame label="Phone" width={PHONE_WIDTH} fluid theme={theme} team={team}>
+                {specimen.render()}
+              </Frame>
+              <Frame label="Desktop" width={DESKTOP_WIDTH} theme={theme} team={team}>
+                {specimen.render()}
+              </Frame>
+            </div>
+          ))}
       </div>
     </section>
   );

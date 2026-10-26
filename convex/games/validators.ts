@@ -47,3 +47,14 @@ export const vHeadToHeadGame = v.object({
   us: v.number(),
   them: v.number(),
 });
+
+/** A scored game for the season charts, with its opponent (see `weekPointRows`). */
+export const vWeekPoint = v.object({
+  weekKey: vWeekKey,
+  pointsFor: v.number(),
+  pointsAgainst: v.number(),
+  margin: v.number(),
+  result: vGameResult,
+  streak: v.number(),
+  opponentAbbr: nullable(v.string()),
+});

@@ -1,172 +1,106 @@
-import { Link } from "@tanstack/react-router";
-import { Camera, History, LayoutGrid } from "lucide-react";
+import { useQuery } from "convex/react";
+import { api } from "@convex/_generated/api";
 import { isPreFranchise } from "@shared/history/nflverse";
-import { formatRecord } from "@shared/stats";
-import { useFranchise, type ActiveFranchise } from "@/app/franchise";
+import { useFranchise } from "@/app/franchise";
 import { useSeason } from "@/app/season";
-import { EmptyState } from "@/components/data/EmptyState";
 import { Page } from "@/components/layout/Page";
 import { Section } from "@/components/layout/Section";
-import { TeamLogo } from "@/components/team/TeamLogo";
-import { Button } from "@/components/ui/button";
-import { Badge, Skeleton } from "@/components/ui/misc";
-import { cn } from "@/lib/cn";
+import { Skeleton } from "@/components/ui/misc";
+import { FranchiseRecord } from "./FranchiseRecord";
+import { InboxSummary } from "./InboxSummary";
+import { LastGameCard } from "./LastGameCard";
 import { MilestoneFeed } from "./MilestoneFeed";
+import { NextGameCard } from "./NextGameCard";
 import { PendingPrompts } from "./PendingPrompts";
+import { PointsPulse } from "./PointsPulse";
+import { RankPulse } from "./RankPulse";
+import { RecentActivity } from "./RecentActivity";
 import { SeasonCard } from "./SeasonCard";
+import { SeasonHeader } from "./SeasonHeader";
 import { TeamStreaks } from "./TeamStreaks";
 
-/** Seasons played in the franchise; imported real NFL seasons before it live in History. */
-const franchiseSeasons = (active: ActiveFranchise) =>
-  active.seasons.filter((s) => !isPreFranchise(s.year, active.franchise.startYear));
+/** A column on desktop; on narrower widths its cards join one column, ordered by `order-*`. */
+const column = "contents @desktop:flex @desktop:min-w-0 @desktop:flex-col @desktop:gap-8";
 
-function Hero({ active }: { active: ActiveFranchise }) {
-  const { franchise, userTeam } = active;
-  const seasons = franchiseSeasons(active);
-  const first = seasons[0]?.year;
-  const last = seasons[seasons.length - 1]?.year;
-  return (
-    <div
-      className="@container relative overflow-hidden rounded-2xl border border-border bg-team text-team-foreground"
-      style={{
-        backgroundImage: `radial-gradient(120% 140% at 100% 0%, ${userTeam.secondaryColor}55, transparent 55%), linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(0 0 0 / 0.25))`,
-      }}
-    >
-      <div
-        aria-hidden
-        className="absolute inset-0 [background-image:repeating-linear-gradient(90deg,currentColor_0_1px,transparent_1px_48px)] opacity-[0.07]"
-      />
-      <div className="relative flex flex-col gap-5 p-5 @tablet:flex-row @tablet:items-center @tablet:p-7">
-        <TeamLogo team={userTeam} size="xl" className="ring-2 ring-white/25" />
-        <div className="min-w-0 flex-1">
-          <div className="text-[11px] font-semibold tracking-[0.14em] uppercase opacity-70">
-            {userTeam.city} {userTeam.name} · {userTeam.conference} {userTeam.division}
-          </div>
-          <h2 className="mt-1 font-display text-4xl leading-none font-bold tracking-wide uppercase @tablet:text-5xl">
-            {franchise.name}
-          </h2>
-        </div>
-        <dl className="grid grid-cols-3 gap-4 @tablet:gap-8">
-          {[
-            ["Seasons", String(seasons.length)],
-            [
-              "Span",
-              !first || !last ? "—" : first === last ? String(first) : `${first}–${String(last).slice(2)}`,
-            ],
-            ["Since", String(franchise.startYear)],
-          ].map(([label, value]) => (
-            <div key={label}>
-              <dt className="text-[10px] font-semibold tracking-[0.12em] uppercase opacity-70">{label}</dt>
-              <dd className="num font-display text-2xl font-bold whitespace-nowrap @tablet:text-3xl">
-                {value}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-    </div>
-  );
-}
-
-function SeasonGrid({ active }: { active: ActiveFranchise }) {
-  const { season, setYear } = useSeason();
-  return (
-    <div className="grid grid-cols-2 gap-2 @tablet:grid-cols-5">
-      {franchiseSeasons(active).map((s) => (
-        <button
-          key={s._id}
-          type="button"
-          onClick={() => setYear(s.year)}
-          className={cn(
-            "rounded-xl border bg-surface p-3 text-left transition-colors hover:bg-surface-2",
-            s.year === season?.year ? "border-primary ring-1 ring-primary" : "border-border",
-          )}
-        >
-          <div className="flex items-center justify-between">
-            <span className="num font-display text-2xl font-bold">{s.year}</span>
-            <Badge>{s.status}</Badge>
-          </div>
-          <div className="num mt-1 text-sm text-muted-foreground">
-            {s.userRecord ? formatRecord(s.userRecord) : "No games yet"}
-          </div>
-        </button>
-      ))}
-    </div>
-  );
-}
-
+/**
+ * Home (FEATURES.md 5.1): the selected season at a glance. Desktop puts the season, games, pulse
+ * and milestones in a main column beside the inbox, lifecycle, ranks and moves; the phone stacks
+ * the same cards in one column with the prompts and inbox first (5.13).
+ */
 export function HomeScreen() {
   const active = useFranchise();
   const { season } = useSeason();
-  const imported = active ? active.seasons.length - franchiseSeasons(active).length : 0;
+  const data = useQuery(api.dashboard.home.season, season ? { seasonId: season._id } : "skip");
+  const imported = !!(active && season && isPreFranchise(season.year, active.franchise.startYear));
 
   return (
     <Page title="Home" eyebrow={season ? `${season.year} season` : undefined} season>
-      {active === undefined && (
+      {!active || !season ? (
         <div className="space-y-4">
           <Skeleton className="h-40 rounded-2xl" />
           <Skeleton className="h-24 rounded-xl" />
         </div>
-      )}
-      {active && (
-        <div className="@container space-y-8">
-          <PendingPrompts />
-          <Hero active={active} />
-          <Section title="This season">
-            <SeasonCard active={active} />
-          </Section>
-          <Section title="Milestones">
-            <MilestoneFeed />
-          </Section>
-          <Section title="Streaks">
-            <TeamStreaks />
-          </Section>
-          <Section
-            title="Seasons"
-            description="One per season played; start the next from the season card once this one is done."
-          >
-            <SeasonGrid active={active} />
-          </Section>
-          <Section title="Next steps">
-            <div className="grid gap-3 @tablet:grid-cols-3">
-              <EmptyState
-                icon={History}
-                title="Real NFL history"
-                description={
-                  imported > 0
-                    ? `${imported} real seasons before the franchise, with standings, players and the draft.`
-                    : "Seasons before the franchise import from nflverse; follow it in Settings."
-                }
-                action={
-                  <Button asChild variant="outline" size="sm">
-                    <Link to={imported > 0 ? "/history" : "/settings"}>
-                      {imported > 0 ? "Open history" : "Settings"}
-                    </Link>
-                  </Button>
-                }
-              />
-              <EmptyState
-                icon={Camera}
-                title="Log a game from a photo"
-                description="Snap the box score; review it in the inbox and commit."
-                action={
-                  <Button asChild variant="primary" size="sm">
-                    <Link to="/inbox">Open inbox</Link>
-                  </Button>
-                }
-              />
-              <EmptyState
-                icon={LayoutGrid}
-                title="Component gallery"
-                description="Every primitive at desktop and phone width."
-                action={
-                  <Button asChild variant="outline" size="sm">
-                    <Link to="/dev/components">Open gallery</Link>
-                  </Button>
-                }
-              />
+      ) : (
+        <div className="@container">
+          <div className="flex flex-col gap-8 @desktop:grid @desktop:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] @desktop:items-start">
+            <div className={column}>
+              <div className="order-1 space-y-3 empty:hidden @desktop:order-none">
+                <PendingPrompts />
+              </div>
+              <div className="order-3 space-y-3 @desktop:order-none">
+                <SeasonHeader active={active} season={season} data={data} />
+                <TeamStreaks />
+              </div>
+              {!imported && (
+                <div className="order-4 grid gap-8 @tablet:grid-cols-2 @desktop:order-none">
+                  <Section title="Last game">
+                    {data === undefined ? (
+                      <Skeleton className="h-40 rounded-xl" />
+                    ) : (
+                      <LastGameCard game={data?.lastGame ?? null} active={active} />
+                    )}
+                  </Section>
+                  <Section title="Next up">
+                    {data === undefined ? (
+                      <Skeleton className="h-40 rounded-xl" />
+                    ) : (
+                      <NextGameCard next={data?.nextGame ?? null} />
+                    )}
+                  </Section>
+                </div>
+              )}
+              {!imported && data && (
+                <Section title="Season pulse" className="order-7 @desktop:order-none">
+                  <PointsPulse pulse={data.pulse} />
+                </Section>
+              )}
+              <Section title="Milestones" className="order-9 @desktop:order-none">
+                <MilestoneFeed />
+              </Section>
+              <Section title="Franchise record" className="order-11 @desktop:order-none">
+                <FranchiseRecord active={active} />
+              </Section>
             </div>
-          </Section>
+
+            <div className={column}>
+              <Section title="Inbox" className="order-2 @desktop:order-none">
+                <InboxSummary />
+              </Section>
+              {!imported && (
+                <Section title="This season" className="order-6 @desktop:order-none">
+                  <SeasonCard active={active} />
+                </Section>
+              )}
+              <Section title="Team ranks" className="order-8 @desktop:order-none">
+                <RankPulse year={season.year} />
+              </Section>
+              {!imported && (
+                <Section title="Recent moves" className="order-10 @desktop:order-none">
+                  <RecentActivity seasonId={season._id} />
+                </Section>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </Page>

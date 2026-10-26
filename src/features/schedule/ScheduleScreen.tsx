@@ -13,7 +13,19 @@ import { Page } from "@/components/layout/Page";
 import { Section } from "@/components/layout/Section";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
+import { Segmented } from "@/components/ui/segmented";
+import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
+import { ScheduleCalendar } from "./ScheduleCalendar";
+import { ScheduleCharts } from "./ScheduleCharts";
 import { ScheduleRow, type ScheduleGame } from "./ScheduleRow";
+
+type View = "weeks" | "calendar" | "charts";
+
+const VIEWS: { value: View; label: string }[] = [
+  { value: "weeks", label: "Weeks" },
+  { value: "calendar", label: "Calendar" },
+  { value: "charts", label: "Charts" },
+];
 
 const PHASES: { phase: WeekPhase; title: string }[] = [
   { phase: "preseason", title: "Preseason" },
@@ -34,8 +46,10 @@ function Week({ games }: { games: ScheduleGame[] }) {
   );
 }
 
+/** Schedule (FEATURES.md 5.2): the season as a week list, on the calendar, or as charts. */
 export function ScheduleScreen() {
   const { season } = useSeason();
+  const [view, setView] = useLocalStorage<View>("ft.schedule-view", "weeks");
   const active = useFranchise();
   const data = useQuery(api.games.schedule.bySeason, season ? { seasonId: season._id } : "skip");
   const summary = data?.summary;
@@ -78,7 +92,7 @@ export function ScheduleScreen() {
           }
         />
       ) : (
-        <div className="space-y-8">
+        <div className="@container space-y-6">
           {summary && (
             <TileStrip>
               <Tile label="Record" value={formatRecord(summary.regular)} accent detail="Regular season" />
@@ -97,14 +111,18 @@ export function ScheduleScreen() {
               <Tile label="Streak" value={summary.streak ?? "—"} detail="Current" />
             </TileStrip>
           )}
-          {PHASES.map(({ phase, title }) => {
-            const games = data.games.filter((g) => weekPhase(g.weekKey) === phase);
-            return games.length === 0 ? null : (
-              <Section key={phase} title={title}>
-                <Week games={games} />
-              </Section>
-            );
-          })}
+          <Segmented aria-label="View" value={view} onChange={setView} options={VIEWS} />
+          {view === "weeks" &&
+            PHASES.map(({ phase, title }) => {
+              const games = data.games.filter((g) => weekPhase(g.weekKey) === phase);
+              return games.length === 0 ? null : (
+                <Section key={phase} title={title}>
+                  <Week games={games} />
+                </Section>
+              );
+            })}
+          {view === "calendar" && season && <ScheduleCalendar year={season.year} games={data.games} />}
+          {view === "charts" && <ScheduleCharts points={data.points} />}
         </div>
       )}
     </Page>
