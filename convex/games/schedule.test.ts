@@ -22,7 +22,8 @@ describe("games/schedule", () => {
   test("lists the season in calendar order with a summary", async () => {
     const { owner, seasonId } = await setup();
     const { games, summary } = await owner.query(api.games.schedule.bySeason, { seasonId });
-    expect(games.map((g) => g.weekKey)).toEqual(["w1", "w2", "w3", "w4", "w5", "w6"]);
+    expect(games.map((g) => g.weekKey)).toEqual(["w1", "w2", "w3", "w4", "w5", "w6", "w7"]);
+    expect(games[6]).toMatchObject({ status: "scheduled", us: null, opponent: { abbr: "MIA" } });
     expect(games[3]).toMatchObject({ status: "bye", opponent: null });
     expect(games[0]).toMatchObject({ result: "W", us: 31, them: 17, opponent: { abbr: "LV" } });
     expect(games[0]!.stars.map((s) => s.name)).toEqual(["Drake Maye", "Stefon Diggs", "Opponent standout"]);

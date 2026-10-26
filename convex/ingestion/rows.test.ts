@@ -119,7 +119,12 @@ describe("row targets", () => {
         )
         .collect(),
     );
-    expect(stats.map((s) => [s.statKey, s.value, s.rank, s.tied])).toEqual([
+    // The sample already ranks six stats; the capture replaces three of them in place.
+    expect(stats).toHaveLength(6);
+    const captured = ["pointsAllowedPg", "pointsPg", "yardsPg"];
+    expect(
+      stats.filter((s) => captured.includes(s.statKey)).map((s) => [s.statKey, s.value, s.rank, s.tied]),
+    ).toEqual([
       ["pointsAllowedPg", 21.6, 12, true],
       ["pointsPg", 28, 3, false],
       ["yardsPg", 371.4, 6, false],

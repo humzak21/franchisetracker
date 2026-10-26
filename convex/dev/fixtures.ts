@@ -2,7 +2,8 @@
  * A sample franchise for tests, CI and empty local backends: a first season with a handful of
  * games (one bye, one overtime loss) and their box scores, a roster slice, real NFL history for
  * the two seasons before it (`fixtureHistory.ts`), plus an empty second season so the season
- * switcher has somewhere to go.
+ * switcher has somewhere to go, and a second franchise for the franchise switcher
+ * (`fixtureDashboard.ts`).
  *
  * Non-destructive: does nothing when a franchise the owner created exists, or when the sample
  * season already has games. Requires the teams (`league/seed:seedTeams`).
@@ -16,6 +17,7 @@ import { createFranchise } from "../franchise/create";
 import { must } from "../lib/errors";
 import { refreshAfterGame } from "../stats/refresh";
 import { recomputeCareer, recomputePlayerSeason } from "../stats/recompute";
+import { seedSampleDashboard } from "./fixtureDashboard";
 import { seedSampleHistory } from "./fixtureHistory";
 import { seedSampleLeague } from "./fixtureLeague";
 import { SAMPLE_LINES } from "./fixtureLines";
@@ -270,6 +272,7 @@ export const seedFixtures = internalMutation({
     for (const gameId of gameIds) await refreshAfterGame(ctx, gameId, [...playerIds.values()]);
     await ctx.db.patch("seasons", season._id, { userRecord: { w, l, t: 0, divisionRank: 1 } });
     await seedSampleLeague(ctx, franchiseId, season._id, SAMPLE_START_YEAR, playerIds);
+    await seedSampleDashboard(ctx, franchise, season);
     return { seeded: true };
   },
 });

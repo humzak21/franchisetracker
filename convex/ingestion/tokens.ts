@@ -1,6 +1,7 @@
 /**
  * Bearer tokens for the Apple Shortcut endpoint. Only a SHA-256 hash is stored; the token is
- * shown once when created. Revoking takes effect on the next request.
+ * shown once when created. Revoking takes effect on the next request. A token is not tied to a
+ * franchise: the endpoint files uploads under the active one.
  */
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
@@ -63,12 +64,8 @@ export const list = query({
   ),
   handler: async (ctx) => {
     await requireOwner(ctx);
-    const franchise = await activeFranchise(ctx);
-    const tokens = await ctx.db
-      .query("ingestionTokens")
-      .withIndex("by_franchiseId", (q) => q.eq("franchiseId", franchise._id))
-      .order("desc")
-      .take(MAX_TOKENS);
+    // Tokens belong to the owner, not a franchise: uploads land in whichever franchise is active.
+    const tokens = await ctx.db.query("ingestionTokens").order("desc").take(MAX_TOKENS);
     return tokens
       .filter((t) => t.revokedAt === undefined)
       .map((t) => ({

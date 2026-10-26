@@ -1,11 +1,16 @@
 import { v } from "convex/values";
-import { query } from "../_generated/server";
+import { mutation, query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
-import { must } from "../lib/errors";
+import { invalid, must } from "../lib/errors";
+import { toTeamRef, vTeamRef } from "../lib/refs";
+import { vSeasonStatus } from "../lib/validators";
 import schema from "../schema";
+import { deactivateAll } from "./create";
 
 /** Upper bound on seasons per franchise read in one query. */
 const MAX_SEASONS = 100;
+/** One owner keeps a handful of franchises; the switcher lists them all. */
+const MAX_FRANCHISES = 50;
 
 /**
  * The active franchise with its user team and seasons (ascending by year), or
@@ -37,5 +42,77 @@ export const getActive = query({
       .take(MAX_SEASONS);
 
     return { franchise, userTeam, seasons };
+  },
+});
+
+/** Every franchise for the switcher, active first, then newest. */
+export const list = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id("franchises"),
+      name: v.string(),
+      startYear: v.number(),
+      isActive: v.boolean(),
+      userTeam: vTeamRef,
+      latest: v.union(
+        v.null(),
+        v.object({
+          year: v.number(),
+          status: vSeasonStatus,
+          w: v.number(),
+          l: v.number(),
+          t: v.number(),
+        }),
+      ),
+    }),
+  ),
+  handler: async (ctx) => {
+    await requireOwner(ctx);
+    const franchises = await ctx.db.query("franchises").order("desc").take(MAX_FRANCHISES);
+    const rows = await Promise.all(
+      franchises.map(async (franchise) => {
+        const team = must(await ctx.db.get("teams", franchise.userTeamId), "User team");
+        // Imported real seasons all come before startYear, so the latest season is the franchise's own.
+        const latest = await ctx.db
+          .query("seasons")
+          .withIndex("by_franchiseId_and_year", (q) => q.eq("franchiseId", franchise._id))
+          .order("desc")
+          .first();
+        return {
+          _id: franchise._id,
+          name: franchise.name,
+          startYear: franchise.startYear,
+          isActive: franchise.isActive,
+          userTeam: toTeamRef(team),
+          latest: latest && {
+            year: latest.year,
+            status: latest.status,
+            w: latest.userRecord?.w ?? 0,
+            l: latest.userRecord?.l ?? 0,
+            t: latest.userRecord?.t ?? 0,
+          },
+        };
+      }),
+    );
+    return rows.sort((a, b) => Number(b.isActive) - Number(a.isActive));
+  },
+});
+
+/**
+ * Makes another franchise the active one. Every screen, the inbox and the Shortcut endpoint read
+ * the active franchise, so they all follow; the other franchise's data is not touched.
+ */
+export const activate = mutation({
+  args: { franchiseId: v.id("franchises") },
+  returns: v.null(),
+  handler: async (ctx, { franchiseId }) => {
+    await requireOwner(ctx);
+    const franchise = await ctx.db.get("franchises", franchiseId);
+    if (franchise === null) throw invalid("That franchise no longer exists");
+    if (franchise.isActive) return null;
+    await deactivateAll(ctx);
+    await ctx.db.patch("franchises", franchiseId, { isActive: true });
+    return null;
   },
 });
