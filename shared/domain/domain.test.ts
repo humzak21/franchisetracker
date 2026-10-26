@@ -15,6 +15,9 @@ describe("calendar", () => {
     expect(weekLabel("w7")).toBe("W7");
     expect(weekLabel("sb", "long")).toBe("Super Bowl");
     expect(weekPhase("div")).toBe("postseason");
+    expect(weekPhase("wc")).toBe("postseason");
+    expect(weekLabel("wc")).toBe("WC");
+    expect(weekLabel("w10", "long")).toBe("Week 10");
     expect(adjacentWeek("w18", 1)).toBe("wc");
     expect(adjacentWeek("pre1", -1)).toBeNull();
   });

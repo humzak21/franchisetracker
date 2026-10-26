@@ -46,9 +46,13 @@ export function isPlayoffRound(value: string): value is PlayoffRound {
   return (PLAYOFF_ROUNDS as readonly string[]).includes(value);
 }
 
+const REGULAR_WEEK = /^w\d+$/;
+const PRESEASON_WEEK = /^pre\d+$/;
+
 export function weekPhase(week: WeekKey): WeekPhase {
-  if (week.startsWith("pre")) return "preseason";
-  if (week.startsWith("w")) return "regular";
+  if (PRESEASON_WEEK.test(week)) return "preseason";
+  // Not `startsWith("w")`: the Wild Card key is "wc".
+  if (REGULAR_WEEK.test(week)) return "regular";
   if (week === "probowl") return "allstar";
   return "postseason";
 }
@@ -58,8 +62,9 @@ export function weekIndex(week: WeekKey): number {
 }
 
 export function weekLabel(week: WeekKey, style: "short" | "long" = "short"): string {
-  if (week.startsWith("pre")) return style === "short" ? `P${week.slice(3)}` : `Preseason ${week.slice(3)}`;
-  if (week.startsWith("w")) return style === "short" ? `W${week.slice(1)}` : `Week ${week.slice(1)}`;
+  if (PRESEASON_WEEK.test(week))
+    return style === "short" ? `P${week.slice(3)}` : `Preseason ${week.slice(3)}`;
+  if (REGULAR_WEEK.test(week)) return style === "short" ? `W${week.slice(1)}` : `Week ${week.slice(1)}`;
   if (week === "probowl") return "Pro Bowl";
   return PLAYOFF_ROUND_LABELS[week as PlayoffRound][style];
 }

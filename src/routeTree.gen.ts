@@ -21,7 +21,9 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StatsRouteImport } from './routes/stats'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as DevComponentsRouteImport } from './routes/dev/components'
+import { Route as GamesGameIdRouteImport } from './routes/games.$gameId'
 import { Route as PlayersIndexRouteImport } from './routes/players.index'
+import { Route as PlayersPlayerIdRouteImport } from './routes/players.$playerId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -83,9 +85,19 @@ const DevComponentsRoute = DevComponentsRouteImport.update({
   path: '/dev/components',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GamesGameIdRoute = GamesGameIdRouteImport.update({
+  id: '/games/$gameId',
+  path: '/games/$gameId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlayersIndexRoute = PlayersIndexRouteImport.update({
   id: '/players/',
   path: '/players/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlayersPlayerIdRoute = PlayersPlayerIdRouteImport.update({
+  id: '/players/$playerId',
+  path: '/players/$playerId',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -102,6 +114,8 @@ export interface FileRoutesByFullPath {
   '/stats': typeof StatsRoute
   '/transactions': typeof TransactionsRoute
   '/dev/components': typeof DevComponentsRoute
+  '/games/$gameId': typeof GamesGameIdRoute
+  '/players/$playerId': typeof PlayersPlayerIdRoute
   '/players/': typeof PlayersIndexRoute
 }
 export interface FileRoutesByTo {
@@ -117,6 +131,8 @@ export interface FileRoutesByTo {
   '/stats': typeof StatsRoute
   '/transactions': typeof TransactionsRoute
   '/dev/components': typeof DevComponentsRoute
+  '/games/$gameId': typeof GamesGameIdRoute
+  '/players/$playerId': typeof PlayersPlayerIdRoute
   '/players': typeof PlayersIndexRoute
 }
 export interface FileRoutesById {
@@ -133,6 +149,8 @@ export interface FileRoutesById {
   '/stats': typeof StatsRoute
   '/transactions': typeof TransactionsRoute
   '/dev/components': typeof DevComponentsRoute
+  '/games/$gameId': typeof GamesGameIdRoute
+  '/players/$playerId': typeof PlayersPlayerIdRoute
   '/players/': typeof PlayersIndexRoute
 }
 export interface FileRouteTypes {
@@ -150,6 +168,8 @@ export interface FileRouteTypes {
     | '/stats'
     | '/transactions'
     | '/dev/components'
+    | '/games/$gameId'
+    | '/players/$playerId'
     | '/players/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -165,6 +185,8 @@ export interface FileRouteTypes {
     | '/stats'
     | '/transactions'
     | '/dev/components'
+    | '/games/$gameId'
+    | '/players/$playerId'
     | '/players'
   id:
     | '__root__'
@@ -180,6 +202,8 @@ export interface FileRouteTypes {
     | '/stats'
     | '/transactions'
     | '/dev/components'
+    | '/games/$gameId'
+    | '/players/$playerId'
     | '/players/'
   fileRoutesById: FileRoutesById
 }
@@ -196,6 +220,8 @@ export interface RootRouteChildren {
   StatsRoute: typeof StatsRoute
   TransactionsRoute: typeof TransactionsRoute
   DevComponentsRoute: typeof DevComponentsRoute
+  GamesGameIdRoute: typeof GamesGameIdRoute
+  PlayersPlayerIdRoute: typeof PlayersPlayerIdRoute
   PlayersIndexRoute: typeof PlayersIndexRoute
 }
 
@@ -285,11 +311,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevComponentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/games/$gameId': {
+      id: '/games/$gameId'
+      path: '/games/$gameId'
+      fullPath: '/games/$gameId'
+      preLoaderRoute: typeof GamesGameIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/players/': {
       id: '/players/'
       path: '/players'
       fullPath: '/players/'
       preLoaderRoute: typeof PlayersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/players/$playerId': {
+      id: '/players/$playerId'
+      path: '/players/$playerId'
+      fullPath: '/players/$playerId'
+      preLoaderRoute: typeof PlayersPlayerIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -308,6 +348,8 @@ const rootRouteChildren: RootRouteChildren = {
   StatsRoute: StatsRoute,
   TransactionsRoute: TransactionsRoute,
   DevComponentsRoute: DevComponentsRoute,
+  GamesGameIdRoute: GamesGameIdRoute,
+  PlayersPlayerIdRoute: PlayersPlayerIdRoute,
   PlayersIndexRoute: PlayersIndexRoute,
 }
 export const routeTree = rootRouteImport

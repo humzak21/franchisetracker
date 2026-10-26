@@ -1,0 +1,53 @@
+/** Shapes the schedule and game queries return. Kept separate so both queries build them the same way. */
+import { resultOf, userScore } from "../../shared/games/summary";
+import type { Doc, Id } from "../_generated/dataModel";
+
+export type StarView = {
+  playerId: Id<"players"> | null;
+  name: string;
+  position: string | null;
+  caption: string | null;
+};
+
+export function starViews(game: Doc<"games">, players: Map<Id<"players">, Doc<"players">>): StarView[] {
+  return (game.stars ?? []).map((star) => {
+    const player = star.playerId ? players.get(star.playerId) : undefined;
+    return {
+      playerId: player?._id ?? null,
+      name: player?.displayName ?? star.rawName ?? "Unknown player",
+      position: player?.position ?? null,
+      caption: star.caption ?? null,
+    };
+  });
+}
+
+export function starPlayerIds(games: readonly Doc<"games">[]): Id<"players">[] {
+  return games.flatMap((g) => (g.stars ?? []).flatMap((s) => (s.playerId ? [s.playerId] : [])));
+}
+
+/** A schedule row: the game from the user team's side with its opponent resolved. */
+export function gameRow(
+  game: Doc<"games">,
+  teams: Map<Id<"teams">, Doc<"teams">>,
+  players: Map<Id<"players">, Doc<"players">>,
+) {
+  const score = userScore(game);
+  return {
+    _id: game._id,
+    weekKey: game.weekKey,
+    status: game.status,
+    result: game.result ?? resultOf(game),
+    overtime: game.overtime ?? false,
+    userIsHome: game.userIsHome ?? null,
+    us: score?.us ?? null,
+    them: score?.them ?? null,
+    opponent: game.opponentTeamId ? (teams.get(game.opponentTeamId) ?? null) : null,
+    opponentRecord: game.opponentRecord ?? null,
+    playoffRound: game.playoffRound ?? null,
+    dateLabel: game.dateLabel ?? null,
+    notes: game.notes ?? null,
+    stars: starViews(game, players),
+  };
+}
+
+export type GameRow = ReturnType<typeof gameRow>;

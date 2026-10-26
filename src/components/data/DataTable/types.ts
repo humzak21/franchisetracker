@@ -44,6 +44,8 @@ export type DataTableProps<T> = {
   initialSort?: { id: string; desc: boolean };
   searchable?: boolean;
   searchPlaceholder?: string;
+  /** Show the sort and column picker. Off for short reference grids where every column fits. */
+  columnOptions?: boolean;
   onRowClick?: (row: T) => void;
   emptyState?: ReactNode;
   /** Number of skeleton rows while `data` is undefined. */

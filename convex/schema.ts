@@ -8,6 +8,7 @@ import { awardTables } from "./schema/awards";
 import { draftTables } from "./schema/draft";
 import { franchiseTables } from "./schema/franchise";
 import { gameTables } from "./schema/games";
+import { historyTables } from "./schema/history";
 import { hofTables } from "./schema/hof";
 import { ingestionTables } from "./schema/ingestion";
 import { leagueTables } from "./schema/league";
@@ -27,5 +28,6 @@ export default defineSchema({
   ...draftTables,
   ...transactionTables,
   ...hofTables,
+  ...historyTables,
   ...ingestionTables,
 });

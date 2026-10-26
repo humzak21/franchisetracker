@@ -50,6 +50,7 @@ function Chips<T extends string>({ value, onChange, options, wrap }: FilterBarPr
 /**
  * A single-choice filter (position, side, phase). Inline chips when there is room; under
  * 640 px a button that opens the same chips in a bottom sheet (FEATURES.md 9 toolbar sheet).
+ * It fills the width it is given and decides from that, so give it a full row or grid cell.
  */
 export function FilterBar<T extends string>(props: FilterBarProps<T>) {
   const { ref, compact } = useElementWidth<HTMLDivElement>();
@@ -57,7 +58,7 @@ export function FilterBar<T extends string>(props: FilterBarProps<T>) {
   const current = props.options.find((o) => o.value === props.value);
 
   return (
-    <div ref={ref} className={cn("min-w-0", props.className)}>
+    <div ref={ref} className={cn("w-full min-w-0", props.className)}>
       {compact ? (
         <>
           <Button

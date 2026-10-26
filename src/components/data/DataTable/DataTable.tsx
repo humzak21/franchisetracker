@@ -22,6 +22,7 @@ import { useTableModel } from "./useTableModel";
  */
 export function DataTable<T extends object>(props: DataTableProps<T>) {
   const { id, data, columns, getRowId, identityColumn, searchable = false, loadingRows = 6 } = props;
+  const columnOptions = props.columnOptions ?? true;
   const { ref, compact } = useElementWidth<HTMLDivElement>();
   const prefs = useColumnPrefs(id, props.primaryColumns);
   const model = useTableModel({ data, columns, getRowId, initialSort: props.initialSort });
@@ -65,46 +66,48 @@ export function DataTable<T extends object>(props: DataTableProps<T>) {
 
   return (
     <div ref={ref} className={cn("@container min-w-0", props.className)}>
-      <div className="mb-2 flex items-center gap-2">
-        {searchable && (
-          <div className="relative min-w-0 flex-1 @tablet:max-w-72">
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-subtle-foreground" />
-            <Input
-              value={model.globalFilter}
-              onChange={(e) => model.setGlobalFilter(e.target.value)}
-              placeholder={props.searchPlaceholder ?? "Search"}
-              aria-label={props.searchPlaceholder ?? "Search"}
-              className="pl-9"
-            />
-          </div>
-        )}
-        <div className="ml-auto">
-          {compact ? (
-            <>
-              <Button variant="outline" size="sm" onClick={() => setOptionsOpen(true)}>
-                <SlidersHorizontal /> Sort &amp; columns
-              </Button>
-              <BottomSheet
-                open={optionsOpen}
-                onOpenChange={setOptionsOpen}
-                title="Sort & columns"
-                className="@container"
-              >
-                {options}
-              </BottomSheet>
-            </>
-          ) : (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <SlidersHorizontal /> Columns
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="@container w-80">{options}</PopoverContent>
-            </Popover>
+      {(searchable || columnOptions) && (
+        <div className="mb-2 flex items-center gap-2">
+          {searchable && (
+            <div className="relative min-w-0 flex-1 @tablet:max-w-72">
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-subtle-foreground" />
+              <Input
+                value={model.globalFilter}
+                onChange={(e) => model.setGlobalFilter(e.target.value)}
+                placeholder={props.searchPlaceholder ?? "Search"}
+                aria-label={props.searchPlaceholder ?? "Search"}
+                className="pl-9"
+              />
+            </div>
           )}
+          <div className="ml-auto">
+            {columnOptions && compact ? (
+              <>
+                <Button variant="outline" size="sm" onClick={() => setOptionsOpen(true)}>
+                  <SlidersHorizontal /> Sort &amp; columns
+                </Button>
+                <BottomSheet
+                  open={optionsOpen}
+                  onOpenChange={setOptionsOpen}
+                  title="Sort & columns"
+                  className="@container"
+                >
+                  {options}
+                </BottomSheet>
+              </>
+            ) : columnOptions ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <SlidersHorizontal /> Columns
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="@container w-80">{options}</PopoverContent>
+              </Popover>
+            ) : null}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="relative overflow-hidden rounded-xl border border-border bg-surface">
         <div
