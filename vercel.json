@@ -3,7 +3,7 @@
   "framework": "vite",
   "buildCommand": "node scripts/vercel-build.mjs",
   "outputDirectory": "dist",
-  "rewrites": [{ "source": "/((?!assets/|.*\\..*).*)", "destination": "/index.html" }],
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
   "headers": [
     {
       "source": "/sw.js",
