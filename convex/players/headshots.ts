@@ -4,6 +4,7 @@
  */
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import { action, internalMutation, internalQuery } from "../_generated/server";
 import { requireOwner, requireSignedIn } from "../lib/auth";
 import { cacheHeadshots } from "../external/media";
@@ -70,7 +71,10 @@ export const ensure = action({
   returns: v.null(),
   handler: async (ctx, { playerId }) => {
     await requireSignedIn(ctx);
-    const pending = await ctx.runQuery(internal.players.headshots.pendingForPlayer, { playerId });
+    const pending: { playerId: Id<"players">; espnId: number }[] = await ctx.runQuery(
+      internal.players.headshots.pendingForPlayer,
+      { playerId },
+    );
     await cacheHeadshots(ctx, pending);
     return null;
   },

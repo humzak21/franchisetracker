@@ -54,6 +54,22 @@ export async function startImport(ctx: MutationCtx, franchiseId: Id<"franchises"
   return true;
 }
 
+/**
+ * Starts the import for the active franchise from the CLI (`npx convex run history/importJob:restart`),
+ * e.g. on a deployment whose franchise predates the import.
+ */
+export const restart = internalMutation({
+  args: {},
+  returns: v.boolean(),
+  handler: async (ctx) => {
+    const franchise = await ctx.db
+      .query("franchises")
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .first();
+    return franchise ? await startImport(ctx, franchise._id) : false;
+  },
+});
+
 /** What a step needs to know about the franchise and the run it belongs to. */
 export const context = internalQuery({
   args: { franchiseId: v.id("franchises") },
