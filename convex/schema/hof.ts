@@ -18,8 +18,9 @@ export const hofTables = {
     firstYear: v.optional(v.number()),
     lastYear: v.optional(v.number()),
     highlightSeasons: v.optional(v.array(v.number())),
-    /** Career totals snapshot at induction, keyed by stat key. */
+    /** Career totals with the team, keyed by stat key; refreshed whenever the entry is saved. */
     careerSummary: v.optional(vStatMap),
+    careerGames: v.optional(v.number()),
   })
     .index("by_franchiseId_and_inductedYear", ["franchiseId", "inductedYear"])
     .index("by_playerId", ["playerId"]),

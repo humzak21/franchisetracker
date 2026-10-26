@@ -1,4 +1,6 @@
+import { Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
+import { ChevronRight, FileText, Landmark, ScrollText, type LucideIcon } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { isPreFranchise } from "@shared/history/nflverse";
 import { byDecade, totalsOf, trophyRoom } from "@shared/history/trophies";
@@ -11,7 +13,51 @@ import { DecadeGrid } from "./DecadeGrid";
 import { EditHistory } from "./EditHistory";
 import { TrophyRoom } from "./TrophyRoom";
 
-/** Franchise history home: all-time totals, the trophy room and generated decade grids. */
+const PLACES: { to: string; icon: LucideIcon; title: string; description: string }[] = [
+  {
+    to: "/history/reports",
+    icon: FileText,
+    title: "Season reports",
+    description: "What you expected, what happened, what to fix",
+  },
+  {
+    to: "/history/hall-of-fame",
+    icon: Landmark,
+    title: "Hall of Fame",
+    description: "The jersey wall and retired numbers",
+  },
+  {
+    to: "/history/timeline",
+    icon: ScrollText,
+    title: "Timeline",
+    description: "Every note, move and award as one story",
+  },
+];
+
+function Places() {
+  return (
+    <nav aria-label="History" className="grid gap-2 @tablet:grid-cols-3">
+      {PLACES.map(({ to, icon: Icon, title, description }) => (
+        <Link
+          key={to}
+          to={to}
+          className="flex min-h-16 items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 transition-colors hover:bg-surface-2"
+        >
+          <Icon className="size-5 shrink-0 text-primary" />
+          <span className="min-w-0 flex-1">
+            <span className="block font-display text-lg leading-tight font-semibold tracking-wide uppercase">
+              {title}
+            </span>
+            <span className="block truncate text-xs text-muted-foreground">{description}</span>
+          </span>
+          <ChevronRight className="size-4 shrink-0 text-subtle-foreground" />
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+/** Franchise history home: reports, Hall of Fame and timeline, all-time totals, the trophy room and decade grids. */
 export function HistoryScreen() {
   const data = useQuery(api.history.trophies.overview, {});
 
@@ -35,6 +81,7 @@ export function HistoryScreen() {
   return (
     <Page title="History" eyebrow={`Since ${data.seasons[0]?.year ?? data.startYear}`}>
       <div className="space-y-10">
+        <Places />
         <TileStrip>
           <Tile
             label="All-time record"

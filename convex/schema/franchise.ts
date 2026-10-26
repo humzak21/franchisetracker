@@ -73,7 +73,10 @@ export const franchiseTables = {
     postseasonThoughts: v.optional(v.string()),
     aroundTheLeague: v.optional(v.string()),
     prompts: v.object({ preseason: vPrompt, postseason: vPrompt }),
-    /** Offseason needs checklist; a handful of rows per season, so inline. */
+    /**
+     * Offseason needs checklist, written for the offseason after this season; a handful of rows
+     * per season, so inline. Resolved by a transaction, a draft pick, or by hand with a note.
+     */
     needs: v.array(
       v.object({
         key: v.string(),
@@ -82,6 +85,8 @@ export const franchiseTables = {
         note: v.optional(v.string()),
         resolvedByTransactionId: v.optional(v.id("transactions")),
         resolvedByDraftPickId: v.optional(v.id("draftPicks")),
+        resolvedAt: v.optional(v.number()),
+        resolvedNote: v.optional(v.string()),
       }),
     ),
   })

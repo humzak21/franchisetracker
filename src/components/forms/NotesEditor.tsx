@@ -8,6 +8,8 @@ type NotesEditorProps = {
   label: string;
   value: string | undefined;
   onSave: (next: string) => Promise<unknown>;
+  /** Every keystroke, for callers that act on the unsaved text (a "file report" button). */
+  onDraftChange?: (draft: string) => void;
   placeholder?: string;
   rows?: number;
   className?: string;
@@ -17,7 +19,15 @@ type NotesEditorProps = {
  * Free-text notes that save on blur (FEATURES.md 5.13: autosave, works with the on-screen
  * keyboard). Picks up remote changes while the field is not being edited.
  */
-export function NotesEditor({ label, value, onSave, placeholder, rows = 6, className }: NotesEditorProps) {
+export function NotesEditor({
+  label,
+  value,
+  onSave,
+  onDraftChange,
+  placeholder,
+  rows = 6,
+  className,
+}: NotesEditorProps) {
   const id = useId();
   const [draft, setDraft] = useState(value ?? "");
   const [state, setState] = useState<SaveState>("idle");
@@ -26,6 +36,8 @@ export function NotesEditor({ label, value, onSave, placeholder, rows = 6, class
   useEffect(() => {
     if (!editing.current) setDraft(value ?? "");
   }, [value]);
+
+  useEffect(() => onDraftChange?.(draft), [draft, onDraftChange]);
 
   const save = async () => {
     editing.current = false;

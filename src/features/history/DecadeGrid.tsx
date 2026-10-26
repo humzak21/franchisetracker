@@ -1,12 +1,13 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import type { Doc } from "@convex/_generated/dataModel";
-import { PLAYOFF_RESULT_LABELS } from "@shared/domain";
+import { formatSchemes, PLAYOFF_RESULT_LABELS } from "@shared/domain";
 import { isPreFranchise } from "@shared/history/nflverse";
 import type { DecadeTotals } from "@shared/history/trophies";
 import { formatOrdinal, formatRecord } from "@shared/stats";
 import { useSeason } from "@/app/season";
 import { DataTable, type DataColumn } from "@/components/data/DataTable";
+import { StaffLine } from "@/components/team/StaffLine";
 import { Badge } from "@/components/ui/misc";
 import { useElementWidth } from "@/lib/hooks/useElementWidth";
 
@@ -65,6 +66,12 @@ const columns = (startYear: number): DataColumn<Row>[] => [
     minWidth: 220,
   },
   { id: "coach", header: "Coach", value: (r) => (isTotals(r) ? "" : (r.coaching?.headCoach ?? "")) },
+  {
+    id: "scheme",
+    header: "Scheme",
+    title: "Offensive / defensive scheme",
+    value: (r) => (isTotals(r) ? "" : formatSchemes(r.coaching)),
+  },
   { id: "note", header: "Note", value: (r) => (isTotals(r) ? "" : (r.notes ?? "")), minWidth: 240 },
 ];
 
@@ -94,8 +101,8 @@ function SeasonCard({ season, real, onOpen }: { season: Season; real: boolean; o
             {PLAYOFF_RESULT_LABELS[r.playoffResult]}
           </Badge>
         )}
-        {season.coaching?.headCoach && <span className="text-xs">Coach {season.coaching.headCoach}</span>}
       </div>
+      <StaffLine staff={season.coaching} className="mt-2 text-xs" />
       {season.notes && <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{season.notes}</p>}
     </button>
   );

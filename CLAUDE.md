@@ -107,6 +107,7 @@ Every screen ships for phone and desktop together (FEATURES.md 5.13 and 9). Ther
 
 ## Git
 
+- Unless told otherwise, start every new task from the latest `main` on the remote: `git fetch origin`, then branch from `origin/main` (or move a fresh worktree branch onto it) before writing code. Never build on a stale local `main` or an earlier sprint's branch.
 - Branch per sprint or feature off `main`; small, focused commits with messages that say why.
 - `convex/_generated/` and `src/routeTree.gen.ts` are generated but committed so a fresh clone typechecks; regenerate them with `npx convex dev --once` and the Vite plugin, never by hand.
 
