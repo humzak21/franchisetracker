@@ -33,9 +33,10 @@ export default defineConfig({
   ],
   webServer: [
     {
-      // Pushes functions to the local backend, seeds it, then keeps watching.
+      // Pushes functions to the local backend, turns on test sign-in, seeds the league and (only
+      // when 2025 is empty, as in CI) a small sample season, then keeps watching.
       command:
-        "CONVEX_AGENT_MODE=anonymous CONVEX_DEPLOYMENT=anonymous:anonymous-agent npx convex dev --run franchise/seed:seedInitial --tail-logs disable",
+        "npm run local:setup && npx convex run franchise/seed:seedInitial && CONVEX_DEPLOYMENT=anonymous:anonymous-agent npx convex dev --run dev/fixtures:seedFixtures --tail-logs disable",
       port: 3210,
       wait: { stdout: /Finished running function/ },
       reuseExistingServer: !CI,
