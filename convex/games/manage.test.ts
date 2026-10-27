@@ -60,7 +60,7 @@ describe("games/manage", () => {
     });
     expect(game.dateLabel).toBe("Sun, Oct 26");
     const detail = await owner.query(api.games.schedule.get, { gameId });
-    expect(detail.header).toEqual({ stadium: "Highmark Stadium", weather: "Snow", neutralSite: false });
+    expect(detail?.header).toEqual({ stadium: "Highmark Stadium", weather: "Snow", neutralSite: false });
     expect((await season())!.userRecord).toMatchObject({ w: 4, l: 2 });
   });
 
@@ -147,6 +147,8 @@ describe("games/manage", () => {
     await owner.mutation(api.games.manage.remove, { gameId: w2._id });
     await settle();
     expect(await t.run((ctx) => ctx.db.get("games", w2._id))).toBeNull();
+    // An open game page reads null rather than throwing once its game is gone.
+    expect(await owner.query(api.games.schedule.get, { gameId: w2._id })).toBeNull();
     // Week 2's 301 passing yards are gone.
     expect(await mayeYards()).toBe(1102);
     expect((await season())!.userRecord).toMatchObject({ w: 3, l: 1 });

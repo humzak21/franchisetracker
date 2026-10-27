@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/misc";
 import { useQuery } from "@/lib/convex/useQuery";
 import { errorMessage } from "@/lib/errors";
 
-type GameDetail = FunctionReturnType<typeof api.games.schedule.get>;
+type GameDetail = NonNullable<FunctionReturnType<typeof api.games.schedule.get>>;
 
 function formFromGame({ game, header }: GameDetail): GameFormValue {
   return {

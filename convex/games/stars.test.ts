@@ -42,20 +42,20 @@ describe("games/stars", () => {
     ];
     await owner.mutation(api.games.stars.setStars, { gameId: week1._id, stars });
     const detail = await owner.query(api.games.schedule.get, { gameId: week1._id });
-    expect(detail.stars.map((s) => s.name)).toEqual([
+    expect(detail?.stars.map((s) => s.name)).toEqual([
       "Stefon Diggs",
       "Maxx Crosby",
       "Drake Maye",
       "Hunter Henry",
     ]);
-    expect(detail.stars[0]).toMatchObject({ caption: "131 yds", teamId: pick("Stefon Diggs").teamId });
-    expect(detail.stars[1]).toMatchObject({ playerId: null, teamId: week1.opponent!._id });
+    expect(detail?.stars[0]).toMatchObject({ caption: "131 yds", teamId: pick("Stefon Diggs").teamId });
+    expect(detail?.stars[1]).toMatchObject({ playerId: null, teamId: week1.opponent!._id });
 
     // Saving the same list again changes nothing; an empty list clears them.
     await owner.mutation(api.games.stars.setStars, { gameId: week1._id, stars });
-    expect((await owner.query(api.games.schedule.get, { gameId: week1._id })).stars).toHaveLength(4);
+    expect((await owner.query(api.games.schedule.get, { gameId: week1._id }))?.stars).toHaveLength(4);
     await owner.mutation(api.games.stars.setStars, { gameId: week1._id, stars: [] });
-    expect((await owner.query(api.games.schedule.get, { gameId: week1._id })).stars).toEqual([]);
+    expect((await owner.query(api.games.schedule.get, { gameId: week1._id }))?.stars).toEqual([]);
   });
 
   test("refuses blank or duplicate stars", async () => {

@@ -1,5 +1,5 @@
 import { useMutation } from "convex/react";
-import { CalendarOff, ImageUp, Pencil } from "lucide-react";
+import { CalendarOff, CalendarX2, ImageUp, Pencil } from "lucide-react";
 import { useRef, useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
@@ -29,12 +29,20 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
   const capture = useCapture();
   const swipeArea = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState(false);
-  const nav = <GameNav data={data} swipeArea={swipeArea} />;
+  const nav = <GameNav data={data ?? undefined} swipeArea={swipeArea} />;
 
   if (data === undefined) {
     return (
       <Page title="Game" back={{ to: "/schedule", label: "Schedule" }} actions={nav}>
         <Skeleton className="h-40 rounded-xl" />
+      </Page>
+    );
+  }
+
+  if (data === null) {
+    return (
+      <Page title="Game" back={{ to: "/schedule", label: "Schedule" }}>
+        <EmptyState icon={CalendarX2} title="Game not found" description="It was deleted or never existed." />
       </Page>
     );
   }

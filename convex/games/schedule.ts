@@ -49,25 +49,30 @@ export const bySeason = query({
 /** Everything the game detail screen shows, including neighbours for swipe and head-to-head history. */
 export const get = query({
   args: { gameId: v.id("games") },
-  returns: v.object({
-    game: vGameRow,
-    season: v.object({ _id: v.id("seasons"), year: v.number() }),
-    userTeam: schema.doc("teams"),
-    /** Header fields only the game screen shows (and its edit form needs). */
-    header: v.object({
-      stadium: v.union(v.string(), v.null()),
-      weather: v.union(v.string(), v.null()),
-      neutralSite: v.boolean(),
+  returns: v.union(
+    v.null(),
+    v.object({
+      game: vGameRow,
+      season: v.object({ _id: v.id("seasons"), year: v.number() }),
+      userTeam: schema.doc("teams"),
+      /** Header fields only the game screen shows (and its edit form needs). */
+      header: v.object({
+        stadium: v.union(v.string(), v.null()),
+        weather: v.union(v.string(), v.null()),
+        neutralSite: v.boolean(),
+      }),
+      stars: v.array(vStarView),
+      userRecordBefore: vWlt,
+      previousGameId: v.union(v.id("games"), v.null()),
+      nextGameId: v.union(v.id("games"), v.null()),
+      headToHead: v.object({ record: vWlt, games: v.array(vHeadToHeadGame) }),
     }),
-    stars: v.array(vStarView),
-    userRecordBefore: vWlt,
-    previousGameId: v.union(v.id("games"), v.null()),
-    nextGameId: v.union(v.id("games"), v.null()),
-    headToHead: v.object({ record: vWlt, games: v.array(vHeadToHeadGame) }),
-  }),
+  ),
   handler: async (ctx, { gameId }) => {
     await requireOwner(ctx);
-    const game = must(await ctx.db.get("games", gameId), "Game");
+    // Null rather than an error: an open game page outlives the game when it is deleted.
+    const game = await ctx.db.get("games", gameId);
+    if (!game) return null;
     const franchise = await activeFranchise(ctx);
     const season = must(await ctx.db.get("seasons", game.seasonId), "Season");
     const games = await seasonGames(ctx, game.seasonId);

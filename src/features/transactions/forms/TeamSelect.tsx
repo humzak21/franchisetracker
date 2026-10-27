@@ -8,16 +8,19 @@ export function TeamSelect({
   value,
   onChange,
   placeholder,
+  id,
   "aria-label": ariaLabel,
 }: {
   teams: readonly FormTeam[];
   value: Id<"teams"> | undefined;
   onChange: (teamId: Id<"teams">) => void;
   placeholder?: string;
+  id?: string;
   "aria-label"?: string;
 }) {
   return (
     <Select
+      id={id}
       aria-label={ariaLabel}
       value={value ?? ""}
       placeholder={placeholder}
