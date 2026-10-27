@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Camera, ImagePlus, LoaderCircle, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Camera, ImagePlus, LoaderCircle } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { INGESTION_TARGETS, suggestedWeek } from "@shared/ingestion/targets";
@@ -10,6 +10,9 @@ import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/errors";
 import { currentSeason, useFranchise } from "../franchise";
 import type { CapturePreset } from "./CaptureProvider";
+import { InboxPicker } from "./InboxPicker";
+import { SelectedShots } from "./SelectedShots";
+import { useAttachToGame } from "./useAttachToGame";
 import { useUploader } from "./useUploader";
 import { useQuery } from "@/lib/convex/useQuery";
 
@@ -52,7 +55,10 @@ function CaptureForm({
   const seasons = useMemo(() => active?.seasons ?? [], [active]);
   const navigate = useNavigate();
   const { upload } = useUploader();
+  const attach = useAttachToGame();
   const [files, setFiles] = useState<File[]>(initialFiles);
+  // Inbox sets picked for this game (only offered when the sheet was opened from a game).
+  const [picked, setPicked] = useState<string[]>([]);
   const [fields, setFields] = useState<CaptureFieldsValue<Id<"seasons">>>({
     targetKey: preset.targetKey ?? "game_box_score",
     seasonId: currentSeason(seasons)?._id ?? null,
@@ -84,18 +90,29 @@ function CaptureForm({
   const seasonScreen = fields.targetKey !== null && INGESTION_TARGETS[fields.targetKey].scope === "season";
   const context = { ...fields, weekKey: seasonScreen ? null : (fields.weekKey ?? suggested) };
 
-  const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
-  useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
-
   const add = (list: FileList | null) => setFiles((current) => [...current, ...Array.from(list ?? [])]);
-  const ready = files.length > 0 && (context.targetKey === null || captureReady(context, preset.gameLabel));
+  const chosen = files.length + picked.length;
+  const ready = chosen > 0 && (context.targetKey === null || captureReady(context, preset.gameLabel));
+  const source = initialFiles.length > 0 ? "dragdrop" : "web";
 
   const submit = async () => {
     setBusy(true);
     setError(null);
     try {
+      if (preset.gameId && fields.targetKey && picked.length > 0) {
+        const setKey = await attach({
+          gameId: preset.gameId,
+          targetKey: fields.targetKey,
+          setKeys: picked,
+          files,
+          source,
+        });
+        onDone();
+        void navigate({ to: "/inbox/$setKey", params: { setKey } });
+        return;
+      }
       const outcome = await upload(files, {
-        source: initialFiles.length > 0 ? "dragdrop" : "web",
+        source,
         targetKey: fields.targetKey ?? undefined,
         ...(preset.gameId
           ? { gameId: preset.gameId }
@@ -147,27 +164,11 @@ function CaptureForm({
           onChange={(e) => add(e.target.files)}
         />
       </div>
-      {files.length > 0 ? (
-        <ul className="grid grid-cols-4 gap-2" aria-label="Selected screenshots">
-          {previews.map((url, i) => (
-            <li key={url} className="relative aspect-[4/3] overflow-hidden rounded-lg border border-border">
-              <img src={url} alt={`Screenshot ${i + 1}`} className="size-full object-cover" />
-              <button
-                type="button"
-                aria-label={`Remove screenshot ${i + 1}`}
-                onClick={() => setFiles((current) => current.filter((_, j) => j !== i))}
-                className="absolute top-1 right-1 grid size-6 place-items-center rounded-full bg-black/60 text-white pointer-coarse:size-8"
-              >
-                <X className="size-3.5" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-center text-xs text-muted-foreground">
-          On the Mac you can also paste or drop screenshots anywhere in the app.
-        </p>
-      )}
+      <SelectedShots
+        files={files}
+        onRemove={(i) => setFiles((current) => current.filter((_, j) => j !== i))}
+      />
+      {preset.gameId && <InboxPicker selected={picked} onChange={setPicked} />}
       {error && <p className="text-sm text-loss">{error}</p>}
       <Button
         variant="primary"
@@ -177,9 +178,11 @@ function CaptureForm({
         onClick={() => void submit()}
       >
         {busy && <LoaderCircle className="animate-spin" />}
-        {files.length === 0
+        {chosen === 0
           ? "Add screenshots"
-          : `Upload ${files.length} screenshot${files.length === 1 ? "" : "s"}`}
+          : picked.length > 0
+            ? `Attach to this game (${picked.length} from inbox${files.length > 0 ? `, ${files.length} new` : ""})`
+            : `Upload ${files.length} screenshot${files.length === 1 ? "" : "s"}`}
       </Button>
     </div>
   );

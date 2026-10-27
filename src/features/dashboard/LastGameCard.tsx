@@ -4,14 +4,14 @@ import { weekLabel } from "@shared/domain";
 import { formatRecord } from "@shared/stats";
 import type { ActiveFranchise } from "@/app/franchise";
 import { EmptyState } from "@/components/data/EmptyState";
-import { ThreeStars } from "@/components/player/ThreeStars";
+import { GameStars } from "@/components/player/GameStars";
 import { ScoreBug, type ScoreBugSide } from "@/components/team/ScoreBug";
 import { Button } from "@/components/ui/button";
 import type { DashboardGame } from "./types";
 
 const SNIPPET = 160;
 
-/** The most recent result (FEATURES.md 5.1): score bug, three stars and the start of the notes. */
+/** The most recent result (FEATURES.md 5.1): score bug, stars and the start of the notes. */
 export function LastGameCard({ game, active }: { game: DashboardGame | null; active: ActiveFranchise }) {
   if (!game?.opponent || game.us === null || game.them === null) {
     return (
@@ -46,7 +46,9 @@ export function LastGameCard({ game, active }: { game: DashboardGame | null; act
           userTeam={active.userTeam.abbr}
         />
       </Link>
-      {game.stars.length > 0 && <ThreeStars stars={game.stars} team={active.userTeam} />}
+      {game.stars.length > 0 && (
+        <GameStars stars={game.stars} team={active.userTeam} opponent={game.opponent} />
+      )}
       {notes && <p className="text-sm text-muted-foreground">{notes}</p>}
       <Button asChild variant="ghost" size="sm">
         <Link to="/games/$gameId" params={{ gameId: game._id }}>
