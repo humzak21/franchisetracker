@@ -101,6 +101,104 @@ describe("league schedule", () => {
     ]);
   });
 
+  test("other teams' records follow the scores, never rolling back a fuller captured record", async () => {
+    const { t, owner, seasonId } = await setup();
+    const record = (abbr: string) =>
+      t.run(async (ctx) => {
+        const team = await ctx.db
+          .query("teams")
+          .withIndex("by_abbr", (q) => q.eq("abbr", abbr))
+          .unique();
+        return await ctx.db
+          .query("standings")
+          .withIndex("by_seasonId_and_teamId", (q) => q.eq("seasonId", seasonId).eq("teamId", team!._id))
+          .unique();
+      });
+    const enter = async (awayScore: number, homeScore: number) => {
+      const draftId = await owner.mutation(api.ingestion.manual.create, {
+        targetKey: "league_schedule",
+        seasonId,
+        weekKey: "w2",
+      });
+      const entry = (await owner.query(api.ingestion.manual.get, { draftId }))!;
+      if (!("rows" in entry.draft)) throw new Error("not a row draft");
+      const row = emptyRow(rowTarget("league_schedule").spec, entry.draft);
+      const values = { ...row.values, awayTeam: "SF", homeTeam: "LAC", awayScore, homeScore };
+      await owner.mutation(api.ingestion.manualCommit.commit, {
+        draftId,
+        draft: { ...entry.draft, meta: { week: null }, rows: [{ ...row, values }] },
+      });
+    };
+    const miamiBefore = await record("MIA");
+
+    await enter(23, 20);
+    expect(await record("SF")).toMatchObject({
+      w: 1,
+      l: 0,
+      t: 0,
+      pointsFor: 23,
+      pointsAgainst: 20,
+      source: "derived",
+    });
+    expect(await record("LAC")).toMatchObject({ w: 0, l: 1, t: 0, pointsFor: 20, pointsAgainst: 23 });
+
+    // A corrected score replaces the game rather than adding another.
+    await enter(23, 27);
+    expect(await record("SF")).toMatchObject({ w: 0, l: 1, pointsFor: 23, pointsAgainst: 27 });
+    expect(await record("LAC")).toMatchObject({ w: 1, l: 0 });
+
+    // The user team's opponents pick up those games too (the sample opens with a win over Las Vegas).
+    expect((await record("LV"))!.l).toBeGreaterThanOrEqual(1);
+    // A captured standings record that covers more games than the known scores stays as captured.
+    expect(miamiBefore).not.toBeNull();
+    expect(await record("MIA")).toMatchObject({
+      w: miamiBefore!.w,
+      l: miamiBefore!.l,
+      source: miamiBefore!.source,
+    });
+    // The user team's own record stays its season's.
+    const ne = await record("NE");
+    expect(ne?.source).not.toBe("derived");
+  });
+
+  test("the backfill works out records for scores captured earlier, and again changes nothing", async () => {
+    const { t, seasonId } = await setup();
+    await t.run(async (ctx) => {
+      const [sf, lac] = await Promise.all(
+        ["SF", "LAC"].map((abbr) =>
+          ctx.db
+            .query("teams")
+            .withIndex("by_abbr", (q) => q.eq("abbr", abbr))
+            .unique(),
+        ),
+      );
+      const franchise = (await ctx.db.get("seasons", seasonId))!.franchiseId;
+      await ctx.db.insert("leagueGames", {
+        franchiseId: franchise,
+        seasonId,
+        weekKey: "w3",
+        awayTeamId: sf!._id,
+        homeTeamId: lac!._id,
+        awayScore: 14,
+        homeScore: 10,
+      });
+    });
+    const standings = () =>
+      t.run((ctx) =>
+        ctx.db
+          .query("standings")
+          .withIndex("by_seasonId_and_teamId", (q) => q.eq("seasonId", seasonId))
+          .take(64),
+      );
+    expect(await t.mutation(internal.league.records.refreshAll, {})).toBeGreaterThan(0);
+    const once = await standings();
+    expect(once.filter((r) => r.source === "derived").length).toBeGreaterThanOrEqual(2);
+    await t.mutation(internal.league.records.refreshAll, {});
+    const twice = await standings();
+    const strip = (rows: typeof once) => rows.map(({ _creationTime, ...r }) => r);
+    expect(strip(twice)).toEqual(strip(once));
+  });
+
   test("strangers cannot read league scores", async () => {
     const { t, seasonId } = await setup();
     const stranger = await asStranger(t);
