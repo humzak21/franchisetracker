@@ -1,15 +1,20 @@
 import { Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { CircleCheck, CircleX, LoaderCircle, Replace, Tag } from "lucide-react";
+import { CircleCheck, CircleX, LoaderCircle, Replace, RotateCcw, Square, Tag } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { api } from "@convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { useNow } from "@/lib/hooks/useNow";
+import { formatElapsed } from "@/lib/time";
 import { TagSheet } from "../inbox/TagSheet";
 import { RerunSheet } from "./RerunSheet";
 
 type Review = FunctionReturnType<typeof api.ingestion.review.get>;
+
+/** A read past this is probably stuck, so the banner says so and points at Stop and Restart. */
+const SLOW_READ_MS = 3 * 60_000;
 
 function Banner({
   tone,
@@ -43,16 +48,42 @@ function Banner({
 /** Where the set stands: reading, failed, untagged, committed, or about to replace an earlier commit. */
 export function StatusBanner({ data }: { data: Review }) {
   const extract = useMutation(api.ingestion.uploads.extract);
+  const stop = useMutation(api.ingestion.uploads.stop);
   const [tagging, setTagging] = useState(false);
   const [rerun, setRerun] = useState(false);
   const { status, game } = data;
+  const now = useNow(1000, status === "extracting");
 
   if (status === "extracting") {
+    const started = data.extractionStartedAt;
+    const slow = started !== null && now - started > SLOW_READ_MS;
     return (
-      <Banner tone="info" icon={<LoaderCircle className="animate-spin text-primary" />}>
-        Reading {data.images.length} screenshot{data.images.length === 1 ? "" : "s"}. This takes a few seconds
-        per screen.
-      </Banner>
+      <>
+        <Banner
+          tone={slow ? "warn" : "info"}
+          icon={<LoaderCircle className="animate-spin text-primary" />}
+          action={
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => void stop({ setKeys: [data.setKey] })}>
+                <Square /> Stop
+              </Button>
+              <Button size="sm" onClick={() => void extract({ setKey: data.setKey })}>
+                <RotateCcw /> Restart
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setRerun(true)}>
+                Other model
+              </Button>
+            </div>
+          }
+        >
+          Reading {data.images.length} screenshot{data.images.length === 1 ? "" : "s"}
+          {started !== null && <span className="num"> · {formatElapsed(started, now)}</span>}.{" "}
+          {slow
+            ? "This is taking longer than usual. Stop it, or restart with the same or another model."
+            : "This takes a few seconds per screen."}
+        </Banner>
+        <RerunSheet setKey={data.setKey} open={rerun} onOpenChange={setRerun} />
+      </>
     );
   }
   if (status === "failed") {

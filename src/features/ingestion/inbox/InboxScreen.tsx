@@ -1,5 +1,5 @@
 import { useMutation } from "convex/react";
-import { CheckSquare, Inbox, Tag, Trash2, X } from "lucide-react";
+import { CheckSquare, Inbox, RotateCcw, Square, Tag, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
 import { useCapture } from "@/app/capture/CaptureProvider";
@@ -21,6 +21,8 @@ export function InboxScreen() {
   const sets = useQuery(api.ingestion.inbox.list, {});
   const reject = useMutation(api.ingestion.uploads.reject);
   const remove = useMutation(api.ingestion.uploads.remove);
+  const stop = useMutation(api.ingestion.uploads.stop);
+  const extract = useMutation(api.ingestion.uploads.extract);
   const { open: openCapture, queued } = useCapture();
   const [filter, setFilter] = useState<InboxFilter>("todo");
   const [selecting, setSelecting] = useState(false);
@@ -34,6 +36,10 @@ export function InboxScreen() {
     return { todo, done: (sets?.length ?? 0) - todo };
   }, [sets]);
   const chosen = visible.filter((s) => selected.has(s.setKey));
+  const reading = chosen.filter((s) => s.status === "extracting");
+  const retryable = chosen.filter((s) => s.status === "failed" && s.targetKey !== null);
+  const readAgain = () =>
+    void Promise.all(retryable.map((s) => extract({ setKey: s.setKey }))).then(stopSelecting);
 
   const stopSelecting = () => {
     setSelecting(false);
@@ -134,9 +140,25 @@ export function InboxScreen() {
         <div className="pb-safe fixed inset-x-0 bottom-[calc(8.75rem+env(safe-area-inset-bottom))] z-40 mx-auto w-[min(100%-2rem,36rem)] sm:bottom-6">
           <div className="shadow-elevated flex items-center gap-2 rounded-2xl border border-border-strong bg-surface p-2">
             <span className="num flex-1 px-2 text-sm font-medium">{chosen.length} selected</span>
-            <Button size="sm" variant="primary" onClick={() => setTagging(true)}>
-              <Tag /> Tag
-            </Button>
+            {reading.length > 0 ? (
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={() => void stop({ setKeys: reading.map((s) => s.setKey) }).then(stopSelecting)}
+              >
+                <Square /> Stop
+              </Button>
+            ) : (
+              <Button size="sm" variant="primary" onClick={() => setTagging(true)}>
+                <Tag /> Tag
+              </Button>
+            )}
+            {retryable.length > 0 && reading.length === 0 && (
+              // Icon only: the bar has room for four labelled actions on a phone, not five.
+              <Button size="sm" aria-label="Read again" title="Read again" onClick={readAgain}>
+                <RotateCcw />
+              </Button>
+            )}
             <Button
               size="sm"
               onClick={() => void reject({ setKeys: chosen.map((s) => s.setKey) }).then(stopSelecting)}

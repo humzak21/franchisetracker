@@ -23,6 +23,11 @@ export const ingestionTables = {
      */
     setKey: v.optional(v.string()),
     status: vUploadStatus,
+    /**
+     * When the current extraction run started. It names the run: an answer or a timeout from a
+     * run that was stopped or restarted since no longer matches and is dropped.
+     */
+    extractionStartedAt: v.optional(v.number()),
     error: v.optional(v.string()),
     createdAt: v.number(),
   })

@@ -21,5 +21,22 @@ export function modelSettings(franchise: Doc<"franchises">): ModelSettings {
   };
 }
 
+/** Saved presets a franchise keeps at most; the pickers stay a short list. */
+export const MAX_PRESETS = 30;
+
+/**
+ * The models the pickers offer, defaults first, then saved presets, then whatever is in use if
+ * it was saved before presets existed. `saved` marks the ones the user can remove.
+ */
+export function modelPresets(franchise: Doc<"franchises">): { model: string; saved: boolean }[] {
+  const saved = franchise.settings.models?.presets ?? [];
+  const { primary, fallback } = modelSettings(franchise);
+  const out = new Map<string, boolean>();
+  for (const model of [DEFAULT_MODELS.primary, DEFAULT_MODELS.fallback]) out.set(model, false);
+  for (const model of saved) if (!out.has(model)) out.set(model, true);
+  for (const model of [primary, fallback]) if (!out.has(model)) out.set(model, false);
+  return [...out].map(([model, isSaved]) => ({ model, saved: isSaved }));
+}
+
 /** The model label stored on extractions produced without OpenRouter on a local test deployment. */
 export const FIXTURE_MODEL = "local/fixture";

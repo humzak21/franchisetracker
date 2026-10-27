@@ -102,3 +102,25 @@ test("Shortcut tokens can be created and revoked", async ({ page }, info) => {
   await row.getByRole("button", { name: "Revoke" }).click();
   await expect(row).toHaveCount(0);
 });
+
+test("a saved model shows up in the model pickers and can be removed", async ({ page }, info) => {
+  await page.goto("/settings");
+  const model = `e2e/${info.project.name}-${Date.now()}`;
+  await page.getByLabel("Model to save").fill(model);
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  const saved = page
+    .getByRole("list", { name: "Saved models" })
+    .getByRole("listitem")
+    .filter({ hasText: model });
+  await expect(saved).toBeVisible();
+  await expect(
+    page.getByLabel("Fallback model", { exact: true }).locator(`option[value="${model}"]`),
+  ).toHaveCount(1);
+  await expectNoHorizontalOverflow(page);
+
+  await saved.getByRole("button", { name: `Remove ${model}` }).click();
+  await expect(saved).toHaveCount(0);
+  await expect(
+    page.getByLabel("Fallback model", { exact: true }).locator(`option[value="${model}"]`),
+  ).toHaveCount(0);
+});

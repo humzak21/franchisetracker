@@ -35,7 +35,18 @@ export function readyToExtract(upload: Doc<"uploads">): boolean {
   return INGESTION_TARGETS[upload.targetKey].scope === "season" || upload.weekKey !== undefined;
 }
 
-/** Marks a set as extracting and schedules the extraction action. */
+/**
+ * How long a run may spend on model calls. Convex stops an action at 10 minutes without running
+ * its error handling, so the run gives up first and reports why.
+ */
+export const RUN_BUDGET_MS = 9 * 60_000;
+/** When the watchdog first looks at a run: just past the 10 minutes Convex allows an action. */
+const WATCHDOG_MS = 11 * 60_000;
+
+/**
+ * Marks a set as extracting and schedules the extraction action, with a watchdog for a run that
+ * never reports back. Starting again while a run is going restarts it: the old run's answer is dropped.
+ */
 export async function startExtraction(
   ctx: MutationCtx,
   uploads: readonly Doc<"uploads">[],
@@ -45,10 +56,22 @@ export async function startExtraction(
   if (!first?.setKey) throw invalid("Nothing to extract");
   if (!readyToExtract(first)) throw invalid("Tag the screenshots with what they show and when first");
   if (uploads.some((u) => u.status === "committed")) throw invalid("This set is already committed");
+  const startedAt = Date.now();
   for (const upload of uploads) {
-    await ctx.db.patch("uploads", upload._id, { status: "extracting", error: undefined });
+    await ctx.db.patch("uploads", upload._id, {
+      status: "extracting",
+      error: undefined,
+      extractionStartedAt: startedAt,
+    });
   }
-  await ctx.scheduler.runAfter(0, internal.ingestion.extract.run, { setKey: first.setKey, model });
+  const run = { setKey: first.setKey, startedAt };
+  const runId = await ctx.scheduler.runAfter(0, internal.ingestion.extract.run, { ...run, model });
+  await ctx.scheduler.runAfter(WATCHDOG_MS, internal.ingestion.jobs.expire, { ...run, runId });
+}
+
+/** The run a set's uploads belong to, if it is still extracting. */
+export function isCurrentRun(upload: Doc<"uploads">, startedAt: number): boolean {
+  return upload.status === "extracting" && upload.extractionStartedAt === startedAt;
 }
 
 /** The status a set shows: the least advanced of its uploads' statuses. */
