@@ -10,7 +10,7 @@ import { fixtureAnswer } from "./fixture";
 const modules = import.meta.glob("/convex/**/*.ts");
 
 /** A box score set uploaded with full context, so it is extracting with its run not yet started. */
-async function setup() {
+async function setup(screenshots = 2) {
   const t = convexTest(schema, modules);
   await t.mutation(internal.league.seed.seedTeams, {});
   await t.mutation(internal.dev.fixtures.seedFixtures, {});
@@ -20,7 +20,7 @@ async function setup() {
   const image = () =>
     t.run((ctx) => ctx.storage.store(new Blob([new Uint8Array(64)], { type: "image/png" })));
   const [setKey] = await owner.mutation(api.ingestion.uploads.create, {
-    storageIds: [await image(), await image()],
+    storageIds: await Promise.all(Array.from({ length: screenshots }, image)),
     source: "web",
     targetKey: "game_box_score",
     seasonId,
@@ -97,6 +97,24 @@ describe("extraction runs", () => {
     await runAll();
     expect(images).toHaveLength(2);
     for (const url of images) expect(url).toMatch(/^https:\/\//);
+  });
+
+  test("a big box score is read a few screenshots per request and merged into one draft", async () => {
+    const { calls, images } = stubOpenRouter();
+    const single = await setup();
+    await single.runAll();
+    const one = await single.owner.query(api.ingestion.review.get, { setKey: single.setKey });
+    calls.length = 0;
+    images.length = 0;
+
+    const { owner, setKey, runAll } = await setup(8);
+    await runAll();
+    expect(calls).toHaveLength(3);
+    expect(images).toHaveLength(8);
+    const merged = await owner.query(api.ingestion.review.get, { setKey });
+    expect(merged.status).toBe("review");
+    // Every chunk answered the same box score, so the merge is that one box score again.
+    expect(merged.extraction?.draft).toEqual(one.extraction?.draft);
   });
 
   test("the watchdog fails a run that never reported back, and the set can be read again", async () => {

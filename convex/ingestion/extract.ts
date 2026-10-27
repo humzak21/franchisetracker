@@ -4,6 +4,7 @@
  * resolve player names against the rosters, validate, and store a draft for review.
  */
 import { v } from "convex/values";
+import { chunkImages, mergeAnswers } from "../../shared/ingestion/chunks";
 import { matchPlayer } from "../../shared/ingestion/nameMatch";
 import { buildPrompt } from "../../shared/ingestion/prompt";
 import type { Normalized } from "../../shared/ingestion/normalize";
@@ -71,7 +72,7 @@ export const run = internalAction({
   },
 });
 
-/** Calls at once when a row set is read screenshot by screenshot. */
+/** Requests at once when a set takes several (a list screenshot by screenshot, a big box score). */
 const PARALLEL_READS = 4;
 
 type Usage = VisionResult["usage"];
@@ -91,28 +92,28 @@ const addUsage = (a: Usage, b: Usage): Usage =>
         };
 
 /**
- * Reads the set. A game screen's shots go to the model together (one box score); a list's shots
- * are read one at a time and merged, the union of their rows, so a list can run to any length.
+ * Reads the set. A game screen's shots go to the model together (one box score), a few per
+ * request to stay under provider size caps, and the answers merge into one before normalizing;
+ * a list's shots are read one at a time and merged, the union of their rows, so a list can run
+ * to any length.
  */
 async function read(ctx: ActionCtx, job: Job, model: string | undefined) {
   const { targetKey } = job;
-  if (!isRowTarget(targetKey)) {
-    const result = await answer(ctx, job, job.images, model);
-    return {
-      normalized: normalizeFor(targetKey, result.json),
-      last: result,
-      usage: result.usage,
-      latencyMs: result.latencyMs,
-    };
-  }
+  const rows = isRowTarget(targetKey);
+  const requests = rows ? job.images.map((image) => [image]) : chunkImages(job.images);
   const results: VisionResult[] = [];
-  for (let i = 0; i < job.images.length; i += PARALLEL_READS) {
-    const batch = job.images.slice(i, i + PARALLEL_READS);
-    results.push(...(await Promise.all(batch.map((image) => answer(ctx, job, [image], model)))));
+  for (let i = 0; i < requests.length; i += PARALLEL_READS) {
+    const batch = requests.slice(i, i + PARALLEL_READS);
+    results.push(...(await Promise.all(batch.map((images) => answer(ctx, job, images, model)))));
   }
-  const parts = results.map((r) => normalizeFor(targetKey, r.json) as Normalized<RowTargetDraft>);
+  const normalized = rows
+    ? mergeFor(
+        targetKey,
+        results.map((r) => normalizeFor(targetKey, r.json) as Normalized<RowTargetDraft>),
+      )
+    : normalizeFor(targetKey, mergeAnswers(results.map((r) => r.json)));
   return {
-    normalized: mergeFor(targetKey, parts),
+    normalized,
     last: results.at(-1)!,
     usage: results.reduce<Usage>((sum, r) => addUsage(sum, r.usage), undefined),
     latencyMs: results.reduce((n, r) => n + r.latencyMs, 0),
