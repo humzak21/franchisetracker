@@ -4,7 +4,7 @@
  */
 import { aggregateLines, computeDerived } from "./aggregate";
 import { RAW_STATS, type RawStatKey, type StatLine } from "./registry";
-import { gameHighlights } from "./thresholds";
+import { gameThresholdsMet } from "./thresholds";
 
 export type StatMap = Record<string, number>;
 
@@ -13,7 +13,7 @@ export type GamesSummary = {
   totals: StatLine;
   /** Derived stats and per-game rates; nulls (no attempts) are left out. */
   averages: StatMap;
-  /** Threshold games met, keyed by `GAME_THRESHOLDS` key. */
+  /** Threshold games met (inclusively), keyed by `GAME_THRESHOLDS` key. */
   thresholdCounts: StatMap;
   /** Best single game per summed raw stat. */
   bests: StatMap;
@@ -33,7 +33,7 @@ export function summarizeGames(lines: readonly StatLine[]): GamesSummary {
   const thresholdCounts: StatMap = {};
   const bests: StatMap = {};
   for (const line of lines) {
-    for (const t of gameHighlights(line)) thresholdCounts[t.key] = (thresholdCounts[t.key] ?? 0) + 1;
+    for (const t of gameThresholdsMet(line)) thresholdCounts[t.key] = (thresholdCounts[t.key] ?? 0) + 1;
     for (const key of Object.keys(line) as RawStatKey[]) {
       const value = line[key];
       if (value === undefined || RAW_STATS[key].aggregation !== "sum") continue;

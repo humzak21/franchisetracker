@@ -10,3 +10,5 @@ export * from "./groups";
 export * from "./milestones";
 export * from "./records";
 export * from "./streaks";
+export * from "./singleGame";
+export * from "./seasonHighs";
