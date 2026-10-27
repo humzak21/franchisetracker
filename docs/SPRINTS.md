@@ -258,6 +258,36 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 ---
 
+## Sprint 10 — Everything editable, moves, goals (L)
+
+**Goal:** nothing the app shows is out of the owner's reach: every move of the league year is recorded, every number can be corrected in place, and anything a screenshot does can be typed.
+
+- Trades (two teams, players and picks by round, a note), free agent signings and every other move, with when they happened; rosters and pick ownership follow.
+- Inline editing behind an Edit button on every table: roster, player history, box scores, team stats, game logs; edit every player fact; move players by hand; create players and games.
+- A manual counterpart for every screenshot target; a league schedule / scores target.
+- Stats: big-game counts that always show per position group, 158.3s, and a season high per stat linked to its game.
+- Roster: offense, defense and special teams tables, a color per position family, averages per side.
+- Game stars picked by hand; schedule cards with every star and the full notes; a game's import sheet can use inbox screenshots.
+- Pre-season goals, tracked on Home and Stats. Delete any franchise with two confirmations. Real NFL history from 1999.
+
+**Done when:** a whole offseason (re-signings, free agency, the draft, trades) and a season can be kept with or without screenshots, and any wrong number can be fixed where it is shown, on either device.
+
+**As built:**
+
+- `DataTable` has an edit mode: a column with `edit` (number, text or select) becomes an input after Edit and saves per cell through the screen's `onEdit`, in the table and the phone's expansion cards. Roster, roster history, box score and game log use it.
+- Moves are recorded from Transactions (`convex/transactions/moves.ts`). The roster and pick changes a move implies are planned in `shared/transactions/` and stored on the transaction field by field, so editing or deleting a move undoes only values it still owns and leaves later manual edits alone. Trades are stored from the user team's side; the old team's roster entry becomes "Traded away" as of the week. Phases (`TRANSACTION_PHASES`) order the feed before weeks.
+- A manual Move (roster row or player page) changes team or status without a transaction; Add player creates a player with a roster entry.
+- Season rows materialize `bestGames` (value, game and week per stat); rates count only with volume (`SINGLE_GAME_MINIMUMS`). The count columns per group are declared in `shared/stats/groups.ts`. After deploying, `npx convex run stats/rebuild:all` rebuilds existing season rows.
+- Stars are never extracted; `games/stars` picks them. Games are created, edited and deleted in `games/manage`; stat lines in `games/statLines`. Every edit runs the same refresh as a committed box score.
+- Manual entries live in `manualDrafts` (not backed up, never corrections) and commit through `convex/ingestion/commitDraft.ts`, shared with review. Empty drafts come from the targets registry.
+- `league_schedule` reads Madden's week schedule into `leagueGames`; League → Scores shows it.
+- Goals (`seasonGoals`, `shared/seasons/goals.ts`) are hit, missed, in progress or pending; missed only once settled; a manual outcome wins.
+- Deleting the active franchise activates the one used before it (`franchises.lastActiveAt`) and clears its offline cache.
+- 1999–2001 standings are derived from nflverse schedules with seeds read from the playoff games, shown in that era's six divisions (`shared/league/alignment.ts`). Existing franchises add them from Settings or `npx convex run history/importJob:importEarlierYears`. Options before 1999 are in `docs/NFL-HISTORY.md`.
+- Built by parallel builders on disjoint areas over a shared foundation commit, then merged.
+
+---
+
 ## Later (not scheduled)
 
 - Scoring plays and drive charts if a Madden screen provides them cleanly.
