@@ -4,10 +4,12 @@
  * plan and progress for Settings; every step checks `run` so a restart supersedes old steps.
  */
 import { v } from "convex/values";
+import { earlierRange, rangeStep } from "../../shared/history/importPlan";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { must } from "../lib/errors";
+import { literals } from "../lib/validators";
 
 /** A running job older than this is assumed dead (its action timed out) and may be restarted. */
 export const STALE_IMPORT_MS = 30 * 60_000;
@@ -29,11 +31,14 @@ export async function importFor(ctx: QueryCtx, franchiseId: Id<"franchises">) {
     .first();
 }
 
+const isLive = (job: Doc<"historyImports"> | null, now: number) =>
+  job?.status === "running" && now - job.startedAt < STALE_IMPORT_MS;
+
 /** Starts (or restarts) the import. False when a live run is already going. */
 export async function startImport(ctx: MutationCtx, franchiseId: Id<"franchises">): Promise<boolean> {
   const job = await importFor(ctx, franchiseId);
   const now = Date.now();
-  if (job?.status === "running" && now - job.startedAt < STALE_IMPORT_MS) return false;
+  if (isLive(job, now)) return false;
   const run = (job?.run ?? 0) + 1;
   const fields = {
     franchiseId,
@@ -53,6 +58,54 @@ export async function startImport(ctx: MutationCtx, franchiseId: Id<"franchises"
   });
   return true;
 }
+
+const vEarlierStart = literals(["started", "running", "up_to_date"]);
+export type EarlierStart = typeof vEarlierStart.type;
+
+/**
+ * Imports the seasons nflverse covers before the first one this franchise has (1999–2001 for an
+ * import that ran when coverage started in 2002), leaving everything already imported alone:
+ * counts keep adding up and the last year stays.
+ */
+export async function startEarlierImport(
+  ctx: MutationCtx,
+  franchiseId: Id<"franchises">,
+): Promise<EarlierStart> {
+  const job = await importFor(ctx, franchiseId);
+  const now = Date.now();
+  if (isLive(job, now)) return "running";
+  const range = earlierRange(job?.firstYear);
+  if (!job || !range) return "up_to_date";
+  const run = job.run + 1;
+  const step = rangeStep("seasons", range);
+  await ctx.db.patch("historyImports", job._id, {
+    run,
+    status: "running",
+    plan: [step],
+    stepsDone: 0,
+    startedAt: now,
+    finishedAt: undefined,
+    error: undefined,
+  });
+  await ctx.scheduler.runAfter(0, internal.history.nflverseImport.runStep, { franchiseId, run, step });
+  return "started";
+}
+
+/**
+ * The earlier-years import for the active franchise from the CLI
+ * (`npx convex run history/importJob:importEarlierYears`).
+ */
+export const importEarlierYears = internalMutation({
+  args: {},
+  returns: v.union(vEarlierStart, v.literal("no_franchise")),
+  handler: async (ctx) => {
+    const franchise = await ctx.db
+      .query("franchises")
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .first();
+    return franchise ? await startEarlierImport(ctx, franchise._id) : "no_franchise";
+  },
+});
 
 /**
  * Starts the import for the active franchise from the CLI (`npx convex run history/importJob:restart`),
