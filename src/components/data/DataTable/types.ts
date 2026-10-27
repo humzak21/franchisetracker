@@ -1,7 +1,17 @@
 import type { ReactNode } from "react";
 import type { StatKey } from "@shared/stats";
+import type { SelectOption } from "@/components/ui/select";
 
 export type ColumnAlign = "left" | "right" | "center";
+
+/** A cell's new value from edit mode: `null` clears it. */
+export type EditValue = string | number | null;
+
+/** How a column's cells edit when the table is in edit mode. */
+export type ColumnEdit<T> =
+  | { kind: "number"; get: (row: T) => number | null | undefined; min?: number; max?: number; step?: number }
+  | { kind: "text"; get: (row: T) => string | null | undefined; placeholder?: string }
+  | { kind: "select"; get: (row: T) => string | null | undefined; options: readonly SelectOption[] };
 
 /**
  * A DataTable column. Declarative on purpose: screens describe columns, the table decides how
@@ -27,6 +37,8 @@ export type DataColumn<T> = {
   searchable?: boolean;
   /** Minimum width in px. */
   minWidth?: number;
+  /** Editable in edit mode (the table needs `onEdit`). */
+  edit?: ColumnEdit<T>;
 };
 
 export type DataTableProps<T> = {
@@ -47,6 +59,13 @@ export type DataTableProps<T> = {
   /** Show the sort and column picker. Off for short reference grids where every column fits. */
   columnOptions?: boolean;
   onRowClick?: (row: T) => void;
+  /**
+   * Saves one edited cell. Passing it adds an Edit button that turns every column with `edit`
+   * into inputs, in the table and in the phone's expansion cards. Rejecting shows the error.
+   */
+  onEdit?: (row: T, columnId: string, value: EditValue) => Promise<unknown> | void;
+  /** Rows that stay read-only in edit mode (a computed row, another team's player). */
+  canEditRow?: (row: T) => boolean;
   emptyState?: ReactNode;
   /** Number of skeleton rows while `data` is undefined. */
   loadingRows?: number;
@@ -54,5 +73,7 @@ export type DataTableProps<T> = {
   className?: string;
 };
 
-export type StatColumnOptions = Partial<Omit<DataColumn<never>, "value" | "cell">> & { highlight?: boolean };
+export type StatColumnOptions = Partial<Omit<DataColumn<never>, "value" | "cell" | "edit">> & {
+  highlight?: boolean;
+};
 export type StatColumnMeta = { stat: StatKey; highlight: boolean };

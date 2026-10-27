@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { GRADE_AFTER_SEASONS } from "@shared/draft/grade";
 import { EmptyState } from "@/components/data/EmptyState";
+import { ManualEntryLink } from "@/components/forms/ManualEntryLink";
 import { Section } from "@/components/layout/Section";
 import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/misc";
@@ -43,7 +44,8 @@ export function DraftClassView({ seasonId }: { seasonId: Id<"seasons"> }) {
         <EmptyState
           icon={ClipboardList}
           title={`No ${who === "ours" ? "picks of ours" : "picks"} in the ${data.year} draft`}
-          description="Capture the draft results screen; real drafts before the franchise import on their own."
+          description="Capture the draft results screen or type the picks in; real drafts before the franchise import on their own."
+          action={<ManualEntryLink target="draft_results" seasonId={seasonId} label="Enter picks" />}
         />
       ) : (
         rounds.map((round) => (

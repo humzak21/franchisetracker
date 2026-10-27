@@ -4,13 +4,14 @@
  */
 import { v } from "convex/values";
 import { weekIndex, type WeekKey } from "../../shared/domain";
+import { resolvePhase, sortByTiming } from "../../shared/transactions";
 import type { Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { invalid, must } from "../lib/errors";
 import { activeFranchise, playersById, teamsById } from "../lib/franchise";
 import { headshotUrls, toTeamRef, vTeamRef } from "../lib/refs";
-import { vContract, vPosition, vTransactionType, vWeekKey } from "../lib/validators";
+import { vContract, vPosition, vTransactionPhase, vTransactionType, vWeekKey } from "../lib/validators";
 
 /** A season's league-wide log, with headroom. */
 const MAX_ROWS = 1000;
@@ -22,9 +23,15 @@ const vPerson = v.object({
   position: v.optional(vPosition),
   headshotUrl: v.union(v.string(), v.null()),
 });
-const vPick = v.object({ year: v.number(), round: v.number(), origin: v.optional(v.string()) });
+const vPick = v.object({
+  year: v.number(),
+  round: v.number(),
+  originTeamId: v.optional(v.id("teams")),
+  /** The original team's abbreviation when it was not the team sending it. */
+  origin: v.optional(v.string()),
+});
 
-/** Offseason moves (no week) come first, then the season in week order. */
+/** Injuries without a week come first, then the season in week order. */
 const order = (w: WeekKey | undefined) => (w ? weekIndex(w) : -1);
 
 export const bySeason = query({
@@ -33,6 +40,7 @@ export const bySeason = query({
     v.object({
       _id: v.id("transactions"),
       type: vTransactionType,
+      phase: vTransactionPhase,
       weekKey: v.optional(vWeekKey),
       team: v.union(vTeamRef, v.null()),
       counterpart: v.union(vTeamRef, v.null()),
@@ -68,34 +76,38 @@ export const bySeason = query({
         headshotUrl: p ? (photos.get(p._id) ?? null) : null,
       };
     };
-    const pick = (p: { year: number; round: number; originTeamId?: Id<"teams"> }) => ({
-      year: p.year,
-      round: p.round,
-      origin: p.originTeamId ? teams.get(p.originTeamId)?.abbr : undefined,
-    });
-    return rows
-      .map((t) => {
+    const pick =
+      (sender: Id<"teams"> | undefined) =>
+      (p: { year: number; round: number; originTeamId?: Id<"teams"> }) => ({
+        year: p.year,
+        round: p.round,
+        originTeamId: p.originTeamId,
+        origin: p.originTeamId && p.originTeamId !== sender ? teams.get(p.originTeamId)?.abbr : undefined,
+      });
+    return sortByTiming(
+      rows.map((t) => {
         const teamId = t.teamId ?? franchise.userTeamId;
         const team = teams.get(teamId);
         const counterpart = t.counterpartTeamId ? teams.get(t.counterpartTeamId) : undefined;
         return {
           _id: t._id,
           type: t.type,
+          phase: resolvePhase(t.phase, t.weekKey),
           weekKey: t.weekKey,
           team: team ? toTeamRef(team) : null,
           counterpart: counterpart ? toTeamRef(counterpart) : null,
           isUser: teamId === franchise.userTeamId,
           playersIn: t.playersIn.map(person),
           playersOut: t.playersOut.map(person),
-          picksIn: t.picksIn.map(pick),
-          picksOut: t.picksOut.map(pick),
+          picksIn: t.picksIn.map(pick(t.counterpartTeamId)),
+          picksOut: t.picksOut.map(pick(teamId)),
           contract: t.contract,
           capEffect: t.capEffect,
           notes: t.notes,
           retrospective: t.retrospective,
         };
-      })
-      .sort((a, b) => order(a.weekKey) - order(b.weekKey));
+      }),
+    );
   },
 });
 

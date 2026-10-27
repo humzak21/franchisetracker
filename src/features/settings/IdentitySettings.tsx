@@ -19,7 +19,7 @@ function Who({ side }: { side: Side }) {
     <Link
       to="/players/$playerId"
       params={{ playerId: side.playerId }}
-      className="inline-flex min-w-0 items-center gap-1.5 hover:text-primary"
+      className="inline-flex min-w-0 items-center gap-1.5 hover:text-primary pointer-coarse:touch-target"
     >
       <PositionBadge position={side.position} />
       <span className="truncate font-medium">{side.displayName}</span>

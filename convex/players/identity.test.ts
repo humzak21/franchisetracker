@@ -84,7 +84,10 @@ describe("players/identity", () => {
   test("renaming keeps the old name as an alias; aliases are tidied", async () => {
     const { owner, id } = await seeded();
     const playerId = id("Hunter Henry");
-    await owner.mutation(api.players.identity.setName, { playerId, displayName: "Hunter  Henry III" });
+    await owner.mutation(api.players.player.update, {
+      playerId,
+      patch: { displayName: "Hunter  Henry III" },
+    });
     const { player } = await owner.query(api.players.player.get, { playerId });
     expect(player).toMatchObject({
       firstName: "Hunter",
@@ -189,11 +192,9 @@ describe("players/progression", () => {
     const { owner, season } = await seeded();
     const roster = await owner.query(api.players.roster.bySeason, { seasonId: season._id });
     const entryId = roster.entries.find((e) => e.player.displayName === "Drake Maye")!.entry._id;
-    await owner.mutation(api.players.progression.updateRatings, {
+    await owner.mutation(api.players.roster.updateEntry, {
       entryId,
-      ovr: 81,
-      devTrait: "star",
-      abilities: [" Gunslinger ", "Gunslinger", ""],
+      patch: { ovr: 81, devTrait: "star", abilities: [" Gunslinger ", "Gunslinger", ""] },
     });
     const after = await owner.query(api.players.roster.bySeason, { seasonId: season._id });
     expect(after.entries.find((e) => e.entry._id === entryId)!.entry).toMatchObject({

@@ -30,7 +30,7 @@ async function seasonGames(ctx: QueryCtx, seasonId: Id<"seasons">) {
   return sortByWeek(games);
 }
 
-/** The season's schedule in calendar order, with opponents and three stars resolved, a summary and the chart points. */
+/** The season's schedule in calendar order, with opponents and stars resolved, a summary and the chart points. */
 export const bySeason = query({
   args: { seasonId: v.id("seasons") },
   returns: v.object({ games: v.array(vGameRow), summary: vSeasonSummary, points: v.array(vWeekPoint) }),
@@ -49,19 +49,30 @@ export const bySeason = query({
 /** Everything the game detail screen shows, including neighbours for swipe and head-to-head history. */
 export const get = query({
   args: { gameId: v.id("games") },
-  returns: v.object({
-    game: vGameRow,
-    season: v.object({ _id: v.id("seasons"), year: v.number() }),
-    userTeam: schema.doc("teams"),
-    stars: v.array(vStarView),
-    userRecordBefore: vWlt,
-    previousGameId: v.union(v.id("games"), v.null()),
-    nextGameId: v.union(v.id("games"), v.null()),
-    headToHead: v.object({ record: vWlt, games: v.array(vHeadToHeadGame) }),
-  }),
+  returns: v.union(
+    v.null(),
+    v.object({
+      game: vGameRow,
+      season: v.object({ _id: v.id("seasons"), year: v.number() }),
+      userTeam: schema.doc("teams"),
+      /** Header fields only the game screen shows (and its edit form needs). */
+      header: v.object({
+        stadium: v.union(v.string(), v.null()),
+        weather: v.union(v.string(), v.null()),
+        neutralSite: v.boolean(),
+      }),
+      stars: v.array(vStarView),
+      userRecordBefore: vWlt,
+      previousGameId: v.union(v.id("games"), v.null()),
+      nextGameId: v.union(v.id("games"), v.null()),
+      headToHead: v.object({ record: vWlt, games: v.array(vHeadToHeadGame) }),
+    }),
+  ),
   handler: async (ctx, { gameId }) => {
     await requireOwner(ctx);
-    const game = must(await ctx.db.get("games", gameId), "Game");
+    // Null rather than an error: an open game page outlives the game when it is deleted.
+    const game = await ctx.db.get("games", gameId);
+    if (!game) return null;
     const franchise = await activeFranchise(ctx);
     const season = must(await ctx.db.get("seasons", game.seasonId), "Season");
     const games = await seasonGames(ctx, game.seasonId);
@@ -87,6 +98,11 @@ export const get = query({
       game: gameRow(game, teams, players),
       season: { _id: season._id, year: season.year },
       userTeam: must(teams.get(franchise.userTeamId), "User team"),
+      header: {
+        stadium: game.stadium ?? null,
+        weather: game.weather ?? null,
+        neutralSite: game.neutralSite ?? false,
+      },
       stars: starViews(game, players),
       userRecordBefore: recordBefore(games, game.weekKey),
       previousGameId: games.slice(0, index).findLast((g) => g.status === "played")?._id ?? null,

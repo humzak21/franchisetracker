@@ -1,11 +1,13 @@
 import { v } from "convex/values";
+import { applyPlayerPatch } from "../../shared/players/playerPatch";
 import { mutation, query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
-import { must } from "../lib/errors";
+import { invalid, must } from "../lib/errors";
 import { activeFranchise, teamsById } from "../lib/franchise";
 import { headshotUrl } from "../lib/media";
 import { seasonYears, toTeamRef, vTeamRef } from "../lib/refs";
 import schema from "../schema";
+import { vPlayerPatch } from "./patches";
 
 /** Twenty-plus real seasons before the franchise, two splits each, then the franchise run. */
 const MAX_ROWS = 160;
@@ -74,6 +76,24 @@ export const updateNotes = mutation({
     await requireOwner(ctx);
     must(await ctx.db.get("players", playerId), "Player");
     await ctx.db.patch("players", playerId, { notes: notes.trim() === "" ? undefined : notes });
+    return null;
+  },
+});
+
+/**
+ * Edits the player's own facts: name (the old one stays an alias), position, age, bio, draft
+ * slot, undrafted and retired. Season-specific facts live on roster entries (`roster:updateEntry`).
+ */
+export const update = mutation({
+  args: { playerId: v.id("players"), patch: vPlayerPatch },
+  returns: v.null(),
+  handler: async (ctx, { playerId, patch }) => {
+    await requireOwner(ctx);
+    const player = must(await ctx.db.get("players", playerId), "Player");
+    if (patch.draft?.teamId) must(await ctx.db.get("teams", patch.draft.teamId), "Draft team");
+    const result = applyPlayerPatch(player, patch);
+    if (!result.ok) throw invalid(result.error);
+    await ctx.db.patch("players", playerId, result.fields);
     return null;
   },
 });

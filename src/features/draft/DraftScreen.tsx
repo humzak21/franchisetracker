@@ -1,4 +1,5 @@
 import { useSeason } from "@/app/season";
+import { ManualEntryLink } from "@/components/forms/ManualEntryLink";
 import { Page } from "@/components/layout/Page";
 import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/misc";
@@ -23,7 +24,16 @@ export function DraftScreen() {
   const [view, setView] = useLocalStorage<View>("ft.draft-view", "draft");
   const seasonal = view === "draft" || view === "board";
   return (
-    <Page title="Draft" eyebrow={seasonal && season ? `${season.year} draft` : undefined} season={seasonal}>
+    <Page
+      title="Draft"
+      eyebrow={seasonal && season ? `${season.year} draft` : undefined}
+      season={seasonal}
+      actions={
+        view === "draft" && season ? (
+          <ManualEntryLink target="draft_results" seasonId={season._id} label="Add picks" />
+        ) : undefined
+      }
+    >
       <div className="space-y-5">
         <Segmented aria-label="View" value={view} onChange={setView} options={VIEWS} />
         {seasonal && !season && <Skeleton className="h-64 rounded-xl" />}

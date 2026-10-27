@@ -20,13 +20,14 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
   );
 }
 
-/** Rename (the old name stays an alias), aliases, real or fictional, and merging a duplicate in. */
+/**
+ * Aliases, real or fictional, and merging a duplicate in. Renaming is in the player's Edit sheet,
+ * which keeps the old name as an alias.
+ */
 export function IdentityPanel({ page }: { page: PlayerPage }) {
   const { player } = page;
-  const setName = useMutation(api.players.identity.setName);
   const setAliases = useMutation(api.players.identity.setAliases);
   const setReal = useMutation(api.players.identity.setReal);
-  const [name, setNameText] = useState(player.displayName);
   const [aliases, setAliasText] = useState(player.aliases.join(", "));
   const [error, setError] = useState<string | null>(null);
   const attempt = (fn: () => Promise<unknown>) => {
@@ -36,20 +37,6 @@ export function IdentityPanel({ page }: { page: PlayerPage }) {
 
   return (
     <div className="@container space-y-5 rounded-xl border border-border bg-surface p-4">
-      <Row label="Name" hint="The old name is kept as an alias.">
-        <form
-          className="flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            attempt(() => setName({ playerId: player._id, displayName: name }));
-          }}
-        >
-          <Input value={name} onChange={(e) => setNameText(e.target.value)} aria-label="Name" />
-          <Button type="submit" variant="outline" disabled={name.trim() === player.displayName}>
-            Rename
-          </Button>
-        </form>
-      </Row>
       <Row label="Aliases" hint="How screenshots print the name, comma separated.">
         <form
           className="flex gap-2"

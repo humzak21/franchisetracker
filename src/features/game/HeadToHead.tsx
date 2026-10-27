@@ -6,7 +6,7 @@ import { formatRecord } from "@shared/stats";
 import { ResultBadge } from "@/components/team/ResultBadge";
 import { cn } from "@/lib/cn";
 
-type HeadToHeadData = FunctionReturnType<typeof api.games.schedule.get>["headToHead"];
+type HeadToHeadData = NonNullable<FunctionReturnType<typeof api.games.schedule.get>>["headToHead"];
 
 /** All-time record against this opponent inside the franchise, with every meeting linked. */
 export function HeadToHead({

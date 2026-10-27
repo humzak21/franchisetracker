@@ -5,6 +5,7 @@
  */
 import { v } from "convex/values";
 import { seasonSummary } from "../../shared/games/summary";
+import { alignmentFor, STANDING_DIVISIONS } from "../../shared/league/alignment";
 import { championsOf, leagueTable, type StandingRow } from "../../shared/league/standings";
 import type { Doc, Id } from "../_generated/dataModel";
 import { query, type QueryCtx } from "../_generated/server";
@@ -12,7 +13,7 @@ import { requireOwner } from "../lib/auth";
 import { activeFranchise, teamsById } from "../lib/franchise";
 import { toTeamRef, vTeamRef } from "../lib/refs";
 import { franchiseSeasonList, seasonGames } from "../lib/reports";
-import { vConference, vDivision, vPlayoffResult } from "../lib/validators";
+import { literals, vConference, vPlayoffResult } from "../lib/validators";
 
 /** 32 teams for every season the franchise knows, with headroom. */
 const MAX_ROWS = 32 * 120;
@@ -20,8 +21,9 @@ const MAX_TEAMS = 64;
 
 const vStanding = v.object({
   team: vTeamRef,
+  /** The season's alignment: 1999–2001 had six divisions (`shared/league/alignment`). */
   conference: vConference,
-  division: vDivision,
+  division: literals(STANDING_DIVISIONS),
   w: v.number(),
   l: v.number(),
   t: v.number(),
@@ -36,11 +38,10 @@ const vStanding = v.object({
 
 type Standing = typeof vStanding.type;
 
-function fromRow(row: Doc<"standings">, team: Doc<"teams">): Standing {
+function fromRow(row: Doc<"standings">, team: Doc<"teams">, year: number): Standing {
   return {
     team: toTeamRef(team),
-    conference: team.conference,
-    division: team.division,
+    ...alignmentFor(year, team),
     w: row.w,
     l: row.l,
     t: row.t,
@@ -61,8 +62,7 @@ async function userRow(ctx: QueryCtx, season: Doc<"seasons">, team: Doc<"teams">
   const summary = games.length > 0 ? seasonSummary(games) : null;
   return {
     team: toTeamRef(team),
-    conference: team.conference,
-    division: team.division,
+    ...alignmentFor(season.year, team),
     w: record.w,
     l: record.l,
     t: record.t,
@@ -87,7 +87,7 @@ async function seasonStandings(
     .take(MAX_TEAMS);
   const out = rows.flatMap((row) => {
     const team = teams.get(row.teamId);
-    return team ? [fromRow(row, team)] : [];
+    return team ? [fromRow(row, team, season.year)] : [];
   });
   const userTeam = teams.get(franchise.userTeamId);
   if (userTeam && !rows.some((r) => r.teamId === franchise.userTeamId)) {
@@ -161,24 +161,24 @@ export const overview = query({
           const own = rows.filter((r) => r.seasonId === season._id);
           const standings = own.flatMap((r) => {
             const team = teams.get(r.teamId);
-            return team ? [toShared(fromRow(r, team))] : [];
+            return team ? [toShared(fromRow(r, team, season.year))] : [];
           });
           const userTeam = teams.get(franchise.userTeamId);
           if (userTeam && !own.some((r) => r.teamId === franchise.userTeamId)) {
             const mine = await userRow(ctx, season, userTeam);
             if (mine) standings.push(toShared(mine));
           }
-          return { year: season.year, standings };
+          return { year: season.year, rows: standings };
         }),
     );
     const counted = perSeason.filter((s) => includeHistory || s.year >= franchise.startYear);
     return {
       startYear: franchise.startYear,
       champions: perSeason
-        .map((s) => ({ year: s.year, ...championsOf(s.standings) }))
+        .map((s) => ({ year: s.year, ...championsOf(s.rows) }))
         .filter((c) => c.afc || c.nfc || c.superBowl)
         .map((c) => ({ year: c.year, afc: ref(c.afc), nfc: ref(c.nfc), superBowl: ref(c.superBowl) })),
-      table: leagueTable(counted.map((s) => s.standings)).flatMap((r) => {
+      table: leagueTable(counted).flatMap((r) => {
         const team = ref(r.teamAbbr);
         const { teamAbbr: _abbr, ...counts } = r;
         return team ? [{ team, ...counts }] : [];

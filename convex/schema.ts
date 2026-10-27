@@ -8,10 +8,12 @@ import { awardTables } from "./schema/awards";
 import { draftTables } from "./schema/draft";
 import { franchiseTables } from "./schema/franchise";
 import { gameTables } from "./schema/games";
+import { goalTables } from "./schema/goals";
 import { historyTables } from "./schema/history";
 import { hofTables } from "./schema/hof";
 import { ingestionTables } from "./schema/ingestion";
 import { leagueTables } from "./schema/league";
+import { leagueGameTables } from "./schema/leagueGames";
 import { opsTables } from "./schema/ops";
 import { playerTables } from "./schema/players";
 import { statTables } from "./schema/stats";
@@ -22,8 +24,10 @@ export default defineSchema({
   ...authTables,
   ...franchiseTables,
   ...leagueTables,
+  ...leagueGameTables,
   ...playerTables,
   ...gameTables,
+  ...goalTables,
   ...statTables,
   ...awardTables,
   ...draftTables,

@@ -1,6 +1,6 @@
 /**
  * OVR progression (FEATURES.md 5.4): the rating on each season's roster entry plus in-season
- * snapshots, and the edits that feed them (OVR, dev trait and abilities on the entry).
+ * snapshots. Entry ratings are edited through `roster:updateEntry`; snapshots here.
  */
 import { v } from "convex/values";
 import { weekIndex } from "../../shared/domain";
@@ -8,11 +8,9 @@ import { mutation, query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { invalid, must } from "../lib/errors";
 import { seasonYears } from "../lib/refs";
-import { vDevTrait, vWeekKey } from "../lib/validators";
+import { vWeekKey } from "../lib/validators";
 
 const MAX_ROWS = 200;
-const MAX_ABILITIES = 12;
-const MAX_ABILITY_LENGTH = 40;
 
 function checkOvr(ovr: number) {
   if (!Number.isInteger(ovr) || ovr < 0 || ovr > 99) throw invalid("OVR must be a whole number from 0 to 99");
@@ -94,32 +92,6 @@ export const removeSnapshot = mutation({
     await requireOwner(ctx);
     must(await ctx.db.get("playerSnapshots", snapshotId), "Snapshot");
     await ctx.db.delete("playerSnapshots", snapshotId);
-    return null;
-  },
-});
-
-/** OVR, dev trait and abilities for one season's roster entry. Omitted fields are left alone. */
-export const updateRatings = mutation({
-  args: {
-    entryId: v.id("rosterEntries"),
-    ovr: v.optional(v.union(v.number(), v.null())),
-    devTrait: v.optional(vDevTrait),
-    abilities: v.optional(v.array(v.string())),
-  },
-  returns: v.null(),
-  handler: async (ctx, { entryId, ovr, devTrait, abilities }) => {
-    await requireOwner(ctx);
-    must(await ctx.db.get("rosterEntries", entryId), "Roster entry");
-    if (ovr !== undefined && ovr !== null) checkOvr(ovr);
-    const cleaned = abilities?.map((a) => a.trim()).filter(Boolean);
-    if (cleaned && (cleaned.length > MAX_ABILITIES || cleaned.some((a) => a.length > MAX_ABILITY_LENGTH))) {
-      throw invalid(`Up to ${MAX_ABILITIES} abilities of ${MAX_ABILITY_LENGTH} characters each`);
-    }
-    await ctx.db.patch("rosterEntries", entryId, {
-      ...(ovr !== undefined ? { ovr: ovr ?? undefined } : {}),
-      ...(devTrait !== undefined ? { devTrait } : {}),
-      ...(cleaned !== undefined ? { abilities: cleaned.length > 0 ? [...new Set(cleaned)] : undefined } : {}),
-    });
     return null;
   },
 });

@@ -1,9 +1,11 @@
 /**
  * The season stats screen's position groups (FEATURES.md 5.5): which players each shows, which
- * stat categories become columns, and the few columns a phone keeps in the table.
+ * stat categories become columns, which big-game counts it keeps, and the few columns a phone
+ * keeps in the table.
  */
 import type { PositionGroup } from "../domain/positions";
 import type { StatCategory, StatKey } from "./registry";
+import type { GameThresholdKey } from "./thresholds";
 
 export type StatGroup = {
   id: string;
@@ -15,6 +17,8 @@ export type StatGroup = {
   phone: readonly StatKey[];
   /** The stat the table sorts by first. */
   lead: StatKey;
+  /** Threshold-game counts, always shown (zeros included), in this order. */
+  counts: readonly GameThresholdKey[];
 };
 
 export const STAT_GROUPS: readonly StatGroup[] = [
@@ -25,6 +29,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     categories: ["passing", "rushing"],
     phone: ["passCmp", "passAtt", "passYds", "passTd", "passInt", "passRating"],
     lead: "passYds",
+    counts: ["pass300", "pass3td", "perfectRating", "rush100"],
   },
   {
     id: "rb",
@@ -33,6 +38,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     categories: ["rushing", "receiving"],
     phone: ["rushAtt", "rushYds", "rushTd", "rushAvg"],
     lead: "rushYds",
+    counts: ["rush100", "rec100", "rec5", "scrimmage2td"],
   },
   {
     id: "wrte",
@@ -41,6 +47,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     categories: ["receiving", "rushing"],
     phone: ["rec", "recYds", "recTd", "recAvg"],
     lead: "recYds",
+    counts: ["rec100", "rec5", "rush100", "scrimmage2td"],
   },
   {
     id: "dl",
@@ -49,6 +56,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     categories: ["defense"],
     phone: ["tackles", "sacks", "tacklesForLoss"],
     lead: "sacks",
+    counts: ["sacks2", "int2"],
   },
   {
     id: "lb",
@@ -57,6 +65,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     categories: ["defense"],
     phone: ["tackles", "sacks", "defInt"],
     lead: "tackles",
+    counts: ["sacks2", "int2"],
   },
   {
     id: "db",
@@ -65,6 +74,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     categories: ["defense"],
     phone: ["tackles", "defInt", "passDeflections"],
     lead: "defInt",
+    counts: ["sacks2", "int2"],
   },
   {
     id: "k",
@@ -73,6 +83,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     categories: ["kicking"],
     phone: ["fgm", "fga", "fgPct", "xpm"],
     lead: "fgm",
+    counts: [],
   },
   {
     id: "p",
@@ -81,6 +92,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     categories: ["punting"],
     phone: ["punts", "puntAvg", "puntIn20"],
     lead: "puntYds",
+    counts: [],
   },
   {
     id: "returns",
@@ -89,6 +101,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     categories: ["returns"],
     phone: ["kickReturnYds", "puntReturnYds", "kickReturnTd"],
     lead: "kickReturnYds",
+    counts: [],
   },
 ];
 

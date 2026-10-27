@@ -10,6 +10,7 @@ import { Page } from "@/components/layout/Page";
 import { Section } from "@/components/layout/Section";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
+import { GoalsSection } from "./GoalsSection";
 import { NeedsChecklist } from "./NeedsChecklist";
 import { PromptEditor } from "./PromptEditor";
 import { SeasonHeader } from "./SeasonHeader";
@@ -17,8 +18,9 @@ import { SeasonSummaryPanel } from "./SeasonSummaryPanel";
 import { useQuery } from "@/lib/convex/useQuery";
 
 /**
- * One season's report (FEATURES.md 5.7): the pre- and post-season prompts, around the league and
- * the offseason needs, with the computed season beside them. Every field autosaves on blur.
+ * One season's report (FEATURES.md 5.7): the pre-season prompt and its goals, the post-season
+ * prompt, around the league and the offseason needs, with the computed season beside them. Every
+ * field autosaves on blur.
  */
 export function SeasonReportScreen({ year }: { year: number }) {
   const active = useFranchise();
@@ -69,6 +71,7 @@ export function SeasonReportScreen({ year }: { year: number }) {
                 answeredAt={data.report?.prompts.preseason.answeredAt}
                 canFile
               />
+              <GoalsSection seasonId={data.season._id} />
               <PromptEditor
                 seasonId={data.season._id}
                 prompt="postseason"

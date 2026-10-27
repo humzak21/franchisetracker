@@ -1,12 +1,14 @@
 /**
  * Deleting a franchise (Settings → Franchises), for one that is no longer wanted or a restore
- * that went wrong. Only an inactive franchise, confirmed by typing its name. Its rows go in the
- * background a page at a time, table by table, so each step stays well inside a mutation's limits.
+ * that went wrong, confirmed by typing its name. Deleting the active one hands over to the
+ * franchise used most recently before it, or to first-run setup when none is left. Its rows go in
+ * the background a page at a time, table by table, so each step stays well inside a mutation's limits.
  */
 import { v } from "convex/values";
 import { BACKUP_TABLES } from "../../shared/ops/backup";
 import { internal } from "../_generated/api";
-import { internalMutation, mutation } from "../_generated/server";
+import type { Doc } from "../_generated/dataModel";
+import { internalMutation, mutation, type MutationCtx } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { invalid, must } from "../lib/errors";
 import { literals } from "../lib/validators";
@@ -20,6 +22,7 @@ const SWEEP_TABLES = [
   "uploads",
   "extractions",
   "corrections",
+  "manualDrafts",
 ] as const;
 type SweepTable = (typeof SWEEP_TABLES)[number];
 // The spread loses the tuple's non-empty type that `literals` wants; the list above is never empty.
@@ -27,6 +30,17 @@ const vSweepTable = literals(SWEEP_TABLES as unknown as readonly [SweepTable, ..
 
 /** Rows read per step. */
 const PAGE = 200;
+/** One owner keeps a handful of franchises. */
+const MAX_FRANCHISES = 50;
+
+/** The franchise to carry on with: the one left most recently, else the newest; null when none is left. */
+async function successor(ctx: MutationCtx, removed: Doc<"franchises">): Promise<Doc<"franchises"> | null> {
+  const others = (await ctx.db.query("franchises").order("desc").take(MAX_FRANCHISES)).filter(
+    (f) => f._id !== removed._id && f.deletingAt === undefined,
+  );
+  // Newest first already, so a stable sort keeps that order among franchises never left.
+  return others.sort((a, b) => (b.lastActiveAt ?? 0) - (a.lastActiveAt ?? 0))[0] ?? null;
+}
 
 export const remove = mutation({
   args: { franchiseId: v.id("franchises"), confirmName: v.string() },
@@ -34,10 +48,13 @@ export const remove = mutation({
   handler: async (ctx, { franchiseId, confirmName }) => {
     await requireOwner(ctx);
     const franchise = must(await ctx.db.get("franchises", franchiseId), "Franchise");
-    if (franchise.isActive) throw invalid("Switch to another franchise before deleting this one");
     if (confirmName.trim() !== franchise.name) throw invalid("Type the franchise's name to confirm");
     if (franchise.deletingAt !== undefined) return null;
-    await ctx.db.patch("franchises", franchiseId, { deletingAt: Date.now() });
+    await ctx.db.patch("franchises", franchiseId, { deletingAt: Date.now(), isActive: false });
+    if (franchise.isActive) {
+      const next = await successor(ctx, franchise);
+      if (next) await ctx.db.patch("franchises", next._id, { isActive: true });
+    }
     await ctx.scheduler.runAfter(0, internal.franchise.remove.sweep, {
       franchiseId,
       table: SWEEP_TABLES[0],

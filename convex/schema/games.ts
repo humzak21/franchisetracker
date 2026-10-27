@@ -35,7 +35,7 @@ export const gameTables = {
     neutralSite: v.optional(v.boolean()),
     weather: v.optional(v.string()),
     notes: v.optional(v.string()),
-    /** Three stars in order. */
+    /** Stars of the game in order, picked by hand; as many as the owner likes. */
     stars: v.optional(
       v.array(
         v.object({

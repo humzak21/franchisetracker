@@ -14,7 +14,7 @@ describe("summarizeGames", () => {
     expect(summary.averages.rushAvg).toBe(5);
     expect(summary.averages.rushYpg).toBe(75);
     expect(summary.averages).not.toHaveProperty("passRating");
-    expect(summary.thresholdCounts).toEqual({ rush100: 1 });
+    expect(summary.thresholdCounts).toEqual({ rush100: 1, scrimmage2td: 1 });
     expect(summary.bests).toEqual({ rushAtt: 20, rushYds: 120, rushTd: 2 });
   });
 });

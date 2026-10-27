@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import { LeadersBoard } from "./LeadersBoard";
+import { ManualStatsLinks } from "./ManualStatsLinks";
+import { PlayerGoals } from "./PlayerGoals";
 import { RecordsBook } from "./RecordsBook";
 import { SeasonStats } from "./SeasonStats";
 import { SPLIT_OPTIONS, type Split } from "./split";
@@ -58,8 +60,10 @@ export function StatsScreen() {
             />
           )}
         </div>
+        {view === "season" && season && <PlayerGoals seasonId={season._id} />}
         {view === "season" && <SeasonStats split={split} />}
         {view === "team" && <TeamRanks />}
+        {seasonal && season && <ManualStatsLinks seasonId={season._id} />}
         {view === "records" && <RecordsBook split={split} />}
         {view === "leaders" && <LeadersBoard split={split} />}
         {view === "streaks" && <StreaksBoard />}

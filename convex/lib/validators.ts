@@ -13,6 +13,9 @@ import {
   DIVISIONS,
   GAME_RESULTS,
   GAME_STATUSES,
+  GOAL_OUTCOMES,
+  GOAL_SCOPES,
+  GOAL_TYPES,
   NEED_PRIORITIES,
   PLAYOFF_RESULTS,
   PLAYOFF_ROUNDS,
@@ -20,6 +23,7 @@ import {
   POSITIONS,
   ROSTER_STATUSES,
   SEASON_STATUSES,
+  TRANSACTION_PHASES,
   TRANSACTION_TYPES,
   WEEK_KEYS,
 } from "../../shared/domain";
@@ -72,6 +76,10 @@ export const vAcquisitionType = literals(ACQUISITION_TYPES);
 export const vRosterStatus = literals(ROSTER_STATUSES);
 export const vDevTrait = literals(DEV_TRAITS);
 export const vTransactionType = literals(TRANSACTION_TYPES);
+export const vTransactionPhase = literals(TRANSACTION_PHASES);
+export const vGoalScope = literals(GOAL_SCOPES);
+export const vGoalType = literals(GOAL_TYPES);
+export const vGoalOutcome = literals(GOAL_OUTCOMES);
 export const vNeedPriority = literals(NEED_PRIORITIES);
 export const vAwardType = literals(AWARD_TYPES);
 export const vAwardScope = literals(AWARD_SCOPES);
@@ -128,3 +136,12 @@ export const vPickAsset = v.object({
 
 /** A value an extraction produced or a user corrected it to. */
 export const vScalar = v.union(v.string(), v.number(), v.boolean(), v.null());
+
+/** How a player arrived on a roster entry (`rosterEntries.acquisition`). */
+export const vAcquisition = v.object({
+  type: vAcquisitionType,
+  year: v.optional(v.number()),
+  detail: v.optional(v.string()),
+  /** Free-text counterparts (trade partners, assets sent) as printed in the source. */
+  counterparts: v.optional(v.array(v.string())),
+});

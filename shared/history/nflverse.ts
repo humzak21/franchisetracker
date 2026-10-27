@@ -4,13 +4,20 @@
  */
 import type { PlayoffResult } from "../domain/calendar";
 import { resolveTeamAbbr } from "../domain/teams";
-import { mapCsv, num, readCsv } from "./csv";
+import { mapCsv, num } from "./csv";
+import { parseGames, winnerOf, type GameType, type PlayedGame } from "./nflverseGames";
 
 /**
- * First season imported. 2002 is the 32-team, eight-division league the app models; earlier
- * seasons had different divisions, so their standings would not line up with today's teams.
+ * First season imported: nflverse publishes schedules and player season totals from 1999.
+ * 1999–2001 had six divisions; standings and brackets read them through `shared/league/alignment`.
  */
-export const NFLVERSE_FIRST_YEAR = 2002;
+export const NFLVERSE_FIRST_YEAR = 1999;
+
+/**
+ * First season in nfldata's standings file. Earlier seasons' standings are derived from the
+ * schedule's results (`eraStandings.ts`).
+ */
+export const STANDINGS_FILE_FIRST_YEAR = 2002;
 
 const RELEASES = "https://github.com/nflverse/nflverse-data/releases/download";
 
@@ -25,7 +32,7 @@ export const NFLVERSE_URLS = {
 } as const;
 
 /** The round a loss in each playoff game type ends a season at. */
-const EXIT_BY_ROUND: Record<string, PlayoffResult> = {
+const EXIT_BY_ROUND: Partial<Record<GameType, PlayoffResult>> = {
   WC: "wc_loss",
   DIV: "div_loss",
   CON: "conf_loss",
@@ -35,35 +42,33 @@ const EXIT_BY_ROUND: Record<string, PlayoffResult> = {
 /** Where each team's season ended, per year, for seasons whose Super Bowl has been played. */
 export type PlayoffResults = Map<number, Map<string, PlayoffResult>>;
 
-const GAME_COLUMNS = ["season", "game_type", "away_team", "away_score", "home_team", "home_score"] as const;
-
 /**
  * Playoff exits from the schedule's playoff games. The standings file lags a season behind on
  * playoff results, so the games are the source of truth for them and for which seasons are over.
  */
-export function parsePlayoffs(text: string): PlayoffResults {
+export function playoffsFromGames(games: readonly PlayedGame[]): PlayoffResults {
   const byYear = new Map<number, Map<string, PlayoffResult>>();
   const finished = new Set<number>();
-  for (const row of readCsv(text, GAME_COLUMNS)) {
-    const exit = EXIT_BY_ROUND[row.game_type];
-    const year = num(row.season);
-    const away = resolveTeamAbbr(row.away_team);
-    const home = resolveTeamAbbr(row.home_team);
-    const awayScore = num(row.away_score);
-    const homeScore = num(row.home_score);
-    if (!exit || year === null || !away || !home || awayScore === null || homeScore === null) continue;
-    if (awayScore === homeScore) continue;
-    const [winner, loser] = awayScore > homeScore ? [away, home] : [home, away];
-    const results = byYear.get(year) ?? new Map<string, PlayoffResult>();
+  for (const game of games) {
+    const exit = EXIT_BY_ROUND[game.type];
+    const winner = winnerOf(game);
+    if (!exit || !winner) continue;
+    const loser = winner === game.home ? game.away : game.home;
+    const results = byYear.get(game.year) ?? new Map<string, PlayoffResult>();
     results.set(loser, exit);
-    if (row.game_type === "SB") {
+    if (game.type === "SB") {
       results.set(winner, "champion");
-      finished.add(year);
+      finished.add(game.year);
     }
-    byYear.set(year, results);
+    byYear.set(game.year, results);
   }
   for (const year of byYear.keys()) if (!finished.has(year)) byYear.delete(year);
   return byYear;
+}
+
+/** `playoffsFromGames` straight from `games.csv`. */
+export function parsePlayoffs(text: string): PlayoffResults {
+  return playoffsFromGames(parseGames(text));
 }
 
 export type ImportedStanding = {

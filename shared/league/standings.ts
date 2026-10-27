@@ -2,14 +2,16 @@
  * League tables (FEATURES.md 5.6): division standings, the playoff bracket rebuilt from seeds and
  * where each team's run ended, conference and league champions, and the all-time table. Pure.
  */
-import { CONFERENCES, DIVISIONS, type Conference, type Division } from "../domain/teams";
+import { CONFERENCES, type Conference } from "../domain/teams";
 import { PLAYOFF_ROUNDS, type PlayoffResult, type PlayoffRound } from "../domain/calendar";
 import { winPct } from "../stats/format";
+import { playoffByes, STANDING_DIVISIONS, type StandingDivision } from "./alignment";
 
 export type StandingRow = {
   teamAbbr: string;
+  /** The season's alignment (`alignmentFor`): before 2002 a team may sit in another division. */
   conference: Conference;
-  division: Division;
+  division: StandingDivision;
   w: number;
   l: number;
   t: number;
@@ -36,7 +38,7 @@ export function sortDivision<T extends StandingRow>(rows: readonly T[]): T[] {
 export function groupStandings<T extends StandingRow>(rows: readonly T[]) {
   return CONFERENCES.map((conference) => ({
     conference,
-    divisions: DIVISIONS.map((division) => ({
+    divisions: STANDING_DIVISIONS.map((division) => ({
       division,
       rows: sortDivision(rows.filter((r) => r.conference === conference && r.division === division)),
     })).filter((d) => d.rows.length > 0),
@@ -146,12 +148,12 @@ export type TableRow = {
 /**
  * The all-time league table over any set of seasons: records, playoff trips and the playoff
  * record (a bye is not a win), division and conference titles, Super Bowls. Best record first.
+ * Byes follow the season's playoff format, so one team's rows alone count correctly too.
  */
-export function leagueTable(seasons: readonly (readonly StandingRow[])[]): TableRow[] {
+export function leagueTable(seasons: readonly { year: number; rows: readonly StandingRow[] }[]): TableRow[] {
   const table = new Map<string, TableRow>();
-  for (const rows of seasons) {
-    const seeds = Math.max(0, ...rows.map((r) => r.seed ?? 0));
-    const byes = seeds > 0 ? Math.max(0, 8 - seeds) : 0;
+  for (const { year, rows } of seasons) {
+    const byes = playoffByes(year);
     for (const r of rows) {
       const row =
         table.get(r.teamAbbr) ??

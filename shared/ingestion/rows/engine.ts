@@ -205,8 +205,7 @@ export function validateRows(spec: RowSpec, draft: RowsDraft): DraftWarning[] {
     }
   }
   const accepted = draft.rows.filter((r) => r.accepted);
-  if (draft.rows.length === 0)
-    out.push({ message: "Nothing was read from these screens", severity: "error" });
+  if (draft.rows.length === 0) out.push({ message: "There are no rows to commit", severity: "error" });
   else if (accepted.length === 0) {
     out.push({ message: "Accept at least one row to commit", severity: "error" });
   }

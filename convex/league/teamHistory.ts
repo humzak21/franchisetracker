@@ -5,6 +5,7 @@
  */
 import { v } from "convex/values";
 import { weekIndex } from "../../shared/domain";
+import { alignmentFor } from "../../shared/league/alignment";
 import { leagueTable } from "../../shared/league/standings";
 import { resultOf, userScore } from "../../shared/games/summary";
 import type { Id } from "../_generated/dataModel";
@@ -143,7 +144,10 @@ export const get = query({
       })
       .sort((a, b) => b.year - a.year);
     const [line] = leagueTable(
-      rows.map((r) => [{ ...r, teamAbbr: team.abbr, conference: team.conference, division: team.division }]),
+      rows.map((r) => ({
+        year: r.year,
+        rows: [{ ...r, teamAbbr: team.abbr, ...alignmentFor(r.year, team) }],
+      })),
     );
 
     const played = games.flatMap((g) => {

@@ -1,4 +1,3 @@
-import { useMutation } from "convex/react";
 import {
   createContext,
   useCallback,
@@ -9,7 +8,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { validateDraft } from "@shared/ingestion/targets";
 import type { Draft, DraftWarning, FieldConfidence } from "@shared/ingestion/types";
@@ -31,36 +29,41 @@ type ReviewDraftState = {
 
 const ReviewDraftContext = createContext<ReviewDraftState | null>(null);
 
-/** Edits stay local for responsiveness and are saved to the extraction shortly after typing stops. */
+/** Edits stay local for responsiveness and are saved shortly after typing stops. */
 const SAVE_DELAY_MS = 800;
 
 export function ReviewDraftProvider({
-  setKey,
+  onSave,
   initial,
   confidence,
   extractionNotes,
   children,
 }: {
-  setKey: string;
+  /** Where edits are saved: the extraction under review, or a manual entry. */
+  onSave: (draft: ReviewDraft) => Promise<unknown>;
   initial: ReviewDraft;
   confidence: readonly FieldConfidence[];
   /** Warnings stored with the extraction (screens that disagreed, unknown teams). */
   extractionNotes: readonly DraftWarning[];
   children: ReactNode;
 }) {
-  const saveDraft = useMutation(api.ingestion.review.saveDraft);
   const [draft, setDraft] = useState(initial);
   const [saving, setSaving] = useState(false);
   const dirty = useRef(false);
+  // The latest save function, so a new one from a re-render does not restart the save timer.
+  const save = useRef(onSave);
+  useEffect(() => {
+    save.current = onSave;
+  }, [onSave]);
 
   useEffect(() => {
     if (!dirty.current) return;
     setSaving(true);
     const timer = setTimeout(() => {
-      void saveDraft({ setKey, draft }).finally(() => setSaving(false));
+      void save.current(draft).finally(() => setSaving(false));
     }, SAVE_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [draft, saveDraft, setKey]);
+  }, [draft]);
 
   const update = useCallback((next: (d: ReviewDraft) => ReviewDraft) => {
     dirty.current = true;

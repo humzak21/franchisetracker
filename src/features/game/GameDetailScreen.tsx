@@ -1,64 +1,55 @@
-import { useNavigate } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
-import { ChevronLeft, ChevronRight, ImageUp } from "lucide-react";
-import { useRef } from "react";
+import { CalendarOff, CalendarX2, ImageUp, Pencil } from "lucide-react";
+import { useRef, useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { weekLabel, weekPhase } from "@shared/domain";
 import { formatRecord } from "@shared/stats";
 import { useCapture } from "@/app/capture/CaptureProvider";
-import { useShortcut } from "@/app/keyboard";
+import { EmptyState } from "@/components/data/EmptyState";
 import { NotesEditor } from "@/components/forms/NotesEditor";
 import { Page } from "@/components/layout/Page";
 import { Section } from "@/components/layout/Section";
 import { SplitPane } from "@/components/layout/SplitPane";
-import { ThreeStars } from "@/components/player/ThreeStars";
 import { ScoreBug } from "@/components/team/ScoreBug";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
-import { useSwipe } from "@/lib/hooks/useSwipe";
-import { BoxScore } from "./BoxScore";
-import { HeadToHead } from "./HeadToHead";
-import { TeamStatsCompare } from "./TeamStatsCompare";
 import { useQuery } from "@/lib/convex/useQuery";
+import { BoxScore } from "./BoxScore";
+import { EditGameSheet } from "./EditGameSheet";
+import { GameNav } from "./GameNav";
+import { HeadToHead } from "./HeadToHead";
+import { StarsSection } from "./StarsSection";
+import { TeamStatsCompare } from "./TeamStatsCompare";
 
-/** Game detail: score bug, three stars, team stats, notes, head-to-head, and the full box score. */
+/** Game detail: score bug, stars, team stats, notes, head-to-head and the full box score, all editable. */
 export function GameDetailScreen({ gameId }: { gameId: string }) {
   const data = useQuery(api.games.schedule.get, { gameId: gameId as Id<"games"> });
   const saveNotes = useMutation(api.games.schedule.updateNotes);
   const capture = useCapture();
-  const navigate = useNavigate();
   const swipeArea = useRef<HTMLDivElement>(null);
-
-  const go = (id: Id<"games"> | null | undefined) =>
-    id && void navigate({ to: "/games/$gameId", params: { gameId: id } });
-  useShortcut("game-prev", {
-    key: "[",
-    label: "Previous game",
-    touch: "Swipe right",
-    handler: () => go(data?.previousGameId),
-  });
-  useShortcut("game-next", {
-    key: "]",
-    label: "Next game",
-    touch: "Swipe left",
-    handler: () => go(data?.nextGameId),
-  });
-  useSwipe(swipeArea, {
-    onSwipeLeft: () => go(data?.nextGameId),
-    onSwipeRight: () => go(data?.previousGameId),
-  });
+  const [editing, setEditing] = useState(false);
+  const nav = <GameNav data={data ?? undefined} swipeArea={swipeArea} />;
 
   if (data === undefined) {
     return (
-      <Page title="Game" back={{ to: "/schedule", label: "Schedule" }}>
+      <Page title="Game" back={{ to: "/schedule", label: "Schedule" }} actions={nav}>
         <Skeleton className="h-40 rounded-xl" />
       </Page>
     );
   }
 
-  const { game, season, userTeam, headToHead } = data;
+  if (data === null) {
+    return (
+      <Page title="Game" back={{ to: "/schedule", label: "Schedule" }}>
+        <EmptyState icon={CalendarX2} title="Game not found" description="It was deleted or never existed." />
+      </Page>
+    );
+  }
+
+  const { game, season, userTeam, headToHead, header } = data;
   const opponent = game.opponent;
+  const bye = game.status === "bye";
   const user = { team: userTeam, score: game.us, record: formatRecord(data.userRecordBefore) };
   const them = {
     team: opponent ?? userTeam,
@@ -66,32 +57,29 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
     record: game.opponentRecord ? formatRecord(game.opponentRecord) : undefined,
   };
   const postseason = weekPhase(game.weekKey) === "postseason";
+  const week = weekLabel(game.weekKey, postseason ? "long" : "short");
   // Short week labels keep the title on one line on phones; playoff rounds read better in full.
-  const title = `${weekLabel(game.weekKey, postseason ? "long" : "short")} ${game.userIsHome ? "vs" : "at"} ${opponent?.name ?? "TBD"}`;
+  const title = bye ? `${week} · Bye` : `${week} ${game.userIsHome ? "vs" : "at"} ${opponent?.name ?? "TBD"}`;
+  const status =
+    game.status === "played"
+      ? postseason
+        ? `Final · ${weekLabel(game.weekKey, "long")}`
+        : "Final"
+      : (game.dateLabel ?? "Not played yet");
+  const details = [game.status === "played" ? game.dateLabel : null, header.stadium, header.weather]
+    .filter(Boolean)
+    .join(" · ");
   const importScreenshot = (targetKey: "game_box_score" | "team_game_stats") =>
     capture.open({ gameId: game._id, targetKey, gameLabel: `${season.year} · ${title}` });
+  const sides = { user: userTeam, opponent };
 
-  const nav = (
-    <>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        disabled={!data.previousGameId}
-        onClick={() => go(data.previousGameId)}
-        aria-label="Previous game"
-      >
-        <ChevronLeft />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        disabled={!data.nextGameId}
-        onClick={() => go(data.nextGameId)}
-        aria-label="Next game"
-      >
-        <ChevronRight />
-      </Button>
-    </>
+  const notes = (
+    <NotesEditor
+      label="Game notes"
+      value={game.notes ?? undefined}
+      placeholder="What happened, who showed up, what to fix."
+      onSave={(text) => saveNotes({ gameId: game._id, notes: text })}
+    />
   );
 
   return (
@@ -102,65 +90,77 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
       actions={nav}
     >
       <div ref={swipeArea} className="space-y-6">
-        <ScoreBug
-          away={game.userIsHome ? them : user}
-          home={game.userIsHome ? user : them}
-          status={postseason ? `Final · ${weekLabel(game.weekKey, "long")}` : "Final"}
-          overtime={game.overtime}
-          userTeam={userTeam.abbr}
-        />
-        <SplitPane
-          ratio="3fr 2fr"
-          panes={[
-            {
-              id: "game",
-              label: "Game",
-              content: (
-                <div className="space-y-6">
-                  <Section title="Three stars">
-                    <ThreeStars stars={data.stars} team={userTeam} />
-                  </Section>
-                  <Section title="Team stats">
-                    <TeamStatsCompare
-                      gameId={game._id}
-                      onImport={() => importScreenshot("team_game_stats")}
-                    />
-                  </Section>
-                </div>
-              ),
-            },
-            {
-              id: "notes",
-              label: "Notes",
-              content: (
-                <div className="space-y-6">
-                  <NotesEditor
-                    label="Game notes"
-                    value={game.notes ?? undefined}
-                    placeholder="What happened, who showed up, what to fix."
-                    onSave={(notes) => saveNotes({ gameId: game._id, notes })}
-                  />
-                  {opponent && headToHead.games.length > 0 && (
-                    <Section title="Head to head">
-                      <HeadToHead data={headToHead} opponent={opponent.name} currentGameId={game._id} />
-                    </Section>
-                  )}
-                </div>
-              ),
-            },
-          ]}
-        />
-        <Section
-          title="Box score"
-          actions={
-            <Button size="sm" variant="outline" onClick={() => importScreenshot("game_box_score")}>
-              <ImageUp /> Import screenshot
-            </Button>
-          }
-        >
-          <BoxScore gameId={game._id} onImport={() => importScreenshot("game_box_score")} />
-        </Section>
+        {/* Below the header, not in it: a third header button would cut the title short on phones. */}
+        <div className="flex items-center justify-end gap-3">
+          {!bye && details && <p className="mr-auto text-sm text-muted-foreground">{details}</p>}
+          <Button size="sm" variant="outline" onClick={() => setEditing(true)} aria-label="Edit game">
+            <Pencil /> Edit game
+          </Button>
+        </div>
+        {bye ? (
+          <>
+            <EmptyState
+              icon={CalendarOff}
+              title="Bye week"
+              description="No game this week. Edit it to turn it into a game, or delete it."
+            />
+            {notes}
+          </>
+        ) : (
+          <>
+            <ScoreBug
+              away={game.userIsHome ? them : user}
+              home={game.userIsHome ? user : them}
+              status={status}
+              overtime={game.overtime}
+              userTeam={userTeam.abbr}
+            />
+            <SplitPane
+              ratio="3fr 2fr"
+              panes={[
+                {
+                  id: "game",
+                  label: "Game",
+                  content: (
+                    <div className="space-y-6">
+                      <StarsSection gameId={game._id} stars={data.stars} {...sides} />
+                      <TeamStatsCompare
+                        gameId={game._id}
+                        onImport={() => importScreenshot("team_game_stats")}
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  id: "notes",
+                  label: "Notes",
+                  content: (
+                    <div className="space-y-6">
+                      {notes}
+                      {opponent && headToHead.games.length > 0 && (
+                        <Section title="Head to head">
+                          <HeadToHead data={headToHead} opponent={opponent.name} currentGameId={game._id} />
+                        </Section>
+                      )}
+                    </div>
+                  ),
+                },
+              ]}
+            />
+            <Section
+              title="Box score"
+              actions={
+                <Button size="sm" variant="outline" onClick={() => importScreenshot("game_box_score")}>
+                  <ImageUp /> Import screenshot
+                </Button>
+              }
+            >
+              <BoxScore gameId={game._id} onImport={() => importScreenshot("game_box_score")} />
+            </Section>
+          </>
+        )}
       </div>
+      <EditGameSheet open={editing} onOpenChange={setEditing} data={data} />
     </Page>
   );
 }

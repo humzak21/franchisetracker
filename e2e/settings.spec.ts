@@ -1,0 +1,31 @@
+import { expect, expectNoHorizontalOverflow, SAMPLE_FRANCHISE, test } from "./fixtures";
+
+// Every project shares one backend, so this never deletes: it walks both confirmations and
+// cancels. Deleting (the active franchise included) is covered by convex-test in convex/franchise.
+
+for (const theme of ["dark", "light"] as const) {
+  test.describe(`${theme} theme`, () => {
+    test.use({ theme });
+
+    test("deleting the active franchise asks twice before anything goes", async ({ page }) => {
+      await page.goto("/settings");
+      await page.getByRole("button", { name: `Delete ${SAMPLE_FRANCHISE}` }).click({ timeout: 20_000 });
+
+      const sure = page.getByRole("dialog", { name: `Delete ${SAMPLE_FRANCHISE}?` });
+      await expect(sure.getByText(/Are you sure\?/)).toBeVisible();
+      await expect(sure.getByText(/the one you used before it takes over/)).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+      await sure.getByRole("button", { name: "Yes, delete it" }).click();
+
+      const typed = page.getByRole("dialog", { name: `Type ${SAMPLE_FRANCHISE} to confirm` });
+      const destroy = typed.getByRole("button", { name: "Delete franchise" });
+      await expect(destroy).toBeDisabled();
+      await typed.getByLabel("Franchise name").fill("Sample");
+      await expect(destroy).toBeDisabled();
+      await typed.getByRole("button", { name: "Cancel" }).click();
+      await expect(typed).toBeHidden();
+
+      await expect(page.getByText("Active", { exact: true })).toBeVisible();
+    });
+  });
+}

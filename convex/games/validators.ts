@@ -12,6 +12,7 @@ export const vStarView = v.object({
   name: v.string(),
   position: nullable(v.string()),
   caption: nullable(v.string()),
+  teamId: nullable(v.id("teams")),
 });
 
 export const vGameRow = v.object({

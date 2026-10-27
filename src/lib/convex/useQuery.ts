@@ -2,7 +2,7 @@ import { useQuery as useLiveQuery, type OptionalRestArgsOrSkip } from "convex/re
 import { getFunctionName, type FunctionReference } from "convex/server";
 import { useEffect } from "react";
 import { useOnline } from "@/lib/hooks/useOnline";
-import { readCachedQuery, writeCachedQuery } from "@/lib/offline/queryCache";
+import { forgetCachedQueries, readCachedQuery, writeCachedQuery } from "@/lib/offline/queryCache";
 
 /**
  * Queries that do not depend on which franchise is active. Every other query reads the active
@@ -22,6 +22,12 @@ let scope = "";
 /** Called by the franchise provider whenever the active franchise is known. */
 export function setQueryCacheScope(franchiseId: string): void {
   scope = franchiseId;
+}
+
+/** Drops a deleted franchise's cached results, so nothing of it reads back offline. */
+export function forgetQueryCacheScope(franchiseId: string): void {
+  if (scope === franchiseId) scope = "";
+  forgetCachedQueries(`${franchiseId}|`);
 }
 
 /**

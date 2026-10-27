@@ -1,9 +1,10 @@
 /**
- * Identity tools (FEATURES.md 5.4): rename, aliases, real or fictional, merge duplicates, and
+ * Identity tools (FEATURES.md 5.4): aliases, real or fictional, merge duplicates, and
  * apply a name correction from review to every player still carrying the misread name.
  */
 import { v } from "convex/values";
 import { likelyDuplicate, mergeAliases, splitDisplayName } from "../../shared/players/identity";
+import { applyPlayerPatch } from "../../shared/players/playerPatch";
 import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
@@ -12,7 +13,6 @@ import { activeFranchise } from "../lib/franchise";
 import { vPosition } from "../lib/validators";
 import { mergePlayers } from "./merge";
 
-const MAX_NAME = 60;
 const MAX_CAPTURED = 400;
 const PEERS = 12;
 const MAX_CORRECTIONS = 500;
@@ -26,27 +26,13 @@ async function named(ctx: QueryCtx, franchiseId: Id<"franchises">, displayName: 
     .take(10);
 }
 
+/** Renames through the player patch, so the old name stays an alias (`player:update` renames too). */
 async function rename(ctx: MutationCtx, player: Doc<"players">, name: string) {
-  const next = splitDisplayName(name);
-  if (!next.displayName || next.displayName.length > MAX_NAME)
-    throw invalid(`Names are 1 to ${MAX_NAME} characters`);
-  if (next.displayName === player.displayName) return;
-  await ctx.db.patch("players", player._id, {
-    ...next,
-    // The old name stays an alias so screenshots that still print it keep resolving.
-    aliases: mergeAliases(next.displayName, player.aliases, [player.displayName]),
-  });
+  const result = applyPlayerPatch(player, { displayName: name });
+  if (!result.ok) throw invalid(result.error);
+  if (result.fields.displayName === player.displayName) return;
+  await ctx.db.patch("players", player._id, result.fields);
 }
-
-export const setName = mutation({
-  args: { playerId: v.id("players"), displayName: v.string() },
-  returns: v.null(),
-  handler: async (ctx, { playerId, displayName }) => {
-    await requireOwner(ctx);
-    await rename(ctx, must(await ctx.db.get("players", playerId), "Player"), displayName);
-    return null;
-  },
-});
 
 export const setAliases = mutation({
   args: { playerId: v.id("players"), aliases: v.array(v.string()) },

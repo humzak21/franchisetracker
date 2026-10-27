@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { CalendarDays, History } from "lucide-react";
+import { CalendarDays, History, Plus } from "lucide-react";
+import { useState } from "react";
 import { api } from "@convex/_generated/api";
 import { PLAYOFF_RESULT_LABELS, weekPhase, type WeekPhase } from "@shared/domain";
 import { isPreFranchise } from "@shared/history/nflverse";
@@ -14,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
+import { AddGameSheet } from "./AddGameSheet";
 import { ScheduleCalendar } from "./ScheduleCalendar";
 import { ScheduleCharts } from "./ScheduleCharts";
 import { ScheduleRow, type ScheduleGame } from "./ScheduleRow";
@@ -35,6 +37,7 @@ const PHASES: { phase: WeekPhase; title: string }[] = [
 
 function Week({ games }: { games: ScheduleGame[] }) {
   const userTeam = useFranchise()?.userTeam;
+  if (!userTeam) return null;
   return (
     <ol className="space-y-2">
       {games.map((game) => (
@@ -54,9 +57,22 @@ export function ScheduleScreen() {
   const data = useQuery(api.games.schedule.bySeason, season ? { seasonId: season._id } : "skip");
   const summary = data?.summary;
   const playoffResult = season?.userRecord?.playoffResult;
+  const [adding, setAdding] = useState(false);
+  // Seasons before the franchise are imported NFL history, without game-by-game schedules.
+  const canAdd = !!season && !!active && !isPreFranchise(season.year, active.franchise.startYear);
+  const addButton = canAdd && (
+    <Button size="sm" variant="outline" onClick={() => setAdding(true)}>
+      <Plus /> Add game
+    </Button>
+  );
 
   return (
-    <Page title="Schedule" eyebrow={season ? `${season.year} season` : undefined} season>
+    <Page
+      title="Schedule"
+      eyebrow={season ? `${season.year} season` : undefined}
+      season
+      actions={data && data.games.length > 0 ? addButton : undefined}
+    >
       {data === undefined ? (
         <div className="space-y-3">
           <Skeleton className="h-20 rounded-xl" />
@@ -84,11 +100,14 @@ export function ScheduleScreen() {
           size="page"
           icon={CalendarDays}
           title={`No games for ${season?.year ?? "this season"} yet`}
-          description="Capture a box score to log a game; the season fills in as you play."
+          description="Capture a box score to log a game, or add one by hand; the season fills in as you play."
           action={
-            <Button asChild variant="primary">
-              <Link to="/inbox">Capture a game</Link>
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button asChild variant="primary">
+                <Link to="/inbox">Capture a game</Link>
+              </Button>
+              {addButton}
+            </div>
           }
         />
       ) : (
@@ -124,6 +143,15 @@ export function ScheduleScreen() {
           {view === "calendar" && season && <ScheduleCalendar year={season.year} games={data.games} />}
           {view === "charts" && <ScheduleCharts points={data.points} />}
         </div>
+      )}
+      {canAdd && season && (
+        <AddGameSheet
+          open={adding}
+          onOpenChange={setAdding}
+          seasonId={season._id}
+          year={season.year}
+          takenWeeks={data?.games.map((g) => g.weekKey) ?? []}
+        />
       )}
     </Page>
   );

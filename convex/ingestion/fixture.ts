@@ -26,7 +26,7 @@ const row = (
 export function fixtureAnswer(target: TargetKey, { home, away, userIsHome }: Teams): unknown {
   const us = userIsHome ? home : away;
   const them = userIsHome ? away : home;
-  if (isRowTarget(target)) return fixtureRows(target, us);
+  if (isRowTarget(target)) return fixtureRows(target, us, { home, away, userIsHome });
   const header = {
     home_team: home,
     away_team: away,

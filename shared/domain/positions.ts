@@ -127,3 +127,54 @@ export function positionGroupOf(position: Position): PositionGroup {
 export function sideOf(position: Position): Side {
   return POSITION_INFO[position].side;
 }
+
+/**
+ * Color families for position badges and roster tables: every position reads apart at a glance,
+ * except slots that are the same job on either side (the line, edges, linebackers, safeties).
+ */
+export const POSITION_COLORS = [
+  "qb",
+  "hb",
+  "fb",
+  "wr",
+  "te",
+  "ol",
+  "edge",
+  "dt",
+  "lb",
+  "cb",
+  "s",
+  "k",
+  "p",
+  "ls",
+] as const;
+export type PositionColor = (typeof POSITION_COLORS)[number];
+
+const COLOR_OF: Record<Position, PositionColor> = {
+  QB: "qb",
+  HB: "hb",
+  FB: "fb",
+  WR: "wr",
+  TE: "te",
+  LT: "ol",
+  LG: "ol",
+  C: "ol",
+  RG: "ol",
+  RT: "ol",
+  LEDG: "edge",
+  REDG: "edge",
+  DT: "dt",
+  SAM: "lb",
+  MLB: "lb",
+  WILL: "lb",
+  CB: "cb",
+  FS: "s",
+  SS: "s",
+  K: "k",
+  P: "p",
+  LS: "ls",
+};
+
+export function positionColor(position: Position): PositionColor {
+  return COLOR_OF[position];
+}

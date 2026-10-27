@@ -1,3 +1,3 @@
 export { DataTable } from "./DataTable";
 export { statColumn } from "./columns";
-export type { DataColumn, DataTableProps } from "./types";
+export type { ColumnEdit, DataColumn, DataTableProps, EditValue } from "./types";

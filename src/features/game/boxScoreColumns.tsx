@@ -5,6 +5,7 @@ import type { api } from "@convex/_generated/api";
 import {
   aggregateLines,
   gameHighlights,
+  isRawStatKey,
   STAT_REGISTRY,
   statValue,
   type StatKey,
@@ -94,8 +95,14 @@ export function boxColumns(stats: readonly StatKey[], team: TeamLike): DataColum
     },
   };
   // Per-game cells skip season elite tiers; threshold badges mark the big games instead.
+  // Recorded stats edit in place; rates (CMP%, AVG) are worked out from them.
   return [
     player,
-    ...stats.map((key) => statColumn<BoxRow>(key, (r) => statValue(key, r.line), { highlight: false })),
+    ...stats.map((key) => {
+      const column = statColumn<BoxRow>(key, (r) => statValue(key, r.line), { highlight: false });
+      return isRawStatKey(key)
+        ? { ...column, edit: { kind: "number" as const, get: (r: BoxRow) => r.line[key] } }
+        : column;
+    }),
   ];
 }

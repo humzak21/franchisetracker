@@ -11,11 +11,12 @@ import { Notice } from "@/components/data/Notice";
 import { Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
-import { groupRows, seasonColumns, totalsRow } from "./seasonColumns";
+import { seasonColumns } from "./seasonColumns";
+import { groupRows, totalsRow } from "./seasonRows";
 import type { Split } from "./split";
 import { useQuery } from "@/lib/convex/useQuery";
 
-/** Season stats by position group (FEATURES.md 5.5): registry columns, big-game counts, best games, totals. */
+/** Season stats by position group (FEATURES.md 5.5): registry columns, big-game counts, season highs, totals. */
 export function SeasonStats({ split }: { split: Split }) {
   const { season } = useSeason();
   const active = useFranchise();

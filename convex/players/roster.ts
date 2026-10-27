@@ -1,17 +1,21 @@
 import { v } from "convex/values";
 import { weekIndex } from "../../shared/domain";
-import { query } from "../_generated/server";
+import { applyEntryPatch } from "../../shared/roster/entryPatch";
+import { mutation, query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
-import { must } from "../lib/errors";
+import { appError, invalid, must } from "../lib/errors";
 import { activeFranchise, playersById } from "../lib/franchise";
 import { headshotUrls } from "../lib/refs";
 import { vWeekKey } from "../lib/validators";
 import schema from "../schema";
+import { vEntryPatch } from "./patches";
 
 /** A full roster plus practice squad and IR stays well under this. */
 const MAX_ROSTER = 150;
 /** A season's injury reports for the whole league, with headroom. */
 const MAX_INJURIES = 1000;
+/** One player's entries in one season: a few teams at most, even after moves. */
+const MAX_STINTS = 20;
 
 /** A season's roster for one team (the user team by default), each entry joined to its player. */
 export const bySeason = query({
@@ -83,5 +87,36 @@ export const bySeason = query({
           : [];
       }),
     };
+  },
+});
+
+/**
+ * Edits one season's roster entry: any subset of its fields, one table cell or a whole sheet.
+ * `teamId` corrects which team the entry belongs to (a data fix, not a move; see `move.ts`).
+ */
+export const updateEntry = mutation({
+  args: { entryId: v.id("rosterEntries"), patch: vEntryPatch, teamId: v.optional(v.id("teams")) },
+  returns: v.null(),
+  handler: async (ctx, { entryId, patch, teamId }) => {
+    await requireOwner(ctx);
+    const entry = must(await ctx.db.get("rosterEntries", entryId), "Roster entry");
+    const result = applyEntryPatch(entry, patch);
+    if (!result.ok) throw invalid(result.error);
+    if (teamId !== undefined && teamId !== entry.teamId) {
+      must(await ctx.db.get("teams", teamId), "Team");
+      const stints = await ctx.db
+        .query("rosterEntries")
+        .withIndex("by_playerId_and_seasonId", (q) =>
+          q.eq("playerId", entry.playerId).eq("seasonId", entry.seasonId),
+        )
+        .take(MAX_STINTS);
+      if (stints.some((s) => s.teamId === teamId))
+        throw appError("conflict", "He already has a roster entry with that team this season");
+    }
+    await ctx.db.patch("rosterEntries", entryId, {
+      ...result.fields,
+      ...(teamId !== undefined ? { teamId } : {}),
+    });
+    return null;
   },
 });

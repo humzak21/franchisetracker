@@ -35,11 +35,11 @@ describe("games/schedule", () => {
     const { games } = await owner.query(api.games.schedule.bySeason, { seasonId });
     const week5 = games.find((g) => g.weekKey === "w5")!;
     const detail = await owner.query(api.games.schedule.get, { gameId: week5._id });
-    expect(detail.userRecordBefore).toEqual({ w: 2, l: 1, t: 0 });
-    expect(detail.previousGameId).toBe(games.find((g) => g.weekKey === "w3")!._id);
-    expect(detail.nextGameId).toBe(games.find((g) => g.weekKey === "w6")!._id);
-    expect(detail.headToHead.record).toEqual({ w: 1, l: 0, t: 0 });
-    expect(detail.headToHead.games[0]).toMatchObject({ year: SAMPLE_START_YEAR, us: 34, them: 30 });
+    expect(detail?.userRecordBefore).toEqual({ w: 2, l: 1, t: 0 });
+    expect(detail?.previousGameId).toBe(games.find((g) => g.weekKey === "w3")!._id);
+    expect(detail?.nextGameId).toBe(games.find((g) => g.weekKey === "w6")!._id);
+    expect(detail?.headToHead.record).toEqual({ w: 1, l: 0, t: 0 });
+    expect(detail?.headToHead.games[0]).toMatchObject({ year: SAMPLE_START_YEAR, us: 34, them: 30 });
   });
 
   test("notes save trimmed and clear when empty", async () => {
