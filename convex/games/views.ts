@@ -8,6 +8,8 @@ export type StarView = {
   name: string;
   position: string | null;
   caption: string | null;
+  /** The side the star played for, when known (picked from a box score line or the roster). */
+  teamId: Id<"teams"> | null;
 };
 
 export function starViews(game: Doc<"games">, players: Map<Id<"players">, Doc<"players">>): StarView[] {
@@ -18,6 +20,7 @@ export function starViews(game: Doc<"games">, players: Map<Id<"players">, Doc<"p
       name: player?.displayName ?? star.rawName ?? "Unknown player",
       position: player?.position ?? null,
       caption: star.caption ?? null,
+      teamId: star.teamId ?? null,
     };
   });
 }
