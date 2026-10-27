@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { WeekKey } from "@shared/domain";
 import { CaptureFields, type CaptureFieldsValue } from "@/components/forms/CaptureFields";
+import { ManualEntryLink } from "@/components/forms/ManualEntryLink";
 import { ModelPicker } from "@/components/forms/ModelPicker";
 import { StatComparison } from "@/components/data/StatComparison";
 import { ImageViewer } from "@/components/media/ImageViewer";
@@ -130,6 +131,12 @@ export const INGESTION_SPECIMENS: Specimen[] = [
     name: "CaptureFields",
     note: "What a set of screenshots is and where it goes. Native selects open the phone's own picker.",
     render: () => <CaptureFieldsDemo />,
+  },
+  {
+    id: "manualentrylink",
+    name: "ManualEntryLink",
+    note: "The typed-in counterpart of a capture button; opens manual entry with the target preset.",
+    render: () => <ManualEntryLink target="yearly_awards" label="Add award" />,
   },
   {
     id: "modelpicker",
