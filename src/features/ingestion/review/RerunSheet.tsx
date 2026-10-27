@@ -1,10 +1,11 @@
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
 import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { errorMessage } from "@/lib/errors";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /** Reads the screenshots again, with the configured models or one picked for this run. */
 export function RerunSheet({

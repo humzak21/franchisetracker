@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { isPreFranchise } from "@shared/history/nflverse";
 import { useFranchise } from "@/app/franchise";
@@ -18,6 +17,7 @@ import { RecentActivity } from "./RecentActivity";
 import { SeasonCard } from "./SeasonCard";
 import { SeasonHeader } from "./SeasonHeader";
 import { TeamStreaks } from "./TeamStreaks";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /** A column on desktop; on narrower widths its cards join one column, ordered by `order-*`. */
 const column = "contents @desktop:flex @desktop:min-w-0 @desktop:flex-col @desktop:gap-8";

@@ -6,7 +6,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { action, internalMutation, mutation, query } from "../_generated/server";
-import { requireOwner, requireSignedIn } from "../lib/auth";
+import { requireOwner, requireOwnerAction } from "../lib/auth";
 import { must } from "../lib/errors";
 import { activeFranchise } from "../lib/franchise";
 
@@ -29,7 +29,7 @@ export const create = action({
   args: { label: v.string() },
   returns: v.string(),
   handler: async (ctx, { label }) => {
-    await requireSignedIn(ctx);
+    await requireOwnerAction(ctx);
     const token = newToken();
     await ctx.runMutation(internal.ingestion.tokens.store, { tokenHash: await sha256Hex(token), label });
     return token;

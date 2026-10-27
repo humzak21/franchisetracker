@@ -38,8 +38,8 @@ export function Segmented<T extends string>({
           key={option.value}
           value={option.value}
           className={cn(
-            "flex-1 rounded-md px-3 font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground data-[state=on]:bg-surface data-[state=on]:text-foreground data-[state=on]:shadow-sm",
-            size === "sm" ? "h-7 text-xs pointer-coarse:h-9" : "h-8 text-sm pointer-coarse:h-10",
+            "min-w-11 flex-1 rounded-md px-3 font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground data-[state=on]:bg-surface data-[state=on]:text-foreground data-[state=on]:shadow-sm",
+            size === "sm" ? "h-7 text-xs pointer-coarse:h-11" : "h-8 text-sm pointer-coarse:h-11",
           )}
         >
           {option.label}

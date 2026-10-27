@@ -33,6 +33,19 @@ describe("owner gate", () => {
     process.env.OWNER_EMAILS = "someone-else@example.com";
     await expect(owner.query(api.account.me, {})).rejects.toThrow(/Not the owner/);
   });
+
+  test("actions check the owner too, not only that someone is signed in", async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(internal.league.seed.seedTeams, {});
+    await t.mutation(internal.dev.fixtures.seedFixtures, {});
+    const owner = await asOwner(t);
+    await expect(owner.action(api.ingestion.tokens.create, { label: "x" })).resolves.toMatch(/^ft_/);
+    const stranger = await asStranger(t);
+    await expect(stranger.action(api.ingestion.tokens.create, { label: "x" })).rejects.toThrow(
+      /Not the owner/,
+    );
+    await expect(t.action(api.ingestion.tokens.create, { label: "x" })).rejects.toThrow(/Sign in required/);
+  });
 });
 
 describe("account:authInfo", () => {

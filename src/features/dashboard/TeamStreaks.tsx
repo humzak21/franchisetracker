@@ -1,7 +1,7 @@
-import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { STREAK_LABELS, type StreakKey } from "@shared/stats";
 import { FactChip } from "@/components/data/FactChip";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /** The team's streaks as chips; nothing at all until there is a streak to show. */
 export function TeamStreaks() {

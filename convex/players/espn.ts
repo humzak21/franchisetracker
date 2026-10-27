@@ -15,7 +15,7 @@ import {
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { action, internalMutation, internalQuery, type ActionCtx } from "../_generated/server";
-import { requireOwner, requireSignedIn } from "../lib/auth";
+import { requireOwner, requireOwnerAction } from "../lib/auth";
 import { invalid, must } from "../lib/errors";
 import { seasonYears } from "../lib/refs";
 import { vEspnLeague, vPosition } from "../lib/validators";
@@ -115,7 +115,7 @@ export const search = action({
   args: { playerId: v.id("players"), query: v.optional(v.string()) },
   returns: v.array(vCandidate),
   handler: async (ctx, { playerId, query }) => {
-    await requireSignedIn(ctx);
+    await requireOwnerAction(ctx);
     const [subject] = await loadSubjects(ctx, [playerId]);
     const name = query?.trim() || subject?.name;
     if (!subject || !name) return [];
@@ -135,7 +135,7 @@ export const suggest = action({
   args: { playerIds: v.array(v.id("players")) },
   returns: v.array(v.object({ playerId: v.id("players"), candidate: v.union(vCandidate, v.null()) })),
   handler: async (ctx, { playerIds }) => {
-    await requireSignedIn(ctx);
+    await requireOwnerAction(ctx);
     const subjects = await loadSubjects(ctx, playerIds);
     return await Promise.all(
       subjects.map(async (subject) => {
@@ -183,7 +183,7 @@ export const confirm = action({
   args: { playerId: v.id("players"), espnId: v.number(), league: vEspnLeague },
   returns: v.null(),
   handler: async (ctx, { playerId, espnId, league }) => {
-    await requireSignedIn(ctx);
+    await requireOwnerAction(ctx);
     const athlete = await fetchAthlete(espnId, league);
     if (!athlete) throw invalid("ESPN has no player with that id");
     await ctx.runMutation(internal.players.espn.applyMatch, {

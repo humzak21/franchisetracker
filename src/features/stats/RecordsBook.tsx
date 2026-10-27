@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Trophy } from "lucide-react";
 import { useState } from "react";
@@ -20,6 +19,7 @@ import { Section } from "@/components/layout/Section";
 import { Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import { byRegistryOrder, type Split } from "./split";
+import { useQuery } from "@/lib/convex/useQuery";
 
 type RecordView = FunctionReturnType<typeof api.stats.records.book>[number];
 

@@ -35,7 +35,7 @@ export function ThreeStars({ stars, team }: { stars: StarView[]; team: TeamLike 
               <Link
                 to="/players/$playerId"
                 params={{ playerId: star.playerId }}
-                className="min-w-0 hover:underline"
+                className="min-w-0 hover:underline pointer-coarse:touch-target"
               >
                 {chip}
               </Link>

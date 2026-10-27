@@ -1,11 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { Camera, ChevronRight, Inbox } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { useCapture } from "@/app/capture/CaptureProvider";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /** Inbox summary (FEATURES.md 5.1): how many captures wait on you, a link in, and a capture button. */
 export function InboxSummary() {

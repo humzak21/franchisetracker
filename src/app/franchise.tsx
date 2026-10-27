@@ -1,9 +1,10 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { createContext, useCallback, useContext, type ReactNode } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
+import { setQueryCacheScope, useQuery } from "@/lib/convex/useQuery";
 
 export type ActiveFranchise = NonNullable<FunctionReturnType<typeof api.franchise.franchises.getActive>>;
 export type Season = ActiveFranchise["seasons"][number];
@@ -15,6 +16,8 @@ const FranchiseContext = createContext<FranchiseState>(undefined);
 
 export function FranchiseProvider({ children }: { children: ReactNode }) {
   const active = useQuery(api.franchise.franchises.getActive, {});
+  // Set during render, before any screen's query builds its cache key.
+  if (active) setQueryCacheScope(active.franchise._id);
   return <FranchiseContext.Provider value={active}>{children}</FranchiseContext.Provider>;
 }
 

@@ -15,7 +15,7 @@ const buttonVariants = cva(
         destructive: "bg-loss text-white hover:brightness-110",
       },
       size: {
-        sm: "h-8 px-3 text-[13px] pointer-coarse:min-h-11",
+        sm: "h-8 px-3 text-[13px] pointer-coarse:min-h-11 pointer-coarse:min-w-11",
         md: "h-9 px-4 pointer-coarse:min-h-11",
         lg: "h-11 px-5 text-base",
         icon: "size-9 pointer-coarse:size-11",

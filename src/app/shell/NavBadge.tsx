@@ -1,6 +1,6 @@
-import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { cn } from "@/lib/cn";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /** Inbox sets waiting on the user; the only nav item with a count today. */
 export function useNavCount(id: string): number {

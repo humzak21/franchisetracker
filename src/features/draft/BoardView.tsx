@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { api } from "@convex/_generated/api";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge, Skeleton } from "@/components/ui/misc";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/cn";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /**
  * The lightweight draft board (FEATURES.md 5.9): the needs the last season's report named, the

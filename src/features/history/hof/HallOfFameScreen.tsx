@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { Landmark, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
@@ -15,6 +14,7 @@ import { Skeleton } from "@/components/ui/misc";
 import { JerseyPlaque } from "./JerseyPlaque";
 import { StaffInductionSheet } from "./StaffInductionSheet";
 import type { WallEntry } from "./types";
+import { useQuery } from "@/lib/convex/useQuery";
 
 function RetiredNumbers({ items }: { items: WallEntry[] }) {
   const retired = retiredNumbers(items.map((i) => ({ ...i.entry, name: i.name })));

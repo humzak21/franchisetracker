@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { CircleCheck, CircleX, FlaskConical } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { FunctionReturnType } from "convex/server";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/misc";
 import { errorMessage } from "@/lib/errors";
+import { useQuery } from "@/lib/convex/useQuery";
 
 const labelClass = "text-[11px] font-semibold tracking-[0.08em] text-subtle-foreground uppercase";
 

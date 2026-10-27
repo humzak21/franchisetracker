@@ -123,7 +123,7 @@ export function GalleryScreen() {
           <select
             value={teamAbbr}
             onChange={(e) => setTeamAbbr(e.target.value)}
-            className="h-8 max-w-40 rounded-lg border border-input bg-surface px-2 text-sm text-foreground pointer-coarse:h-10"
+            className="h-8 max-w-40 rounded-lg border border-input bg-surface px-2 text-sm text-foreground pointer-coarse:h-11"
           >
             {NFL_TEAMS.map((t) => (
               <option key={t.abbr} value={t.abbr}>

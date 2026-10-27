@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { Camera, CircleCheck, ScanSearch } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { weekLabel } from "@shared/domain";
@@ -13,6 +12,7 @@ import { Section } from "@/components/layout/Section";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { ReconcileCard } from "./ReconcileCard";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /**
  * Reconciliation (Sprint 6): the season totals a season stats screenshot printed against the

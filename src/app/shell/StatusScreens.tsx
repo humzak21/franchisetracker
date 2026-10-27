@@ -1,8 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { Compass, TriangleAlert } from "lucide-react";
+import { useEffect } from "react";
 import { EmptyState } from "@/components/data/EmptyState";
 import { Page } from "@/components/layout/Page";
 import { Button } from "@/components/ui/button";
+import { useReportError } from "../errors/useReportError";
 
 /** The screen for an unknown route or a record that no longer exists. */
 export function NotFoundScreen() {
@@ -25,6 +27,8 @@ export function NotFoundScreen() {
 
 /** Shown in place of a screen whose data failed to load (bad link, deleted game). The shell stays. */
 export function ErrorScreen({ error }: { error: unknown }) {
+  const report = useReportError();
+  useEffect(() => report(error, "render"), [error, report]);
   const message = error instanceof Error ? error.message : "";
   return (
     <Page title="Something went wrong">

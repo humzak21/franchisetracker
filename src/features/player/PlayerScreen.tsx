@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { Columns3, Gauge, Landmark, ScanFace } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "@convex/_generated/api";
@@ -23,6 +23,7 @@ import { PlayerHighlights } from "./PlayerHighlights";
 import { PlayerStatCards } from "./PlayerStatCards";
 import { RatingsSheet } from "./RatingsSheet";
 import { RosterHistoryTable } from "./RosterHistoryTable";
+import { useQuery } from "@/lib/convex/useQuery";
 
 const SECTIONS = [
   { id: "stats", label: "Stats" },

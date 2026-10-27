@@ -11,6 +11,7 @@
 import type * as account from "../account.js";
 import type * as auth from "../auth.js";
 import type * as awards_awards from "../awards/awards.js";
+import type * as crons from "../crons.js";
 import type * as dashboard_activity from "../dashboard/activity.js";
 import type * as dashboard_home from "../dashboard/home.js";
 import type * as dev_fixtureDashboard from "../dev/fixtureDashboard.js";
@@ -26,6 +27,7 @@ import type * as external_media from "../external/media.js";
 import type * as external_openrouter from "../external/openrouter.js";
 import type * as franchise_create from "../franchise/create.js";
 import type * as franchise_franchises from "../franchise/franchises.js";
+import type * as franchise_remove from "../franchise/remove.js";
 import type * as franchise_settings from "../franchise/settings.js";
 import type * as franchise_setup from "../franchise/setup.js";
 import type * as games_boxScore from "../games/boxScore.js";
@@ -83,10 +85,16 @@ import type * as lib_hof from "../lib/hof.js";
 import type * as lib_media from "../lib/media.js";
 import type * as lib_needs from "../lib/needs.js";
 import type * as lib_owner from "../lib/owner.js";
+import type * as lib_rateLimits from "../lib/rateLimits.js";
 import type * as lib_refs from "../lib/refs.js";
 import type * as lib_reports from "../lib/reports.js";
 import type * as lib_testOwner from "../lib/testOwner.js";
 import type * as lib_validators from "../lib/validators.js";
+import type * as ops_backupData from "../ops/backupData.js";
+import type * as ops_backupRun from "../ops/backupRun.js";
+import type * as ops_errors from "../ops/errors.js";
+import type * as ops_exportData from "../ops/exportData.js";
+import type * as ops_restoreData from "../ops/restoreData.js";
 import type * as players_activity from "../players/activity.js";
 import type * as players_cap from "../players/cap.js";
 import type * as players_compare from "../players/compare.js";
@@ -108,6 +116,7 @@ import type * as schema_history from "../schema/history.js";
 import type * as schema_hof from "../schema/hof.js";
 import type * as schema_ingestion from "../schema/ingestion.js";
 import type * as schema_league from "../schema/league.js";
+import type * as schema_ops from "../schema/ops.js";
 import type * as schema_players from "../schema/players.js";
 import type * as schema_stats from "../schema/stats.js";
 import type * as schema_transactions from "../schema/transactions.js";
@@ -137,6 +146,7 @@ declare const fullApi: ApiFromModules<{
   account: typeof account;
   auth: typeof auth;
   "awards/awards": typeof awards_awards;
+  crons: typeof crons;
   "dashboard/activity": typeof dashboard_activity;
   "dashboard/home": typeof dashboard_home;
   "dev/fixtureDashboard": typeof dev_fixtureDashboard;
@@ -152,6 +162,7 @@ declare const fullApi: ApiFromModules<{
   "external/openrouter": typeof external_openrouter;
   "franchise/create": typeof franchise_create;
   "franchise/franchises": typeof franchise_franchises;
+  "franchise/remove": typeof franchise_remove;
   "franchise/settings": typeof franchise_settings;
   "franchise/setup": typeof franchise_setup;
   "games/boxScore": typeof games_boxScore;
@@ -209,10 +220,16 @@ declare const fullApi: ApiFromModules<{
   "lib/media": typeof lib_media;
   "lib/needs": typeof lib_needs;
   "lib/owner": typeof lib_owner;
+  "lib/rateLimits": typeof lib_rateLimits;
   "lib/refs": typeof lib_refs;
   "lib/reports": typeof lib_reports;
   "lib/testOwner": typeof lib_testOwner;
   "lib/validators": typeof lib_validators;
+  "ops/backupData": typeof ops_backupData;
+  "ops/backupRun": typeof ops_backupRun;
+  "ops/errors": typeof ops_errors;
+  "ops/exportData": typeof ops_exportData;
+  "ops/restoreData": typeof ops_restoreData;
   "players/activity": typeof players_activity;
   "players/cap": typeof players_cap;
   "players/compare": typeof players_compare;
@@ -234,6 +251,7 @@ declare const fullApi: ApiFromModules<{
   "schema/hof": typeof schema_hof;
   "schema/ingestion": typeof schema_ingestion;
   "schema/league": typeof schema_league;
+  "schema/ops": typeof schema_ops;
   "schema/players": typeof schema_players;
   "schema/stats": typeof schema_stats;
   "schema/transactions": typeof schema_transactions;
@@ -280,4 +298,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+};

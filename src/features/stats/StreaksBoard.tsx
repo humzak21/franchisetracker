@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { Flame } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { STREAK_LABELS, type StreakKey } from "@shared/stats";
@@ -7,6 +6,7 @@ import { EmptyState } from "@/components/data/EmptyState";
 import { FactChip } from "@/components/data/FactChip";
 import { Section } from "@/components/layout/Section";
 import { Skeleton } from "@/components/ui/misc";
+import { useQuery } from "@/lib/convex/useQuery";
 
 const label = (key: string) => STREAK_LABELS[key as StreakKey] ?? key;
 

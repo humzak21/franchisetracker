@@ -78,6 +78,22 @@ const RECEIVER_TOTALS: ReceiverRow = {
   games5rec: RECEIVERS_2025.reduce((n, r) => n + r.games5rec, 0),
 };
 
+/** Twenty seasons of game logs' worth of rows: enough to switch the table to virtual rows. */
+type LogRow = { id: string; week: number; player: string; yards: number; touchdowns: number };
+const LONG_ROWS: LogRow[] = Array.from({ length: 400 }, (_, i) => ({
+  id: `log-${i + 1}`,
+  week: (i % 18) + 1,
+  player: `Row ${i + 1}`,
+  yards: (i * 37) % 180,
+  touchdowns: i % 4,
+}));
+const LONG_COLUMNS: DataColumn<LogRow>[] = [
+  { id: "player", header: "Row", value: (r) => r.player, searchable: true, minWidth: 120 },
+  { id: "week", header: "Wk", title: "Week", align: "right", value: (r) => r.week },
+  { id: "yards", header: "YDS", title: "Yards", align: "right", value: (r) => r.yards },
+  { id: "touchdowns", header: "TD", title: "Touchdowns", align: "right", value: (r) => r.touchdowns },
+];
+
 /** DataTable specimens: the full table with phone mode, plus loading and empty states. */
 export const TABLE_SPECIMENS: Specimen[] = [
   {
@@ -97,6 +113,24 @@ export const TABLE_SPECIMENS: Specimen[] = [
         searchable
         searchPlaceholder="Search receivers"
         caption="2025 receiving"
+      />
+    ),
+  },
+  {
+    id: "datatable-long",
+    name: "DataTable · long",
+    note: "Past 120 rows only the rows in view are rendered, so a season of league-wide stats scrolls smoothly on a phone.",
+    render: () => (
+      <DataTable
+        id="gallery-long"
+        data={LONG_ROWS}
+        columns={LONG_COLUMNS}
+        getRowId={(r) => r.id}
+        identityColumn="player"
+        primaryColumns={["yards", "touchdowns"]}
+        searchable
+        searchPlaceholder="Search rows"
+        caption="Four hundred rows"
       />
     ),
   },

@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import { ImageUp } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
@@ -19,6 +18,7 @@ import { TeamChip } from "@/components/team/TeamChip";
 import { Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import { boxColumns, boxRows, totalsRow, type BoxTeam } from "./boxScoreColumns";
+import { useQuery } from "@/lib/convex/useQuery";
 
 type BoxScoreProps = { gameId: Id<"games">; onImport: () => void };
 

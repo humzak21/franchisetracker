@@ -10,6 +10,8 @@ export function FranchiseSetup() {
     <main className="pt-safe pb-safe min-h-dvh bg-background">
       <FranchiseForm
         stickyBar
+        // Nothing to do: the franchise gate replaces this screen as soon as the franchise exists.
+        onCreated={() => {}}
         className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12"
         header={(team) => (
           <header className="flex items-center gap-4">

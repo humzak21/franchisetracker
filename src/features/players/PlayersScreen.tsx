@@ -1,5 +1,4 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { Columns3, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
@@ -15,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { playerColumns, type DirectoryRow } from "./playerColumns";
 import { PlayerSearch } from "./PlayerSearch";
+import { useQuery } from "@/lib/convex/useQuery";
 
 type GroupFilter = PositionGroup | "all";
 const MAX_COMPARE = 4;

@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import { ListOrdered, Trophy } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
@@ -11,6 +10,7 @@ import { Badge, Skeleton } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { TeamLink } from "./TeamLink";
 import { toRow, type Standing } from "./types";
+import { useQuery } from "@/lib/convex/useQuery";
 
 function DivisionCard({ title, rows, userAbbr }: { title: string; rows: Standing[]; userAbbr?: string }) {
   return (

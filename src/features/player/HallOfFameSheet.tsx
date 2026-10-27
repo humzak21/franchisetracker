@@ -105,7 +105,7 @@ export function HallOfFameSheet({
                   aria-pressed={highlights.includes(y)}
                   onClick={() => toggle(y)}
                   className={cn(
-                    "num h-8 rounded-full border px-3 text-[13px] font-medium pointer-coarse:h-10",
+                    "num h-8 rounded-full border px-3 text-[13px] font-medium pointer-coarse:h-11",
                     highlights.includes(y)
                       ? "border-primary bg-elite-1 text-primary"
                       : "border-border-strong text-muted-foreground",

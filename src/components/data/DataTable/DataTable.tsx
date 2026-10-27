@@ -129,6 +129,7 @@ export function DataTable<T extends object>(props: DataTableProps<T>) {
             compact={compact}
             loadingRows={loadingRows}
             caption={props.caption}
+            scrollElement={() => scroller.current}
             empty={
               props.emptyState ?? (
                 <EmptyState icon={Search} title="Nothing here" description="No rows match." />

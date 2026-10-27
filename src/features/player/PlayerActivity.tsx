@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import { Medal } from "lucide-react";
 import type { ReactNode } from "react";
 import { api } from "@convex/_generated/api";
@@ -6,6 +5,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { AWARD_INFO, TRANSACTION_LABELS, weekLabel } from "@shared/domain";
 import { EmptyState } from "@/components/data/EmptyState";
 import { Badge, Skeleton } from "@/components/ui/misc";
+import { useQuery } from "@/lib/convex/useQuery";
 
 function List({ title, children }: { title: string; children: ReactNode }) {
   return (

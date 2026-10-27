@@ -1,10 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { NotebookPen, X } from "lucide-react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
 import { isSnoozed, PROMPT_LABELS } from "@shared/seasons/reports";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /**
  * The pending-prompt banner (FEATURES.md 3): a report that is due, on every screen but Home

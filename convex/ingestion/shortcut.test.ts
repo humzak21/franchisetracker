@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../_generated/api";
@@ -10,6 +11,7 @@ const modules = import.meta.glob("/convex/**/*.ts");
 
 async function setup() {
   const t = convexTest(schema, modules);
+  rateLimiterTest.register(t);
   await t.mutation(internal.league.seed.seedTeams, {});
   await t.mutation(internal.dev.fixtures.seedFixtures, {});
   const owner = await asOwner(t);
@@ -116,5 +118,25 @@ describe("shortcut batches", () => {
     const sets = await owner.query(api.ingestion.inbox.list, {});
     expect(sets.map((s) => s.setKey)).not.toContain("batch:b2");
     expect(sets).toHaveLength(2);
+  });
+});
+
+describe("rate limits", () => {
+  test("valid requests are rate limited, and junk tokens never lock out the owner", async () => {
+    const { t, headers } = await setup();
+    const junk = { Authorization: "Bearer ft_guess" };
+
+    const junkStatuses = [];
+    for (let i = 0; i < 22; i++)
+      junkStatuses.push((await t.fetch("/shortcut/targets", { headers: junk })).status);
+    expect(junkStatuses.slice(0, 20).every((s) => s === 401)).toBe(true);
+    expect(junkStatuses.slice(20)).toEqual([429, 429]);
+
+    const statuses = [];
+    for (let i = 0; i < 20; i++) statuses.push((await t.fetch("/shortcut/targets", { headers })).status);
+    expect(statuses.every((s) => s === 200)).toBe(true);
+    const limited = await t.fetch("/shortcut/targets", { headers });
+    expect(limited.status).toBe(429);
+    expect(Number(limited.headers.get("Retry-After"))).toBeGreaterThan(0);
   });
 });

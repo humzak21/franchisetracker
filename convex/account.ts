@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "./_generated/server";
+import { internalQuery, query } from "./_generated/server";
 import { requireOwner } from "./lib/auth";
 import { testModeEnabled } from "./lib/owner";
 
@@ -21,5 +21,15 @@ export const me = query({
   handler: async (ctx) => {
     const user = await requireOwner(ctx);
     return { name: user.name ?? null, email: user.email ?? null, image: user.image ?? null };
+  },
+});
+
+/** The owner check for actions, which have no database: `requireOwnerAction` runs it. */
+export const assertOwner = internalQuery({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    await requireOwner(ctx);
+    return null;
   },
 });

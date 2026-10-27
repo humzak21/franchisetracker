@@ -27,6 +27,20 @@ test.describe("component gallery", () => {
     await expect(phoneFrame.getByText("100-yard games")).toBeVisible();
   });
 
+  test("a long DataTable renders only the rows in view", async ({ page }) => {
+    const section = page.locator("#datatable-long");
+    await section.scrollIntoViewIfNeeded();
+    const frame = section.locator("figure").first();
+    const scroller = frame.locator("[data-swipe-ignore] [data-swipe-ignore]").first();
+    await expect(frame.getByRole("row", { name: /^Row 1\b/ })).toBeVisible();
+    expect(await frame.locator("tbody tr").count()).toBeLessThan(100);
+    // Rows are measured as they render, so the bottom moves; keep scrolling until the last row shows.
+    await expect(async () => {
+      await scroller.evaluate((el) => el.scrollTo({ top: el.scrollHeight }));
+      await expect(frame.getByRole("row", { name: /^Row 400\b/ })).toBeVisible({ timeout: 500 });
+    }).toPass();
+  });
+
   test("TeamPicker selects one team at a time", async ({ page }) => {
     // Specimens mount when scrolled to.
     await page.locator("#teampicker").scrollIntoViewIfNeeded();

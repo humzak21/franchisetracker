@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { api, internal } from "../_generated/api";
 import { SECOND_FRANCHISE_NAME } from "../dev/fixtureDashboard";
 import { SAMPLE_FRANCHISE_NAME, SAMPLE_START_YEAR } from "../dev/fixtures";
@@ -86,5 +86,52 @@ describe("several franchises", () => {
     await expect(stranger.mutation(api.franchise.franchises.activate, { franchiseId })).rejects.toThrow(
       /Not the owner/,
     );
+  });
+});
+
+describe("deleting a franchise", () => {
+  test("refuses the active one and a wrong name, then removes every row of the deleted one", async () => {
+    vi.useFakeTimers();
+    try {
+      const { t, owner } = await setup();
+      const [sample, second] = await owner.query(api.franchise.franchises.list, {});
+      const remove = (franchiseId: typeof sample._id, confirmName: string) =>
+        owner.mutation(api.franchise.remove.remove, { franchiseId, confirmName });
+      await expect(remove(sample!._id, SAMPLE_FRANCHISE_NAME)).rejects.toThrow(/Switch to another franchise/);
+
+      await owner.mutation(api.franchise.franchises.activate, { franchiseId: second!._id });
+      await expect(remove(sample!._id, "Sample")).rejects.toThrow(/Type the franchise's name/);
+      await remove(sample!._id, SAMPLE_FRANCHISE_NAME);
+      const deleting = await owner.query(api.franchise.franchises.list, {});
+      expect(deleting.find((f) => f._id === sample!._id)?.deleting).toBe(true);
+      await expect(
+        owner.mutation(api.franchise.franchises.activate, { franchiseId: sample!._id }),
+      ).rejects.toThrow(/no longer exists/);
+
+      await t.finishAllScheduledFunctions(vi.runAllTimers);
+      const left = await t.run(async (ctx) => {
+        const counts: Record<string, number> = {};
+        for (const table of [
+          "seasons",
+          "players",
+          "games",
+          "gameStatLines",
+          "seasonPlayerStats",
+          "standings",
+        ] as const) {
+          const rows = await ctx.db.query(table).take(5000);
+          counts[table] = rows.filter((r) => r.franchiseId === sample!._id).length;
+        }
+        return counts;
+      });
+      expect(Object.values(left).every((n) => n === 0)).toBe(true);
+      const remaining = await owner.query(api.franchise.franchises.list, {});
+      expect(remaining.map((f) => f.name)).toEqual([SECOND_FRANCHISE_NAME]);
+      expect((await owner.query(api.franchise.franchises.getActive, {}))!.seasons.map((s) => s.year)).toEqual(
+        [2030],
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

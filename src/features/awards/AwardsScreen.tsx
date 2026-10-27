@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import { Camera, Medal } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { useCapture } from "@/app/capture/CaptureProvider";
@@ -13,6 +12,7 @@ import { AllPro, Cabinet, ProBowl } from "./HonorViews";
 import { TeamAwards } from "./TeamAwards";
 import type { SeasonAward } from "./types";
 import { WeeklyAwards } from "./WeeklyAwards";
+import { useQuery } from "@/lib/convex/useQuery";
 
 type View = "weekly" | "season" | "allpro" | "probowl" | "team";
 

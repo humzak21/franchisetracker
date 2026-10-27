@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { Plus, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { api } from "@convex/_generated/api";
@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { errorMessage } from "@/lib/errors";
 import { AwardCard } from "./AwardCard";
 import type { SeasonAward } from "./types";
+import { useQuery } from "@/lib/convex/useQuery";
 
 const SUGGESTED = [
   "Team MVP",

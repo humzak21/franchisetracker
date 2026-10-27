@@ -45,8 +45,14 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     pending().then(setQueued, () => setQueued(0));
+    // An installed app on iOS often resumes without an "online" event, so coming back to it retries too.
+    const onVisible = () => document.visibilityState === "visible" && refreshQueue();
     window.addEventListener("online", refreshQueue);
-    return () => window.removeEventListener("online", refreshQueue);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("online", refreshQueue);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [pending, refreshQueue]);
 
   useEffect(() => {

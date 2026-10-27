@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { TrendingUp, X } from "lucide-react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/misc";
 import { errorMessage } from "@/lib/errors";
+import { useQuery } from "@/lib/convex/useQuery";
 
 const WEEKS = WEEK_KEYS.filter((w) => weekPhase(w) === "regular" || weekPhase(w) === "postseason").map(
   (w) => ({

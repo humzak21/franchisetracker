@@ -1,14 +1,16 @@
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { ConvexReactClient, useQuery } from "convex/react";
+import { ConvexReactClient } from "convex/react";
 import type { ReactNode } from "react";
 import { api } from "@convex/_generated/api";
 import { TeamLogosProvider } from "@/components/team/TeamLogos";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/design/theme";
 import { AuthGate } from "./auth/AuthGate";
+import { ErrorReporter } from "./errors/ErrorReporter";
 import { FranchiseProvider, useFranchise } from "./franchise";
 import { KeyboardProvider } from "./keyboard";
 import { FranchiseGate } from "./setup/FranchiseGate";
+import { useQuery } from "@/lib/convex/useQuery";
 
 const url = import.meta.env.VITE_CONVEX_URL as string | undefined;
 if (!url) throw new Error("VITE_CONVEX_URL is not set. Run `npm run use:local` once to create .env.local.");
@@ -36,6 +38,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <ConvexAuthProvider client={convex}>
       <AuthGate>
+        <ErrorReporter />
         <FranchiseProvider>
           <TeamTheme>
             <TeamLogos>

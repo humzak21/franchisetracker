@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import { BarChart3 } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
@@ -14,6 +13,7 @@ import { StatComparison, type ComparisonRow } from "@/components/data/StatCompar
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { teamAccent, useTheme } from "@/design/theme";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /** The two teams' game stats from the team stats screen, user team on the left. */
 export function TeamStatsCompare({ gameId, onImport }: { gameId: Id<"games">; onImport: () => void }) {

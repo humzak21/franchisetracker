@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { History, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge, Skeleton } from "@/components/ui/misc";
 import { errorMessage } from "@/lib/errors";
 import { formatAge } from "@/lib/time";
+import { useQuery } from "@/lib/convex/useQuery";
 
 const STATUS = {
   running: { tone: "accent", label: "Importing" },

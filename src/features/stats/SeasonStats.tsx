@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import { BarChart3, History } from "lucide-react";
 import { useMemo } from "react";
 import { api } from "@convex/_generated/api";
@@ -14,6 +13,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import { groupRows, seasonColumns, totalsRow } from "./seasonColumns";
 import type { Split } from "./split";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /** Season stats by position group (FEATURES.md 5.5): registry columns, big-game counts, best games, totals. */
 export function SeasonStats({ split }: { split: Split }) {

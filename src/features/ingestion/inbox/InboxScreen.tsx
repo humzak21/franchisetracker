@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { CheckSquare, Inbox, Tag, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
@@ -12,6 +12,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { SetCard } from "./SetCard";
 import { TagSheet } from "./TagSheet";
 import { filterOf, type InboxFilter } from "./status";
+import { useQuery } from "@/lib/convex/useQuery";
 
 const gridClass = "grid grid-cols-2 gap-3 @tablet:grid-cols-3 @desktop:grid-cols-4 @desktop:gap-4";
 

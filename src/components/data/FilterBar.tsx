@@ -41,7 +41,7 @@ function Chips<T extends string>({
             aria-checked={active}
             onClick={() => onChange(option.value)}
             className={cn(
-              "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium transition-colors pointer-coarse:h-10",
+              "inline-flex h-8 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full border px-3 text-[13px] font-medium transition-colors pointer-coarse:h-11",
               active
                 ? "border-primary bg-elite-1 text-primary"
                 : "border-border-strong text-muted-foreground hover:text-foreground",

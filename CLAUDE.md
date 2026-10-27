@@ -18,6 +18,7 @@ A Football Manager style front end for a Madden franchise. Single user, Convex b
 | Fast checks | `npm run check` (typecheck app + Convex + e2e, lint, unit and Convex tests) |
 | Browser smoke tests | `npm run test:e2e` (Playwright, desktop Chrome plus WebKit at 390 x 844 and 430 x 932, both themes) |
 | Everything a PR must pass | `npm run check:all` (CI runs the same, plus `format:check` and `build`) |
+| Before a production deploy | `npm run check:fresh-clone`, then the rest of `docs/LAUNCH.md` |
 | Format | `npm run format` (Prettier with the Tailwind class sorter) |
 | Production build, served locally | `npm run build && npm run preview` |
 | Deploy production | Push to `main`. Vercel runs `scripts/vercel-build.mjs`: on Production it deploys Convex with `CONVEX_DEPLOY_KEY` and builds against the production URL; preview builds without a Convex key only build the front end against the cloud dev deployment (`.env.preview`) and show the sign-in screen. Run deploys locally only with the user's go-ahead. |
@@ -94,8 +95,10 @@ Every screen ships for phone and desktop together (FEATURES.md 5.13 and 9). Ther
 - Schema is split per domain in `convex/schema/*.ts` and composed in `convex/schema.ts`. Enum validators come from `convex/lib/validators.ts`, which builds them from `shared/domain`.
 - Indexed reads only (`withIndex`), bounded results (`take`/`paginate`), no `.filter` scans, no `.collect()` on growing tables. Aggregates are materialized so tables are one indexed read.
 - Every function has argument validators; internal-only functions use `internal*`. Imports and recomputes are idempotent.
-- **The whole app is private.** Every public query and mutation starts with `requireOwner(ctx)` (`convex/lib/auth.ts`; actions use `requireSignedIn` and delegate to internal functions). Sign in with Vercel runs through Convex Auth (`convex/auth.ts`) and the `OWNER_EMAILS` allowlist; setup is in `docs/AUTH-SETUP.md`. Tests get an owner identity from `convex/lib/testOwner.ts`. Apart from Convex Auth's own routes and `account.authInfo` (which sign-in buttons to show), the only unauthenticated surface will be the Shortcut HTTP endpoint, which checks its bearer token. Never ship a public function without the check.
+- **The whole app is private.** Every public query and mutation starts with `requireOwner(ctx)` and every public action with `requireOwnerAction(ctx)` (`convex/lib/auth.ts`); `audit/convex.test.ts` fails the build otherwise. Sign in with Vercel runs through Convex Auth (`convex/auth.ts`) and the `OWNER_EMAILS` allowlist; setup is in `docs/AUTH-SETUP.md`. Tests get an owner identity from `convex/lib/testOwner.ts`. Apart from Convex Auth's own routes and `account.authInfo` (which sign-in buttons to show), the only unauthenticated surface is the Shortcut HTTP endpoint, which checks its bearer token and is rate limited. Never ship a public function without the check.
 - Tests use `convex-test` under `convex/**/*.test.ts` (Vitest `convex` project, edge runtime).
+- The client reads through `useQuery` from `@/lib/convex/useQuery` (ESLint enforces it), which keeps results for reading offline. Mutations and actions come from `convex/react` as usual.
+- No `"use node"` actions: local backends may run a Node version Convex cannot use, which would break `npm run use:local` and the e2e setup.
 
 ## Testing and definition of done
 

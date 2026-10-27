@@ -1,9 +1,9 @@
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useQuery } from "convex/react";
 import { FlaskConical, Lock, Triangle } from "lucide-react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /** Set before redirecting to Vercel; still set on return means the sign-in was refused. */
 const PENDING_KEY = "ft.signin.pending";

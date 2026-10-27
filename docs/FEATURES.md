@@ -169,6 +169,12 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Lands in the same tables as franchise data (`seasons` for the user team, `standings`, `seasonPlayerStats` with `source: "import"`, `players` with `isReal`, `trophyEntries` for pre-franchise titles), so history screens, player pages and records read one model. Pre-franchise seasons are marked as such and never mix with captured game logs.
 - Source: the nflverse public data releases (standings, schedules, players, season stats, draft picks, rosters as CSV), chosen in Sprint 4; ESPN supplies headshots and logos. Decision, coverage and mechanics in `docs/NFL-HISTORY.md`. Fetched by Convex actions; never a spreadsheet the user supplies.
 
+
+### 4.9 Operations
+
+- `backups`: kind (scheduled or manual), storage id of the gzipped JSON, size, rows per table, franchise names, created at.
+- `errorReports`: one per distinct client error (fingerprint), kind, message, stack, path, user agent, count, first and last seen. Capped at 100.
+
 ## 5. Features by area
 
 ### 5.0 Franchise setup
@@ -285,7 +291,9 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Thresholds: edit elite highlight thresholds per stat.
 - Models: OpenRouter primary and fallback model, temperature, token budget.
 - Shortcut: generate and revoke tokens, download the Shortcut file, test endpoint.
-- Data: refresh the real NFL history import, export JSON and CSV, full backup, restore.
+- Data: refresh the real NFL history import; back up every franchise now (and nightly, keeping fourteen) as gzipped JSON to download; restore a listed backup or a file as new, inactive franchises (never overwriting); export the active franchise's games and player seasons as CSV. Backups leave out inbox screenshots and Shortcut tokens (docs/LAUNCH.md).
+- Franchises: delete an inactive franchise after typing its name; its rows go in the background.
+- Errors: unexpected errors from any device, one row per distinct error with a count.
 - Appearance: team color intensity, density, reduced motion.
 
 ### 5.13 Mobile parity
@@ -299,7 +307,7 @@ Every feature in 5.1 through 5.12 ships on the phone with the same data, filters
 - **Ingestion**: capture from the camera or photo library directly into the inbox, tag and set context on the phone, run extraction, and review and commit on the phone. The review screen shows the image and the draft as two swipeable panes with the image zoomable; low-confidence fields are listed first so a review can be finished with thumbs.
 - **Charts**: all charts render at phone width with touch tooltips and a reduced tick density; sparklines and rank ribbons are preferred in lists.
 - **Dashboard**: the same cards, stacked in one column, with the prompts card and inbox summary first.
-- **Offline**: recently viewed screens readable offline; captures queue locally and upload when back online.
+- **Offline**: recently viewed screens readable offline (every query result a screen showed is kept on the device and served only while offline, with a banner); captures queue locally and upload when back online, one flush at a time, retried when the app comes back to the foreground.
 - **Install**: PWA manifest, home-screen icon, splash, standalone display, safe-area insets, and the Shortcut download from Settings.
 
 ### 5.14 Search and keyboard
@@ -386,8 +394,9 @@ Dense football data has to be as readable on a phone as on a 27 inch display. Th
 - Reactive everywhere: an upload from the phone appears in the inbox on the Mac without refresh.
 - Indexed reads only; no `.filter` scans in queries. Aggregates are materialized so tables are single reads.
 - Imports and recomputes are idempotent and run per season so a bad extraction can be re-committed safely.
-- Full export to JSON at any time; nightly Convex backup.
+- Full export to JSON at any time (Settings → Data); a nightly backup of every franchise in Convex file storage, the last fourteen kept.
 - Works offline for reading recently viewed screens (PWA cache); writes require connectivity except image captures, which queue locally.
 - Feature parity between desktop and phone is a release criterion for every sprint, not a later pass.
-- Secrets live in Convex env. The Shortcut token is revocable.
+- Secrets live in Convex env. The Shortcut token is revocable, and the endpoint is rate limited (valid tokens draw from a bucket; bad tokens are throttled separately and never lock out the owner).
+- Unexpected client errors are reported to Settings → Errors; backend errors are in the Convex dashboard logs.
 - No unauthenticated reads or writes: every Convex query, mutation and action requires the signed-in owner (Sign in with Vercel), except the token-checked Shortcut endpoint.

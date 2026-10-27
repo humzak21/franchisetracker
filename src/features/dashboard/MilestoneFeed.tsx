@@ -1,11 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Award, Check, CheckCheck, Flame, Sparkles, TrendingUp, Trophy } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { weekLabel } from "@shared/domain";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
+import { useQuery } from "@/lib/convex/useQuery";
 
 type Milestone = FunctionReturnType<typeof api.stats.milestones.feed>[number];
 
@@ -48,7 +49,7 @@ export function MilestoneFeed() {
                   <Link
                     to="/games/$gameId"
                     params={{ gameId: m.gameId }}
-                    className="text-xs text-muted-foreground hover:underline"
+                    className="text-xs text-muted-foreground hover:underline pointer-coarse:touch-target"
                   >
                     {when}
                   </Link>

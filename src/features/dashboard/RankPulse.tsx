@@ -1,11 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { BarChart3 } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { PULSE_STATS, trendRows } from "@shared/stats/teamTrends";
 import { EmptyState } from "@/components/data/EmptyState";
 import { RankTrend } from "@/components/data/RankTrend";
 import { Skeleton } from "@/components/ui/misc";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /** The team's league rank in key categories this season, and how each moved since the last. */
 export function RankPulse({ year }: { year: number }) {
@@ -24,7 +24,10 @@ export function RankPulse({ year }: { year: number }) {
   return (
     <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
       <RankTrend rows={rows} year={year} />
-      <Link to="/stats" className="block text-sm font-medium text-primary hover:underline">
+      <Link
+        to="/stats"
+        className="flex min-h-11 items-center text-sm font-medium text-primary hover:underline"
+      >
         Every team stat in Stats → Team
       </Link>
     </div>

@@ -12,6 +12,7 @@ import { historyTables } from "./schema/history";
 import { hofTables } from "./schema/hof";
 import { ingestionTables } from "./schema/ingestion";
 import { leagueTables } from "./schema/league";
+import { opsTables } from "./schema/ops";
 import { playerTables } from "./schema/players";
 import { statTables } from "./schema/stats";
 import { transactionTables } from "./schema/transactions";
@@ -30,4 +31,5 @@ export default defineSchema({
   ...hofTables,
   ...historyTables,
   ...ingestionTables,
+  ...opsTables,
 });

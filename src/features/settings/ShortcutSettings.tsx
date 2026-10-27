@@ -1,4 +1,4 @@
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { Copy, ExternalLink, KeyRound, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/misc";
 import { errorMessage } from "@/lib/errors";
 import { formatAge } from "@/lib/time";
+import { useQuery } from "@/lib/convex/useQuery";
 
 const DOCS_URL = "https://github.com/humzak21/franchisetracker/blob/main/docs/SHORTCUT.md";
 

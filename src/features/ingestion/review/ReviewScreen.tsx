@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { FileWarning } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { weekLabel } from "@shared/domain";
@@ -18,6 +17,7 @@ import { ReviewDraftProvider } from "./reviewDraft";
 import { RowsEditor } from "./RowsEditor";
 import { StatusBanner } from "./StatusBanner";
 import { TeamStatsEditor } from "./TeamStatsEditor";
+import { useQuery } from "@/lib/convex/useQuery";
 
 /** Review (FEATURES.md 5.11 and 9): screenshots beside the editable draft, two swipeable panes on phones. */
 export function ReviewScreen({ setKey }: { setKey: string }) {
