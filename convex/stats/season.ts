@@ -4,6 +4,7 @@ import { query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { activeFranchise, playersById } from "../lib/franchise";
 import { vPosition, vPositionGroup, vStatMap, vStatSplit } from "../lib/validators";
+import { vSeasonHighs } from "../schema/stats";
 
 const MAX_ROWS = 300;
 
@@ -17,7 +18,7 @@ const vRow = v.object({
   gamesPlayed: v.number(),
   totals: vStatMap,
   thresholdCounts: vStatMap,
-  bests: vStatMap,
+  bestGames: vSeasonHighs,
 });
 
 /**
@@ -65,7 +66,7 @@ export const bySplit = query({
           gamesPlayed: row.gamesPlayed,
           totals: row.totals,
           thresholdCounts: row.thresholdCounts ?? {},
-          bests: row.bests ?? {},
+          bestGames: row.bestGames ?? {},
         },
       ];
     });

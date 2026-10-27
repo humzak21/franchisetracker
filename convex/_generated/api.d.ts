@@ -127,6 +127,7 @@ import type * as seasons_reports from "../seasons/reports.js";
 import type * as seasons_staff from "../seasons/staff.js";
 import type * as stats_load from "../stats/load.js";
 import type * as stats_milestones from "../stats/milestones.js";
+import type * as stats_rebuild from "../stats/rebuild.js";
 import type * as stats_recompute from "../stats/recompute.js";
 import type * as stats_reconcile from "../stats/reconcile.js";
 import type * as stats_records from "../stats/records.js";
@@ -263,6 +264,7 @@ declare const fullApi: ApiFromModules<{
   "seasons/staff": typeof seasons_staff;
   "stats/load": typeof stats_load;
   "stats/milestones": typeof stats_milestones;
+  "stats/rebuild": typeof stats_rebuild;
   "stats/recompute": typeof stats_recompute;
   "stats/reconcile": typeof stats_reconcile;
   "stats/records": typeof stats_records;

@@ -40,7 +40,10 @@ describe("season stats", () => {
     });
     expect(by("Drake Maye").thresholdCounts).toMatchObject({ pass300: 2, pass3td: 2 });
     // 88 + 64 + 97 + 121 + 108, best game 121
-    expect(by("TreVeyon Henderson")).toMatchObject({ totals: { rushYds: 478 }, bests: { rushYds: 121 } });
+    expect(by("TreVeyon Henderson")).toMatchObject({
+      totals: { rushYds: 478 },
+      bestGames: { rushYds: { value: 121 } },
+    });
     expect(by("Stefon Diggs").totals.recYds).toBe(531);
     expect(await owner.query(api.stats.season.bySplit, { seasonId, split: "postseason" })).toEqual([]);
   });

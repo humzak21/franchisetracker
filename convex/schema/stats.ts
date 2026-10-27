@@ -25,9 +25,14 @@ const aggregateFields = {
   averages: v.optional(vStatMap),
   /** Counts of threshold games keyed by threshold id, e.g. `{ recYds100: 3 }`. */
   thresholdCounts: v.optional(vStatMap),
-  /** Best single-game value per stat key. */
+  /** Best single-game value per summed raw stat (records read these). */
   bests: v.optional(vStatMap),
 };
+
+/** A season high: the best single-game value for a stat and the game it came in. */
+export const vSeasonHigh = v.object({ value: v.number(), gameId: v.id("games"), weekKey: vWeekKey });
+/** Season highs keyed by stat-registry key (`shared/stats/seasonHighs.ts`). */
+export const vSeasonHighs = v.record(v.string(), vSeasonHigh);
 
 export const statTables = {
   /** Materialized per season per player per team. `source` separates log-derived and imported totals. */
@@ -38,6 +43,8 @@ export const statTables = {
     teamId: v.id("teams"),
     source: vStatSource,
     ...aggregateFields,
+    /** Best game per stat with its game, log-derived rows only. Absent until the row is recomputed. */
+    bestGames: v.optional(vSeasonHighs),
   })
     .index("by_seasonId_and_positionGroup", ["seasonId", "positionGroup"])
     .index("by_seasonId_and_teamId", ["seasonId", "teamId"])
