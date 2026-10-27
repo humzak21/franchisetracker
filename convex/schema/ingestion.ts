@@ -1,7 +1,8 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import { vDraft, vDraftWarning, vFieldConfidence, vTargetKey } from "../lib/draftValidators";
-import { vScalar, vUploadSource, vUploadStatus, vWeekKey } from "../lib/validators";
+import { MANUAL_DRAFT_STATUSES } from "../../shared/ingestion/manual";
+import { literals, vScalar, vUploadSource, vUploadStatus, vWeekKey } from "../lib/validators";
 
 export const ingestionTables = {
   uploads: defineTable({
@@ -64,6 +65,24 @@ export const ingestionTables = {
     .index("by_franchiseId", ["franchiseId"])
     .index("by_uploadId", ["uploadId"])
     .index("by_setKey", ["setKey"]),
+
+  /**
+   * A target typed in by hand instead of read from screenshots: the same draft an extraction
+   * makes, filed by the same context, committed by the same functions. There is no model
+   * output, so nothing here feeds corrections or the usage panel.
+   */
+  manualDrafts: defineTable({
+    franchiseId: v.id("franchises"),
+    targetKey: vTargetKey,
+    seasonId: v.optional(v.id("seasons")),
+    weekKey: v.optional(vWeekKey),
+    /** The game it was started from; set on commit to the game written. */
+    gameId: v.optional(v.id("games")),
+    draft: vDraft,
+    status: literals(MANUAL_DRAFT_STATUSES),
+    createdAt: v.number(),
+    committedAt: v.optional(v.number()),
+  }).index("by_franchiseId_and_status", ["franchiseId", "status"]),
 
   /** User fixes to extracted fields; feed few-shot examples. */
   corrections: defineTable({

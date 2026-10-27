@@ -1,5 +1,5 @@
 /** Finds or creates the game a committed screenshot belongs to, and keeps the season record cache current. */
-import { isPlayoffRound } from "../../shared/domain";
+import { isPlayoffRound, type WeekKey } from "../../shared/domain";
 import { resultOf, seasonSummary } from "../../shared/games/summary";
 import { laterStatus, playoffResultFromGames, statusFromGames } from "../../shared/seasons/lifecycle";
 import type { GameHeader } from "../../shared/ingestion/types";
@@ -18,10 +18,16 @@ export async function teamByAbbr(ctx: MutationCtx, abbr: string | null): Promise
   return must(team, `Team ${abbr ?? "(missing)"}`);
 }
 
-/** The game for this upload set: the pre-tagged one, else the season's game that week, else a new one. */
-export async function findGame(ctx: MutationCtx, lead: Doc<"uploads">): Promise<Doc<"games"> | null> {
-  if (lead.gameId) return await ctx.db.get("games", lead.gameId);
-  const { seasonId, weekKey } = lead;
+/**
+ * Where a draft is filed: an upload set's tags or a manual entry's context. A game, or a season
+ * and week (game and weekly screens), or a season alone (season screens).
+ */
+export type DraftContext = { gameId?: Id<"games">; seasonId?: Id<"seasons">; weekKey?: WeekKey };
+
+/** The draft's game: the pre-tagged one, else the season's game that week, else a new one. */
+export async function findGame(ctx: MutationCtx, context: DraftContext): Promise<Doc<"games"> | null> {
+  if (context.gameId) return await ctx.db.get("games", context.gameId);
+  const { seasonId, weekKey } = context;
   if (!seasonId || !weekKey) throw invalid("Tag the screenshots with a season and week first");
   return await ctx.db
     .query("games")
@@ -36,7 +42,7 @@ export async function findGame(ctx: MutationCtx, lead: Doc<"uploads">): Promise<
 export async function upsertGame(
   ctx: MutationCtx,
   franchise: Doc<"franchises">,
-  lead: Doc<"uploads">,
+  context: DraftContext,
   header: GameHeader,
 ): Promise<Doc<"games">> {
   const home = await teamByAbbr(ctx, header.homeAbbr);
@@ -46,12 +52,12 @@ export async function upsertGame(
     throw invalid("Neither team in the screenshot is yours; check the home and away teams");
   }
   const opponent = userIsHome ? away : home;
-  const existing = await findGame(ctx, lead);
+  const existing = await findGame(ctx, context);
   if (existing?.opponentTeamId && existing.opponentTeamId !== opponent._id) {
     throw invalid(`That week already has a game against another team; check the week or the teams`);
   }
-  const seasonId = existing?.seasonId ?? must(lead.seasonId, "Season");
-  const weekKey = existing?.weekKey ?? must(lead.weekKey, "Week");
+  const seasonId = existing?.seasonId ?? must(context.seasonId, "Season");
+  const weekKey = existing?.weekKey ?? must(context.weekKey, "Week");
   const scored = header.homeScore !== null && header.awayScore !== null;
   const fields = {
     homeTeamId: home._id,

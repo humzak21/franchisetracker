@@ -3,6 +3,7 @@ import type { RowTargetKey } from "../../shared/ingestion/rows/targets";
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { invalid, must } from "../lib/errors";
+import type { DraftContext } from "./commitGame";
 import {
   commitDraftResults,
   commitInjuryReport,
@@ -34,21 +35,21 @@ const COMMITS: Record<RowTargetKey, (ctx: MutationCtx, commit: RowCommit) => Pro
   player_card: commitPlayerCard,
 };
 
-/** Writes the accepted rows of a reviewed list into the season (and week) the set was tagged with. */
+/** Writes the accepted rows of a reviewed list into the season (and week) it is filed under. */
 export async function commitRows(
   ctx: MutationCtx,
   franchise: Doc<"franchises">,
-  lead: Doc<"uploads">,
+  context: DraftContext,
   draft: StoredRowsDraft,
 ): Promise<RowCommitResult> {
-  const game = lead.gameId ? await ctx.db.get("games", lead.gameId) : null;
-  const seasonId = game?.seasonId ?? lead.seasonId;
+  const game = context.gameId ? await ctx.db.get("games", context.gameId) : null;
+  const seasonId = game?.seasonId ?? context.seasonId;
   if (!seasonId) throw invalid("Tag the screenshots with a season first");
   const season = must(await ctx.db.get("seasons", seasonId), "Season");
   return await COMMITS[draft.target](ctx, {
     franchise,
     season,
-    weekKey: game?.weekKey ?? lead.weekKey,
+    weekKey: game?.weekKey ?? context.weekKey,
     meta: draft.meta,
     rows: draft.rows.filter((r) => r.accepted),
   });

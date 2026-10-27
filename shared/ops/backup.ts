@@ -54,6 +54,7 @@ export const NOT_BACKED_UP = {
   uploads: "screenshots in file storage, not the JSON",
   extractions: "belong to uploads",
   corrections: "belong to extractions",
+  manualDrafts: "entries being typed in; what they commit is backed up where it lands",
   ingestionTokens: "secrets; generate a new token after a restore",
   errorReports: "about the app, not the franchise",
   backups: "the backups themselves",
