@@ -6,7 +6,10 @@ import type { StoredDraft } from "../lib/draftValidators";
 import { teamByAbbr } from "./commitGame";
 import { ensureRosterEntry, playerFor } from "./rowPlayers";
 
-export type StoredRowsDraft = Exclude<StoredDraft, { target: "game_box_score" | "team_game_stats" }>;
+export type StoredRowsDraft = Exclude<
+  StoredDraft,
+  { target: "game_box_score" | "team_game_stats" | "game_log" }
+>;
 export type StoredRow = StoredRowsDraft["rows"][number];
 
 export type RowCommit = {
@@ -54,6 +57,8 @@ export async function rowPlayer(
     name: row.name ?? "Unknown player",
     playerId: row.playerId,
     position: positionOf(row),
+    seasonId: commit.season._id,
+    teamAbbr: (await ctx.db.get("teams", teamId))?.abbr,
   });
   await ensureRosterEntry(ctx, {
     player,

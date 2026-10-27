@@ -56,7 +56,7 @@ export function PlayerPickerSheet({
       open={open}
       onOpenChange={onOpenChange}
       title={printedName}
-      description="Which player is this?"
+      description="Which player is this? Your choice is remembered for this team and season."
     >
       <div className="space-y-4">
         {match.candidates.length > 0 && (

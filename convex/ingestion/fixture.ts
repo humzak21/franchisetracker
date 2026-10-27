@@ -26,6 +26,11 @@ const row = (
 export function fixtureAnswer(target: TargetKey, { home, away, userIsHome }: Teams): unknown {
   const us = userIsHome ? home : away;
   const them = userIsHome ? away : home;
+  if (target === "game_log")
+    return {
+      ...(fixtureAnswer("game_box_score", { home, away, userIsHome }) as object),
+      ...(fixtureAnswer("team_game_stats", { home, away, userIsHome }) as object),
+    };
   if (isRowTarget(target)) return fixtureRows(target, us, { home, away, userIsHome });
   const header = {
     home_team: home,

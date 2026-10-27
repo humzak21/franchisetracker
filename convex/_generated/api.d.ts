@@ -72,6 +72,7 @@ import type * as ingestion_jobs from "../ingestion/jobs.js";
 import type * as ingestion_manual from "../ingestion/manual.js";
 import type * as ingestion_manualCommit from "../ingestion/manualCommit.js";
 import type * as ingestion_models from "../ingestion/models.js";
+import type * as ingestion_playerAssignments from "../ingestion/playerAssignments.js";
 import type * as ingestion_review from "../ingestion/review.js";
 import type * as ingestion_rowCommit from "../ingestion/rowCommit.js";
 import type * as ingestion_rowPlayers from "../ingestion/rowPlayers.js";
@@ -237,6 +238,7 @@ declare const fullApi: ApiFromModules<{
   "ingestion/manual": typeof ingestion_manual;
   "ingestion/manualCommit": typeof ingestion_manualCommit;
   "ingestion/models": typeof ingestion_models;
+  "ingestion/playerAssignments": typeof ingestion_playerAssignments;
   "ingestion/review": typeof ingestion_review;
   "ingestion/rowCommit": typeof ingestion_rowCommit;
   "ingestion/rowPlayers": typeof ingestion_rowPlayers;

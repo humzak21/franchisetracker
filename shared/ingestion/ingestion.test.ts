@@ -224,10 +224,8 @@ describe("validation", () => {
       ],
     });
     expect(d.teams[0]?.stats.possessionSec).toBe(31 * 60 + 42);
-    expect(validateDraft(d).map((w) => w.path)).toEqual([
-      "teams.0.stats.thirdDownConv",
-      "teams.0.stats.totalYds",
-    ]);
+    expect(d.teams[0]?.stats.totalYds).toBe(350);
+    expect(validateDraft(d).map((w) => w.path)).toEqual(["teams.0.stats.thirdDownConv"]);
   });
 });
 

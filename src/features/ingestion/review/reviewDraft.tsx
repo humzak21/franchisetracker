@@ -9,9 +9,10 @@ import {
   type ReactNode,
 } from "react";
 import type { Id } from "@convex/_generated/dataModel";
+import { deriveDraft } from "@shared/ingestion/normalize";
 import { validateDraft } from "@shared/ingestion/targets";
 import type { Draft, DraftWarning, FieldConfidence } from "@shared/ingestion/types";
-import { checkBelow, setAt } from "./draftEdit";
+import { checkBelow, getAt, setAt } from "./draftEdit";
 import type { FieldFlag } from "./NumberField";
 
 export type ReviewDraft = Draft<Id<"players">>;
@@ -47,7 +48,7 @@ export function ReviewDraftProvider({
   extractionNotes: readonly DraftWarning[];
   children: ReactNode;
 }) {
-  const [draft, setDraft] = useState(initial);
+  const [draft, setDraft] = useState(() => deriveDraft(initial));
   const [saving, setSaving] = useState(false);
   const dirty = useRef(false);
   // The latest save function, so a new one from a re-render does not restart the save timer.
@@ -74,10 +75,18 @@ export function ReviewDraftProvider({
   const warnings = useMemo(() => {
     const live = validateDraft(draft);
     const seen = new Set(live.map((w) => w.message));
-    // Extraction errors (an unknown team) are re-raised by validation while they still hold.
-    const notes = extractionNotes.filter((w) => w.severity !== "error" && !seen.has(w.message));
+    const originalValidation = new Set(validateDraft(initial).map((w) => w.message));
+    // Live validation replaces the original validation; extraction-only notes stay until edited.
+    const notes = extractionNotes.filter(
+      (w) =>
+        w.severity !== "error" &&
+        !seen.has(w.message) &&
+        !originalValidation.has(w.message) &&
+        (!w.path || JSON.stringify(getAt(initial, w.path)) === JSON.stringify(getAt(draft, w.path))) &&
+        w.suggestedValue === undefined,
+    );
     return [...live, ...notes];
-  }, [draft, extractionNotes]);
+  }, [draft, extractionNotes, initial]);
 
   const flag = useCallback(
     (path: string): FieldFlag => {

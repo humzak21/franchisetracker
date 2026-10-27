@@ -6,11 +6,11 @@ import { useReviewDraft } from "./reviewDraft";
 /** Team stats as two columns of numbers, one per team, labelled from the team stat registry. */
 export function TeamStatsEditor() {
   const { draft, set, flag } = useReviewDraft();
-  if (draft.target !== "team_game_stats") return null;
+  if (!("teams" in draft)) return null;
   const teams = [draft.game.awayAbbr, draft.game.homeAbbr].filter((t): t is string => t !== null);
 
   return (
-    <div className="@container grid gap-3 @lg:grid-cols-2">
+    <div role="group" aria-label="Team stats draft" className="@container grid gap-3 @lg:grid-cols-2">
       {draft.teams.map((column, i) => (
         <section key={i} className="space-y-3 rounded-xl border border-border bg-surface p-3">
           <Select
@@ -27,7 +27,8 @@ export function TeamStatsEditor() {
               return (
                 <NumberField
                   key={key}
-                  label={TEAM_STATS[key].label}
+                  label={key === "totalYds" ? "Total yards (pass + rush)" : TEAM_STATS[key].label}
+                  readOnly={key === "totalYds"}
                   value={column.stats[key]}
                   flag={flag(`teams.${i}.stats.${key}`)}
                   format={time ? (v) => formatTeamStat(key, v) : undefined}

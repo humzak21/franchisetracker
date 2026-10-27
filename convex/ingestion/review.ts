@@ -3,6 +3,8 @@
  * goes, and commit, which writes canonical rows, recomputes aggregates and stores corrections.
  */
 import { v } from "convex/values";
+import { deriveDraft } from "../../shared/ingestion/normalize";
+import { rememberPlayer } from "./playerAssignments";
 import { diffDrafts } from "../../shared/ingestion/diff";
 import { mutation, query, type QueryCtx } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
@@ -99,9 +101,38 @@ async function requireExtraction(ctx: QueryCtx, setKey: string, draft: StoredDra
 export const saveDraft = mutation({
   args: { setKey: v.string(), draft: vDraft },
   returns: v.null(),
-  handler: async (ctx, { setKey, draft }) => {
+  handler: async (ctx, { setKey, draft: submitted }) => {
+    const draft = deriveDraft(submitted);
     await requireOwner(ctx);
+    const franchise = await activeFranchise(ctx);
+    const uploads = await requireSet(ctx, franchise._id, setKey);
     const extraction = await requireExtraction(ctx, setKey, draft);
+    const previous = extraction.reviewDraft ?? extraction.draft;
+    const seasonId = uploads[0]?.seasonId;
+    if (seasonId) {
+      const metaTeam = "rows" in draft && typeof draft.meta.team === "string" ? draft.meta.team : null;
+      const userTeam = await ctx.db.get("teams", franchise.userTeamId);
+      const entries = "lines" in draft ? draft.lines : "rows" in draft ? draft.rows : [];
+      const prior = "lines" in previous ? previous.lines : "rows" in previous ? previous.rows : [];
+      for (const row of entries) {
+        const old = prior.find((r) => r.id === row.id);
+        const teamAbbr = row.teamAbbr ?? metaTeam ?? ("rows" in draft ? userTeam?.abbr : null);
+        if (
+          row.playerId &&
+          row.name &&
+          teamAbbr &&
+          (row.playerId !== old?.playerId || row.teamAbbr !== old?.teamAbbr)
+        ) {
+          await rememberPlayer(ctx, {
+            franchiseId: franchise._id,
+            seasonId,
+            teamAbbr,
+            name: row.name,
+            playerId: row.playerId,
+          });
+        }
+      }
+    }
     await ctx.db.patch("extractions", extraction._id, { reviewDraft: draft });
     return null;
   },
@@ -115,7 +146,8 @@ export const commit = mutation({
     /** The next set waiting for review, so an end-of-season pass moves straight on. */
     nextSetKey: v.optional(v.string()),
   }),
-  handler: async (ctx, { setKey, draft }) => {
+  handler: async (ctx, { setKey, draft: submitted }) => {
+    const draft = deriveDraft(submitted);
     await requireOwner(ctx);
     const franchise = await activeFranchise(ctx);
     const uploads = await requireSet(ctx, franchise._id, setKey);

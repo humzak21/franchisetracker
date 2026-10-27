@@ -5,6 +5,23 @@ import { MANUAL_DRAFT_STATUSES } from "../../shared/ingestion/manual";
 import { literals, vScalar, vUploadSource, vUploadStatus, vWeekKey } from "../lib/validators";
 
 export const ingestionTables = {
+  /** A reviewed printed name resolves consistently within one team and season. */
+  playerNameAssignments: defineTable({
+    franchiseId: v.id("franchises"),
+    seasonId: v.id("seasons"),
+    teamAbbr: v.string(),
+    normalizedName: v.string(),
+    playerId: v.id("players"),
+  })
+    .index("by_franchiseId", ["franchiseId"])
+    .index("by_franchiseId_and_seasonId_and_teamAbbr_and_normalizedName", [
+      "franchiseId",
+      "seasonId",
+      "teamAbbr",
+      "normalizedName",
+    ])
+    .index("by_playerId", ["playerId"]),
+
   uploads: defineTable({
     franchiseId: v.id("franchises"),
     storageId: v.id("_storage"),

@@ -5,6 +5,7 @@ import type { TargetKey } from "@shared/ingestion/targets";
  * shows what was entered, so the user sees it in place.
  */
 const LANDING = {
+  game_log: "/schedule",
   game_box_score: "/schedule",
   team_game_stats: "/schedule",
   season_player_stats: "/stats/reconcile",

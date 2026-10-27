@@ -57,9 +57,11 @@ export function ManualEntryScreen({ draftId }: { draftId: Id<"manualDrafts"> }) 
   const week = entry.weekKey && target.scope !== "season" ? weekLabel(entry.weekKey, "long") : null;
   const eyebrow = ["Manual", entry.season?.year, week].filter(Boolean).join(" · ");
   const replaces =
-    entry.targetKey === "game_box_score"
-      ? entry.game?.hasBoxScore
-      : entry.targetKey === "team_game_stats" && entry.game?.hasTeamStats;
+    entry.targetKey === "game_log"
+      ? entry.game?.hasBoxScore || entry.game?.hasTeamStats
+      : entry.targetKey === "game_box_score"
+        ? entry.game?.hasBoxScore
+        : entry.targetKey === "team_game_stats" && entry.game?.hasTeamStats;
 
   return (
     <Page title={target.label} eyebrow={eyebrow} back={back}>
@@ -79,7 +81,12 @@ export function ManualEntryScreen({ draftId }: { draftId: Id<"manualDrafts"> }) 
             {replaces && (
               <p role="status" className={`${noteClass} border-warn/40 bg-warn/10`}>
                 <Replace className="text-warn" />
-                This game already has {entry.targetKey === "game_box_score" ? "a box score" : "team stats"}
+                This game already has{" "}
+                {entry.targetKey === "game_log"
+                  ? "game stats"
+                  : entry.targetKey === "game_box_score"
+                    ? "a box score"
+                    : "team stats"}
                 {entry.game?.opponentAbbr ? ` against ${entry.game.opponentAbbr}` : ""}. Committing replaces
                 it.
               </p>

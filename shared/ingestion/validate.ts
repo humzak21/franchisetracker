@@ -48,6 +48,7 @@ export function validateHeader(game: GameHeader, requireScore: boolean): DraftWa
       out.push({
         path,
         message: `The ${side} quarters add up to ${sum(quarters)}, not ${score}`,
+        suggestedValue: sum(quarters),
         severity: "warning",
       });
     }
@@ -155,6 +156,7 @@ export function validateTeamStats(draft: TeamStatsDraft): DraftWarning[] {
       out.push({
         path: `${path}.stats.totalYds`,
         message: `Passing plus rushing is ${passYds + rushYds}, not ${totalYds}`,
+        suggestedValue: passYds + rushYds,
         severity: "warning",
       });
     }

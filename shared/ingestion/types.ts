@@ -56,13 +56,27 @@ export type TeamStatsDraft = {
   teams: { teamAbbr: string | null; stats: TeamStatLine }[];
 };
 
+/** All post-game screenshots reviewed and committed together. */
+export type GameLogDraft<P extends string = string> = {
+  target: "game_log";
+  game: GameHeader;
+  lines: DraftLine<P>[];
+  teams: TeamStatsDraft["teams"];
+};
+
 /** A list screen's draft (leaders, standings, a roster page): see `./rows`. */
 export type RowTargetDraft<P extends string = string> = RowsDraft<P, RowTargetKey>;
 
-export type Draft<P extends string = string> = BoxScoreDraft<P> | TeamStatsDraft | RowTargetDraft<P>;
+export type Draft<P extends string = string> =
+  BoxScoreDraft<P> | TeamStatsDraft | GameLogDraft<P> | RowTargetDraft<P>;
 
 export type WarningSeverity = "info" | "warning" | "error";
-export type DraftWarning = { path?: string; message: string; severity: WarningSeverity };
+export type DraftWarning = {
+  path?: string;
+  message: string;
+  severity: WarningSeverity;
+  suggestedValue?: number;
+};
 
 /** Confidence from 0 to 1 per field path (`lines.<id>.stats.passYds`, `game.homeScore`). */
 export type FieldConfidence = { path: string; value: number };

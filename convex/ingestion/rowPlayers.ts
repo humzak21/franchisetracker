@@ -3,7 +3,9 @@ import { inferPosition } from "../../shared/ingestion/normalize";
 import type { StatLine } from "../../shared/stats";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
-import { must } from "../lib/errors";
+import { invalid, must } from "../lib/errors";
+
+import { rememberPlayer } from "./playerAssignments";
 
 const MAX_ALIASES = 20;
 
@@ -19,6 +21,8 @@ type Printed = {
   position: Doc<"players">["position"] | null;
   /** For a new player whose screen printed no position. */
   stats?: StatLine;
+  seasonId?: Id<"seasons">;
+  teamAbbr?: string;
 };
 
 /** The player a row commits to: the one review chose, or a new player named as printed. */
@@ -27,14 +31,26 @@ export async function playerFor(
   franchiseId: Id<"franchises">,
   printed: Printed,
 ): Promise<Doc<"players">> {
+  const remember = async (player: Doc<"players">) => {
+    if (printed.seasonId && printed.teamAbbr)
+      await rememberPlayer(ctx, {
+        franchiseId,
+        seasonId: printed.seasonId,
+        teamAbbr: printed.teamAbbr,
+        name: printed.name,
+        playerId: player._id,
+      });
+    return player;
+  };
   if (printed.playerId) {
     const player = must(await ctx.db.get("players", printed.playerId), `Player for ${printed.name}`);
+    if (player.franchiseId !== franchiseId) throw invalid("Player must belong to this franchise");
     // Remember how this screen prints the name so the next extraction resolves it outright.
     const known = [player.displayName, ...player.aliases].map((n) => n.toLowerCase());
     if (!known.includes(printed.name.toLowerCase()) && player.aliases.length < MAX_ALIASES) {
       await ctx.db.patch("players", player._id, { aliases: [...player.aliases, printed.name] });
     }
-    return player;
+    return await remember(player);
   }
   const id = await ctx.db.insert("players", {
     franchiseId,
@@ -46,7 +62,7 @@ export async function playerFor(
     retired: false,
     aliases: [],
   });
-  return must(await ctx.db.get("players", id), "New player");
+  return await remember(must(await ctx.db.get("players", id), "New player"));
 }
 
 type RosterFields = Partial<

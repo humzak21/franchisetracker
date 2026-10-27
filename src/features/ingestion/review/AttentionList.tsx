@@ -1,10 +1,12 @@
-import { CircleAlert, Info, ThumbsUp, TriangleAlert } from "lucide-react";
+import { CircleAlert, Info, TriangleAlert } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { DraftWarning } from "@shared/ingestion/types";
+import type { Id } from "@convex/_generated/dataModel";
+import type { DraftWarning, PlayerMatch } from "@shared/ingestion/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { attentionItems, getAt } from "./draftEdit";
+import { attentionItems, choosePlayerAt, getAt } from "./draftEdit";
 import { NumberField } from "./NumberField";
+import { PlayerPickerSheet } from "./PlayerPickerSheet";
 import { useReviewDraft } from "./reviewDraft";
 
 const ICON = { error: CircleAlert, warning: TriangleAlert, info: Info } as const;
@@ -20,32 +22,32 @@ function Note({ warning }: { warning: DraftWarning }) {
   );
 }
 
-/**
- * "Check first": the doubtful fields in confidence order, editable in place, so a review can
- * be finished with thumbs (FEATURES.md 9). Whole-game notes come first.
- */
+/** Doubtful fields and actionable suggestions, editable without leaving the checklist. */
 export function AttentionList() {
-  const { draft, warnings, confidence, set, flag } = useReviewDraft();
+  const { draft, warnings, confidence, set, update, flag } = useReviewDraft();
   const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
+  const [picking, setPicking] = useState<string | null>(null);
   const items = useMemo(
     () => attentionItems(draft, confidence, warnings).filter((i) => !confirmed.has(i.path)),
     [draft, confidence, warnings, confirmed],
   );
-  // Per-line notes ("will be added as a new player") are summed up rather than listed.
+  const confirm = (path: string) => setConfirmed((c) => new Set(c).add(path));
   const general = warnings.filter((w) => !w.path && w.severity !== "info");
   const newPlayers =
-    draft.target === "game_box_score"
+    "lines" in draft
       ? draft.lines.filter((l) => l.playerId === null && l.match.status === "new").length
       : "rows" in draft
         ? draft.rows.filter((r) => r.accepted && r.playerId === null && r.match?.status === "new").length
         : 0;
-  if (newPlayers > 0) {
+  if (newPlayers > 0)
     general.push({
       severity: "info",
       message: `${newPlayers} player${newPlayers === 1 ? "" : "s"} will be added as new`,
     });
-  }
-  if (items.length === 0 && general.length === 0) return null;
+  const pickedMatch = picking
+    ? (getAt(draft, `${picking}.match`) as PlayerMatch<Id<"players">> | null)
+    : null;
+  if (items.length === 0 && general.length === 0 && !picking) return null;
 
   return (
     <section className="space-y-3 rounded-xl border border-warn/40 bg-warn/5 p-3" aria-label="Check first">
@@ -61,46 +63,99 @@ export function AttentionList() {
         <ul className="divide-y divide-border">
           {items.map((item) => {
             const value = getAt(draft, item.path);
+            const base = item.path.replace(/\.name$/, "");
+            const match = item.path.endsWith(".name")
+              ? (getAt(draft, `${base}.match`) as PlayerMatch<Id<"players">> | null)
+              : null;
+            const playerId = match ? getAt(draft, `${base}.playerId`) : null;
+            const candidate = !playerId && match?.status === "ambiguous" ? match.candidates[0] : null;
+            const suggested = item.warning?.suggestedValue;
+            const numeric =
+              typeof value === "number" || (value === undefined && item.path.includes(".stats."));
             return (
-              <li key={item.path} className="flex items-end gap-2 py-2">
-                {typeof value === "number" || (value === undefined && item.path.includes(".stats.")) ? (
-                  <NumberField
-                    className="flex-1"
-                    label={item.label}
-                    value={typeof value === "number" ? value : undefined}
-                    flag={flag(item.path)}
-                    onChange={(v) => set(item.path, v)}
-                  />
-                ) : (
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[11px] text-muted-foreground">{item.label}</div>
-                    <div className="text-sm">{item.warning?.message ?? "Low confidence"}</div>
-                  </div>
-                )}
-                {item.warning && typeof value === "number" && (
-                  <span
-                    className={cn(
-                      "mb-2.5 hidden max-w-48 truncate text-xs @md:inline",
-                      TONE[item.warning.severity],
-                    )}
-                  >
-                    {item.warning.message}
-                  </span>
-                )}
-                {item.warning?.severity !== "error" && (
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={`${item.label} looks right`}
-                    onClick={() => setConfirmed((c) => new Set(c).add(item.path))}
-                  >
-                    <ThumbsUp />
-                  </Button>
+              <li key={item.path} className="space-y-1.5 py-2">
+                <div className="flex flex-wrap items-end gap-2">
+                  {numeric ? (
+                    <NumberField
+                      className="min-w-32 flex-1"
+                      label={item.label}
+                      value={typeof value === "number" ? value : undefined}
+                      flag={flag(item.path)}
+                      readOnly={item.path.startsWith("teams.") && item.path.endsWith(".totalYds")}
+                      onChange={(v) => set(item.path, v)}
+                    />
+                  ) : (
+                    <div className="min-w-32 flex-1">
+                      <div className="text-[11px] text-muted-foreground">{item.label}</div>
+                      <div className="text-sm">{item.warning?.message ?? "Low confidence"}</div>
+                    </div>
+                  )}
+                  {suggested !== undefined && (
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      aria-label={`Apply ${suggested} for ${item.label}`}
+                      onClick={() => {
+                        set(item.path, suggested);
+                        confirm(item.path);
+                      }}
+                    >
+                      Apply {suggested}
+                    </Button>
+                  )}
+                  {candidate && (
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      aria-label={`Assign ${candidate.name} for ${item.label}`}
+                      onClick={() => {
+                        update((d) =>
+                          choosePlayerAt(d, base, { _id: candidate.playerId, name: candidate.name }),
+                        );
+                        confirm(item.path);
+                      }}
+                    >
+                      Assign {candidate.name}
+                    </Button>
+                  )}
+                  {match && (
+                    <Button size="sm" variant="outline" onClick={() => setPicking(base)}>
+                      {playerId || candidate ? "Change player" : "Choose player"}
+                    </Button>
+                  )}
+                  {item.warning?.severity !== "error" && !candidate && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`Approve ${item.label}`}
+                      onClick={() => confirm(item.path)}
+                    >
+                      Approve
+                    </Button>
+                  )}
+                </div>
+                {numeric && item.warning && (
+                  <p className={cn("text-xs", TONE[item.warning.severity])}>{item.warning.message}</p>
                 )}
               </li>
             );
           })}
         </ul>
+      )}
+      {picking && pickedMatch && (
+        <PlayerPickerSheet
+          open
+          onOpenChange={(open) => {
+            if (!open) setPicking(null);
+          }}
+          printedName={String(getAt(draft, `${picking}.name`) ?? "")}
+          match={pickedMatch}
+          value={getAt(draft, `${picking}.playerId`) as Id<"players"> | null}
+          onChange={(player) => {
+            update((d) => choosePlayerAt(d, picking, player));
+            confirm(`${picking}.name`);
+          }}
+        />
       )}
     </section>
   );

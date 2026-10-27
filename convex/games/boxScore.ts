@@ -1,3 +1,4 @@
+import { offensiveYards } from "../../shared/stats/teamRegistry";
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
@@ -75,7 +76,7 @@ export const get = query({
             jersey: jerseys.get(line.playerId) ?? null,
             stats: line.stats,
           })),
-          stats: teamStats?.stats ?? null,
+          stats: teamStats ? offensiveYards(teamStats.stats) : null,
         };
       }),
     );

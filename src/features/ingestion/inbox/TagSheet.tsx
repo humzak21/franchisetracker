@@ -25,7 +25,7 @@ export function TagSheet({ setKeys, images, defaults, open, onOpenChange, onDone
   const { seasons, season } = useSeason();
   const tag = useMutation(api.ingestion.uploads.tag);
   const [fields, setFields] = useState<CaptureFieldsValue<Id<"seasons">>>({
-    targetKey: "game_box_score",
+    targetKey: "game_log",
     seasonId: defaults.seasonId ?? season?._id ?? null,
     weekKey: defaults.weekKey,
   });

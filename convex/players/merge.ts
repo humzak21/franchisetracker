@@ -13,7 +13,14 @@ import { recomputeCareer, recomputePlayerSeason } from "../stats/recompute";
 /** A long career's worth of any one kind of reference. */
 const MAX_REFS = 600;
 
-type Repointable = "awards" | "draftPicks" | "leagueLeaders" | "hofEntries" | "injuries" | "milestones";
+type Repointable =
+  | "playerNameAssignments"
+  | "awards"
+  | "draftPicks"
+  | "leagueLeaders"
+  | "hofEntries"
+  | "injuries"
+  | "milestones";
 
 async function repointByPlayerIndex(
   ctx: MutationCtx,
@@ -103,6 +110,7 @@ export async function mergePlayers(ctx: MutationCtx, source: Doc<"players">, tar
   await mergeSeasonRows(ctx, "playerSnapshots", from, to);
   await mergeSeasonRows(ctx, "reportedSeasonStats", from, to);
   for (const table of [
+    "playerNameAssignments",
     "awards",
     "draftPicks",
     "leagueLeaders",

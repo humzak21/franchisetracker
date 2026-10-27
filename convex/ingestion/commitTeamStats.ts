@@ -4,7 +4,7 @@ import type { MutationCtx } from "../_generated/server";
 import type { StoredDraft } from "../lib/draftValidators";
 import { teamByAbbr } from "./commitGame";
 
-type TeamStats = Extract<StoredDraft, { target: "team_game_stats" }>;
+type TeamStats = Extract<StoredDraft, { target: "team_game_stats" | "game_log" }>;
 
 export async function commitTeamStats(
   ctx: MutationCtx,

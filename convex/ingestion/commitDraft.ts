@@ -4,6 +4,7 @@
  * (upload statuses and corrections for screenshots, the entry's status for manual entry).
  */
 import { v } from "convex/values";
+import { deriveDraft } from "../../shared/ingestion/normalize";
 import { blocksCommit } from "../../shared/ingestion/validate";
 import { isRowDraft, validateDraft } from "../../shared/ingestion/targets";
 import { internal } from "../_generated/api";
@@ -28,8 +29,10 @@ const finite = (draft: StoredDraft) => {
       ),
     );
   }
-  const maps =
-    draft.target === "game_box_score" ? draft.lines.map((l) => l.stats) : draft.teams.map((t) => t.stats);
+  const maps = [
+    ...("lines" in draft ? draft.lines.map((l) => l.stats) : []),
+    ...("teams" in draft ? draft.teams.map((t) => t.stats) : []),
+  ];
   const numbers = [
     ...maps.flatMap((m) => Object.values(m)),
     draft.game.homeScore ?? 0,
@@ -48,6 +51,10 @@ async function commitGameDraft(
   const game = await upsertGame(ctx, franchise, context, draft.game);
   let playerIds: Id<"players">[] = [];
   switch (draft.target) {
+    case "game_log":
+      if (draft.lines.length > 0) playerIds = await commitBoxScore(ctx, franchise, game, draft);
+      await commitTeamStats(ctx, franchise, game, draft);
+      break;
     case "game_box_score":
       playerIds = await commitBoxScore(ctx, franchise, game, draft);
       break;
@@ -65,8 +72,9 @@ export async function commitDraft(
   ctx: MutationCtx,
   franchise: Doc<"franchises">,
   context: DraftContext,
-  draft: StoredDraft,
+  submitted: StoredDraft,
 ): Promise<DraftCommitResult> {
+  const draft = deriveDraft(submitted);
   if (!finite(draft)) throw invalid("A number in the draft is out of range");
   const errors = validateDraft(draft).filter((w) => w.severity === "error");
   if (blocksCommit(errors)) throw invalid(errors[0]!.message);
