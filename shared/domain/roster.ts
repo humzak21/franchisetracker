@@ -12,8 +12,16 @@ export const ACQUISITION_LABELS: Record<AcquisitionType, string> = {
   resign: "Re-signed",
 };
 
-export const ROSTER_STATUSES = ["active", "ir", "practice_squad", "released"] as const;
+export const ROSTER_STATUSES = ["active", "ir", "practice_squad", "released", "traded"] as const;
 export type RosterStatus = (typeof ROSTER_STATUSES)[number];
+
+export const ROSTER_STATUS_LABELS: Record<RosterStatus, string> = {
+  active: "Active",
+  ir: "Injured reserve",
+  practice_squad: "Practice squad",
+  released: "Released",
+  traded: "Traded away",
+};
 
 export const DEV_TRAITS = ["normal", "star", "superstar", "xfactor"] as const;
 export type DevTrait = (typeof DEV_TRAITS)[number];
@@ -50,6 +58,33 @@ export const TRANSACTION_LABELS: Record<TransactionType, string> = {
   extension: "Extension",
   restructure: "Restructure",
   retire: "Retired",
+};
+
+/**
+ * When in the league year a move happened. Offseason phases come before the season they lead
+ * into, in this order; the in-season phases also carry a week key.
+ */
+export const TRANSACTION_PHASES = [
+  "offseason",
+  "resign",
+  "free_agency",
+  "draft",
+  "post_draft",
+  "preseason",
+  "regular",
+  "postseason",
+] as const;
+export type TransactionPhase = (typeof TRANSACTION_PHASES)[number];
+
+export const TRANSACTION_PHASE_LABELS: Record<TransactionPhase, string> = {
+  offseason: "Offseason",
+  resign: "Re-signing period",
+  free_agency: "Free agency",
+  draft: "During the draft",
+  post_draft: "After the draft",
+  preseason: "Preseason",
+  regular: "Regular season",
+  postseason: "Postseason",
 };
 
 export const NEED_PRIORITIES = ["high", "medium", "low"] as const;

@@ -37,6 +37,7 @@ export const BACKUP_TABLES = [
   "injuries",
   "draftBoard",
   "seasonReports",
+  "seasonGoals",
   "hofEntries",
   "trophyEntries",
   "historyImports",

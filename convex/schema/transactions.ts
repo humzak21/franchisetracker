@@ -5,6 +5,7 @@ import {
   vPickAsset,
   vPlayerRef,
   vTransactionDirection,
+  vTransactionPhase,
   vTransactionType,
   vWeekKey,
 } from "../lib/validators";
@@ -14,6 +15,8 @@ export const transactionTables = {
     franchiseId: v.id("franchises"),
     seasonId: v.id("seasons"),
     weekKey: v.optional(vWeekKey),
+    /** When in the league year it happened; absent on older rows, read as the week's phase or "offseason". */
+    phase: v.optional(vTransactionPhase),
     type: vTransactionType,
     /** The acting team; the user team unless imported from a league-wide log. */
     teamId: v.optional(v.id("teams")),

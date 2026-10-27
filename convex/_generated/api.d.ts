@@ -112,6 +112,7 @@ import type * as schema_awards from "../schema/awards.js";
 import type * as schema_draft from "../schema/draft.js";
 import type * as schema_franchise from "../schema/franchise.js";
 import type * as schema_games from "../schema/games.js";
+import type * as schema_goals from "../schema/goals.js";
 import type * as schema_history from "../schema/history.js";
 import type * as schema_hof from "../schema/hof.js";
 import type * as schema_ingestion from "../schema/ingestion.js";
@@ -247,6 +248,7 @@ declare const fullApi: ApiFromModules<{
   "schema/draft": typeof schema_draft;
   "schema/franchise": typeof schema_franchise;
   "schema/games": typeof schema_games;
+  "schema/goals": typeof schema_goals;
   "schema/history": typeof schema_history;
   "schema/hof": typeof schema_hof;
   "schema/ingestion": typeof schema_ingestion;

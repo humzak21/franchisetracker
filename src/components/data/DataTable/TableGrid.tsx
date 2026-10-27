@@ -4,8 +4,9 @@ import { Fragment, useState, type ReactNode } from "react";
 import { Skeleton } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { groupSpans } from "./columns";
+import { EditableCell } from "./EditableCell";
 import type { Density } from "./TableOptions";
-import type { DataColumn } from "./types";
+import type { DataColumn, EditValue } from "./types";
 
 type TableGridProps<T> = {
   identity: DataColumn<T>;
@@ -25,6 +26,9 @@ type TableGridProps<T> = {
   caption?: string;
   /** The element the table scrolls in, for virtualizing long tables. */
   scrollElement: () => HTMLElement | null;
+  /** Edit mode: columns with `edit` render inputs that save through this. */
+  onEdit?: (row: T, columnId: string, value: EditValue) => Promise<unknown> | void;
+  canEditRow?: (row: T) => boolean;
 };
 
 /** Tables longer than this render only the rows in view (plus a margin). */
@@ -32,7 +36,7 @@ const VIRTUAL_MIN_ROWS = 120;
 
 const alignClass = { left: "text-left", right: "text-right", center: "text-center" } as const;
 
-function render<T>(col: DataColumn<T>, row: T): ReactNode {
+function display<T>(col: DataColumn<T>, row: T): ReactNode {
   if (col.cell) return col.cell(row);
   const value = col.value(row);
   return value === null || value === undefined || value === "" ? (
@@ -56,6 +60,8 @@ export function TableGrid<T>(props: TableGridProps<T>) {
     onRowClick,
     density,
     compact,
+    onEdit,
+    canEditRow,
   } = props;
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const all = [identity, ...columns];
@@ -63,6 +69,19 @@ export function TableGrid<T>(props: TableGridProps<T>) {
   const expandable = compact && detailColumns.length > 0;
   const rowHeight = compact ? "h-11" : density === "compact" ? "h-9" : "h-11";
   const pin = "sticky left-0 z-10 bg-surface group-hover/row:bg-surface-2";
+
+  const render = (col: DataColumn<T>, row: T, isTotals = false): ReactNode =>
+    onEdit && col.edit && !isTotals && (canEditRow?.(row) ?? true) ? (
+      <EditableCell
+        row={row}
+        edit={col.edit}
+        label={col.title ?? col.header}
+        align={col.align ?? "left"}
+        onSave={(value) => onEdit(row, col.id, value)}
+      />
+    ) : (
+      display(col, row)
+    );
 
   const toggle = (id: string) =>
     setExpanded((prev) => {
@@ -137,10 +156,10 @@ export function TableGrid<T>(props: TableGridProps<T>) {
                 )}
               />
             )}
-            {render(col, row)}
+            {render(col, row, isTotals)}
           </span>
         ) : (
-          render(col, row)
+          render(col, row, isTotals)
         )}
       </td>
     ));

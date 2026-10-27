@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Check, Pencil, Search, SlidersHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,8 @@ export function DataTable<T extends object>(props: DataTableProps<T>) {
   const prefs = useColumnPrefs(id, props.primaryColumns);
   const model = useTableModel({ data, columns, getRowId, initialSort: props.initialSort });
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const editable = props.onEdit !== undefined && columns.some((c) => c.edit);
 
   const { identity, primary, secondary } = partitionColumns(columns, identityColumn, prefs.primary);
   const others = columns.filter((c) => c.id !== identity.id);
@@ -66,7 +68,7 @@ export function DataTable<T extends object>(props: DataTableProps<T>) {
 
   return (
     <div ref={ref} className={cn("@container min-w-0", props.className)}>
-      {(searchable || columnOptions) && (
+      {(searchable || columnOptions || editable) && (
         <div className="mb-2 flex items-center gap-2">
           {searchable && (
             <div className="relative min-w-0 flex-1 @tablet:max-w-72">
@@ -80,7 +82,17 @@ export function DataTable<T extends object>(props: DataTableProps<T>) {
               />
             </div>
           )}
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            {editable && (
+              <Button
+                variant={editing ? "primary" : "outline"}
+                size="sm"
+                aria-pressed={editing}
+                onClick={() => setEditing((on) => !on)}
+              >
+                {editing ? <Check /> : <Pencil />} {editing ? "Done" : "Edit"}
+              </Button>
+            )}
             {columnOptions && compact ? (
               <>
                 <Button variant="outline" size="sm" onClick={() => setOptionsOpen(true)}>
@@ -130,6 +142,8 @@ export function DataTable<T extends object>(props: DataTableProps<T>) {
             loadingRows={loadingRows}
             caption={props.caption}
             scrollElement={() => scroller.current}
+            onEdit={editing ? props.onEdit : undefined}
+            canEditRow={props.canEditRow}
             empty={
               props.emptyState ?? (
                 <EmptyState icon={Search} title="Nothing here" description="No rows match." />

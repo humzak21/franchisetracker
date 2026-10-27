@@ -1,4 +1,5 @@
 import { Inbox } from "lucide-react";
+import { useState } from "react";
 import { statValue } from "@shared/stats";
 import { DataTable, statColumn, type DataColumn } from "@/components/data/DataTable";
 import { EmptyState } from "@/components/data/EmptyState";
@@ -94,6 +95,56 @@ const LONG_COLUMNS: DataColumn<LogRow>[] = [
   { id: "touchdowns", header: "TD", title: "Touchdowns", align: "right", value: (r) => r.touchdowns },
 ];
 
+type EditRow = { id: string; name: string; position: string; ovr: number | null; acquired: string | null };
+const EDIT_COLUMNS: DataColumn<EditRow>[] = [
+  { id: "name", header: "Player", value: (r) => r.name, edit: { kind: "text", get: (r) => r.name } },
+  {
+    id: "position",
+    header: "Pos",
+    value: (r) => r.position,
+    edit: {
+      kind: "select",
+      get: (r) => r.position,
+      options: ["WR", "TE", "HB"].map((p) => ({ value: p, label: p })),
+    },
+  },
+  {
+    id: "ovr",
+    header: "OVR",
+    align: "right",
+    value: (r) => r.ovr,
+    edit: { kind: "number", get: (r) => r.ovr, min: 0, max: 99 },
+  },
+  {
+    id: "acquired",
+    header: "Acquired",
+    value: (r) => r.acquired,
+    edit: { kind: "text", get: (r) => r.acquired, placeholder: "How he arrived" },
+  },
+];
+
+/** Edit mode against local state; a real screen saves each cell through a mutation. */
+function EditableTableDemo() {
+  const [rows, setRows] = useState<EditRow[]>([
+    { id: "a", name: "Stefon Diggs", position: "WR", ovr: 88, acquired: "Free agent 2025" },
+    { id: "b", name: "Hunter Henry", position: "TE", ovr: 81, acquired: null },
+  ]);
+  return (
+    <DataTable
+      id="gallery-edit"
+      data={rows}
+      columns={EDIT_COLUMNS}
+      getRowId={(r) => r.id}
+      identityColumn="name"
+      primaryColumns={["ovr", "acquired"]}
+      columnOptions={false}
+      onEdit={(row, column, value) =>
+        setRows((all) => all.map((r) => (r.id === row.id ? { ...r, [column]: value } : r)))
+      }
+    />
+  );
+}
+
 /** DataTable specimens: the full table with phone mode, plus loading and empty states. */
 export const TABLE_SPECIMENS: Specimen[] = [
   {
@@ -133,6 +184,12 @@ export const TABLE_SPECIMENS: Specimen[] = [
         caption="Four hundred rows"
       />
     ),
+  },
+  {
+    id: "datatable-edit",
+    name: "DataTable · edit mode",
+    note: "Columns with `edit` become inputs after Edit: text, numbers and selects, saved per cell on blur or Enter, Escape reverts. Phone cards edit too.",
+    render: () => <EditableTableDemo />,
   },
   {
     id: "datatable-states",
