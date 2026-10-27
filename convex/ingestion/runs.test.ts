@@ -30,17 +30,26 @@ async function setup() {
   return { t, owner, setKey: setKey!, runAll };
 }
 
-/** Answers every OpenRouter call with the box score fixture, recording the models asked. */
+type Request = {
+  model: string;
+  messages: { content: string | { type: string; image_url?: { url: string } }[] }[];
+};
+
+/** Answers every OpenRouter call with the box score fixture, recording the models and images sent. */
 function stubOpenRouter() {
   process.env.OPENROUTER_API_KEY = "test-key";
   const calls: string[] = [];
+  const images: string[] = [];
   vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
-    const body = JSON.parse(String(init.body)) as { model: string };
+    const body = JSON.parse(String(init.body)) as Request;
     calls.push(body.model);
+    for (const message of body.messages)
+      if (typeof message.content !== "string")
+        for (const part of message.content) if (part.image_url) images.push(part.image_url.url);
     const answer = fixtureAnswer("game_box_score", { home: "NE", away: "BUF", userIsHome: true });
     return Response.json({ model: body.model, choices: [{ message: { content: JSON.stringify(answer) } }] });
   });
-  return calls;
+  return { calls, images };
 }
 
 beforeEach(() => {
@@ -72,7 +81,7 @@ describe("extraction runs", () => {
   });
 
   test("restarting drops the old run before it calls a model", async () => {
-    const calls = stubOpenRouter();
+    const { calls } = stubOpenRouter();
     const { owner, setKey, runAll } = await setup();
     vi.setSystemTime(Date.now() + 1000);
     await owner.mutation(api.ingestion.uploads.extract, { setKey, model: "vendor/other-model" });
@@ -80,6 +89,14 @@ describe("extraction runs", () => {
     expect(calls).toEqual(["vendor/other-model"]);
     const review = await owner.query(api.ingestion.review.get, { setKey });
     expect(review).toMatchObject({ status: "review", extraction: { model: "vendor/other-model" } });
+  });
+
+  test("screenshots go to the model as links on a cloud deployment, not inline in the request", async () => {
+    const { images } = stubOpenRouter();
+    const { runAll } = await setup();
+    await runAll();
+    expect(images).toHaveLength(2);
+    for (const url of images) expect(url).toMatch(/^https:\/\//);
   });
 
   test("the watchdog fails a run that never reported back, and the set can be read again", async () => {

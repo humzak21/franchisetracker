@@ -160,8 +160,9 @@ export const fail = internalMutation({
 const WATCHDOG_RECHECK_MS = 60_000;
 
 /**
- * Watchdog: a run that is over but never reported back (Convex stops an action at 10 minutes
- * without running its error handling) leaves its set extracting; this fails the set instead.
+ * Watchdog: a run that is over but never reported back leaves its set extracting; this fails the
+ * set instead, with Convex's reason when it stopped the run (out of memory, the 10-minute limit),
+ * since those end an action without running its error handling.
  */
 export const expire = internalMutation({
   args: { setKey: v.string(), startedAt: v.number(), runId: v.id("_scheduled_functions") },
@@ -174,7 +175,10 @@ export const expire = internalMutation({
     }
     return await finish(ctx, args.setKey, args.startedAt, async () => ({
       status: "failed" as const,
-      error: "Timed out: the model never answered. Try again, or pick a faster model.",
+      error:
+        run?.state.kind === "failed"
+          ? `The extraction stopped unexpectedly: ${run.state.error}`
+          : "Timed out: the model never answered. Try again, or pick a faster model.",
     }));
   },
 });
