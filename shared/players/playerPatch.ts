@@ -71,18 +71,15 @@ function names<T extends string>(
   if (patch.displayName === undefined && patch.firstName === undefined && patch.lastName === undefined)
     return { ok: true, fields: {} };
   const display = patch.displayName === undefined ? current.displayName : clean(patch.displayName);
-  const split = splitDisplayName(display);
-  const firstName = clean(
-    patch.firstName ?? (patch.displayName === undefined ? current.firstName : split.firstName),
-  );
-  const lastName = clean(
-    patch.lastName ?? (patch.displayName === undefined ? current.lastName : split.lastName),
-  );
   if (!display || display.length > MAX_NAME)
     return { ok: false, error: `Names are 1 to ${MAX_NAME} characters` };
+  const renamed = display !== current.displayName;
+  // A new display name brings its own first and last names unless they are given too.
+  const base = renamed ? splitDisplayName(display) : current;
+  const firstName = clean(patch.firstName ?? base.firstName);
+  const lastName = clean(patch.lastName ?? base.lastName);
   if (!lastName || lastName.length > MAX_NAME || firstName.length > MAX_NAME)
     return { ok: false, error: `A last name is needed; names are at most ${MAX_NAME} characters` };
-  const renamed = display !== current.displayName;
   return {
     ok: true,
     fields: {
