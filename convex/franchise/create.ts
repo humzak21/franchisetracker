@@ -50,11 +50,14 @@ export async function createFranchise(
 /** At most a handful of franchises are ever active at once (one, unless something went wrong). */
 const MAX_ACTIVE = 10;
 
-/** Clears the active flag everywhere, so the caller can set exactly one. */
+/** Clears the active flag everywhere, so the caller can set exactly one, noting when each was left. */
 export async function deactivateAll(ctx: MutationCtx): Promise<void> {
   const active = await ctx.db
     .query("franchises")
     .withIndex("by_isActive", (q) => q.eq("isActive", true))
     .take(MAX_ACTIVE);
-  for (const franchise of active) await ctx.db.patch("franchises", franchise._id, { isActive: false });
+  const now = Date.now();
+  for (const franchise of active) {
+    await ctx.db.patch("franchises", franchise._id, { isActive: false, lastActiveAt: now });
+  }
 }

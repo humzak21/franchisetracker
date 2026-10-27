@@ -37,6 +37,8 @@ export const franchiseTables = {
       ),
     }),
     isActive: v.boolean(),
+    /** When it last stopped being the active one; deleting the active franchise falls back to the latest. */
+    lastActiveAt: v.optional(v.number()),
     /** Set when the owner deletes the franchise; its rows are being removed in the background. */
     deletingAt: v.optional(v.number()),
   }).index("by_isActive", ["isActive"]),
