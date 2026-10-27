@@ -7,12 +7,13 @@
  */
 import type { WeekKey } from "../domain/calendar";
 import { lastPlayedWeek, nextWeek, type GameLike } from "../games/summary";
+import { emptyHeader, emptyRowsDraft } from "./manual";
 import { boxScoreSchema, teamStatsSchema, type JsonSchema } from "./schema";
 import { normalizeBoxScore, normalizeTeamStats, type Normalized } from "./normalize";
 import { mergeRowDrafts, normalizeRows, rowsSchema, validateRows } from "./rows/engine";
 import { ROW_TARGETS, type RowTargetDef, type RowTargetKey, type TargetScope } from "./rows/targets";
 import { validateBoxScore, validateTeamStats } from "./validate";
-import type { BoxScoreDraft, Draft, DraftWarning, RowTargetDraft, TeamStatsDraft } from "./types";
+import type { BoxScoreDraft, Draft, DraftWarning, GameHeader, RowTargetDraft, TeamStatsDraft } from "./types";
 
 export type { TargetScope } from "./rows/targets";
 
@@ -29,6 +30,8 @@ type GameTargetDef<D extends Draft> = {
   schema: () => JsonSchema;
   normalize: (raw: unknown) => Normalized<D>;
   validate: (draft: D) => DraftWarning[];
+  /** The draft a manual entry starts from, for a game whose header is known so far. */
+  empty: (game: GameHeader) => D;
 };
 
 const GAME_TARGETS = {
@@ -48,6 +51,7 @@ const GAME_TARGETS = {
     schema: boxScoreSchema,
     normalize: normalizeBoxScore,
     validate: validateBoxScore,
+    empty: (game) => ({ target: "game_box_score", game, lines: [] }),
   } satisfies GameTargetDef<BoxScoreDraft>,
   team_game_stats: {
     kind: "game",
@@ -62,6 +66,12 @@ const GAME_TARGETS = {
     schema: teamStatsSchema,
     normalize: normalizeTeamStats,
     validate: validateTeamStats,
+    // One column per team, away first as the editor shows them.
+    empty: (game) => ({
+      target: "team_game_stats",
+      game,
+      teams: [game.awayAbbr, game.homeAbbr].map((teamAbbr) => ({ teamAbbr, stats: {} })),
+    }),
   } satisfies GameTargetDef<TeamStatsDraft>,
 } as const;
 
@@ -115,6 +125,19 @@ export function mergeFor(
 export function validateDraft(draft: Draft): DraftWarning[] {
   if (isRowDraft(draft)) return validateRows(ROW_TARGETS[draft.target].spec, draft);
   return draft.target === "game_box_score" ? validateBoxScore(draft) : validateTeamStats(draft);
+}
+
+/**
+ * The empty draft a manual entry of `target` starts from: no rows or lines, the game's header
+ * when one is known (else the user's team at home), and team screen fields set to the user's team.
+ * It names no players yet, so it is a draft of any player id type (`never`).
+ */
+export function emptyDraft(
+  target: TargetKey,
+  context: { userTeamAbbr: string | null; game: GameHeader | null },
+): Draft<never> {
+  if (isRowTarget(target)) return emptyRowsDraft(target, ROW_TARGETS[target].spec, context.userTeamAbbr);
+  return GAME_TARGETS[target].empty(context.game ?? emptyHeader(context.userTeamAbbr));
 }
 
 /**
