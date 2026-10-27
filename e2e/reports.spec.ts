@@ -130,3 +130,67 @@ test("the reports archive lists franchise seasons and opens one", async ({ page 
   await expect(page.getByRole("heading", { level: 1, name: `${SAMPLE_YEAR} report` })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Season summary" })).toBeVisible();
 });
+
+test("a team goal is set, marked by hand, shown on Home, and removed", async ({ page }, testInfo) => {
+  const text = `E2E goal ${testInfo.project.name} ${Date.now()}`;
+  await page.goto(`/history/reports/${SAMPLE_YEAR}`);
+  await page.getByRole("button", { name: "Add goal" }).click();
+  const add = page.getByRole("dialog", { name: "Add a goal" });
+  await add.getByLabel("Team goal").selectOption({ label: "Write in" });
+  await add.getByLabel("Goal", { exact: true }).fill(text);
+  await add.getByRole("button", { name: "Add goal" }).click();
+  await expect(add).toBeHidden();
+
+  const row = page.getByRole("listitem").filter({ hasText: text });
+  await expect(row.getByText("Mark it")).toBeVisible();
+  await row.getByRole("button", { name: "Edit goal" }).click();
+  const edit = page.getByRole("dialog", { name: "Edit goal" });
+  await edit.getByRole("radio", { name: "Hit" }).click();
+  await edit.getByRole("button", { name: "Save" }).click();
+  await expect(row.getByText("Goal hit · by hand")).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.goto("/");
+  const onHome = page.getByRole("listitem").filter({ hasText: text });
+  await expect(onHome.getByText(/Goal hit/)).toBeVisible({ timeout: 20_000 });
+  await expectNoHorizontalOverflow(page);
+
+  await page.goto(`/history/reports/${SAMPLE_YEAR}`);
+  await row.getByRole("button", { name: "Edit goal" }).click();
+  await page.getByRole("dialog", { name: "Edit goal" }).getByRole("button", { name: "Remove" }).click();
+  await expect(row).toHaveCount(0);
+});
+
+// Projects share one backend, so each sets its own target to find its own goal.
+const YARDS_TARGET: Record<string, number> = { desktop: 1000, phone: 1001, "phone-large": 1002 };
+
+test("a player stat goal reads his season totals and shows on Stats", async ({ page }, testInfo) => {
+  const target = YARDS_TARGET[testInfo.project.name] ?? 1003;
+  const title = `Passing yards ≥ ${target.toLocaleString("en-US")}`;
+  await page.goto(`/history/reports/${SAMPLE_YEAR}`);
+  await page.getByRole("button", { name: "Add goal" }).click();
+  const add = page.getByRole("dialog", { name: "Add a goal" });
+  await add.getByRole("radio", { name: "Player" }).click();
+  await add.getByLabel("Player", { exact: true }).selectOption({ label: "Drake Maye" });
+  await add.getByLabel("Stat").selectOption({ label: "Passing yards" });
+  await add.getByLabel("Target").fill(String(target));
+  await add.getByRole("button", { name: "Add goal" }).click();
+  await expect(add).toBeHidden();
+
+  // The sample box scores give Maye 1,403 regular-season passing yards.
+  const row = page.getByRole("listitem").filter({ hasText: title });
+  await expect(row.getByText("Goal hit")).toBeVisible();
+
+  await page.goto("/stats");
+  await page.getByRole("radio", { name: "Season", exact: true }).click();
+  const panel = page.locator("section").filter({ has: page.getByRole("heading", { name: "Player goals" }) });
+  await expect(panel.getByRole("listitem").filter({ hasText: title }).getByText("Goal hit")).toBeVisible({
+    timeout: 20_000,
+  });
+  await expectNoHorizontalOverflow(page);
+
+  await page.goto(`/history/reports/${SAMPLE_YEAR}`);
+  await row.getByRole("button", { name: "Edit goal" }).click();
+  await page.getByRole("dialog", { name: "Edit goal" }).getByRole("button", { name: "Remove" }).click();
+  await expect(row).toHaveCount(0);
+});

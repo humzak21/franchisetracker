@@ -83,6 +83,17 @@ export function writeCachedQuery(key: string, value: unknown): void {
   timer ??= setTimeout(() => void persist(), WRITE_DELAY_MS);
 }
 
+/** Forgets every result whose key starts with `prefix`: a deleted franchise's screens. */
+export function forgetCachedQueries(prefix: string): void {
+  for (const key of [...memory.keys()]) {
+    if (!key.startsWith(prefix)) continue;
+    memory.delete(key);
+    dirty.delete(key);
+    evicted.add(key);
+  }
+  timer ??= setTimeout(() => void persist(), WRITE_DELAY_MS);
+}
+
 /** Whether a result is small enough to keep on disk; bigger ones live in memory for the session. */
 function fitsOnDisk(value: unknown): boolean {
   try {

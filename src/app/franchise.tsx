@@ -4,7 +4,7 @@ import type { FunctionReturnType } from "convex/server";
 import { createContext, useCallback, useContext, type ReactNode } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { setQueryCacheScope, useQuery } from "@/lib/convex/useQuery";
+import { forgetQueryCacheScope, setQueryCacheScope, useQuery } from "@/lib/convex/useQuery";
 
 export type ActiveFranchise = NonNullable<FunctionReturnType<typeof api.franchise.franchises.getActive>>;
 export type Season = ActiveFranchise["seasons"][number];
@@ -45,5 +45,27 @@ export function useSwitchFranchise(): (franchiseId: Id<"franchises">) => Promise
       window.scrollTo({ top: 0 });
     },
     [activate, navigate],
+  );
+}
+
+/**
+ * Deletes a franchise once its name is typed. The deleted franchise's cached screens are
+ * forgotten; deleting the active one goes Home, where the franchise taking over (or first-run
+ * setup, when none is left) appears.
+ */
+export function useDeleteFranchise(): (franchiseId: Id<"franchises">, confirmName: string) => Promise<void> {
+  const remove = useMutation(api.franchise.remove.remove);
+  const active = useFranchise();
+  const navigate = useNavigate();
+  const activeId = active?.franchise._id;
+  return useCallback(
+    async (franchiseId, confirmName) => {
+      await remove({ franchiseId, confirmName });
+      forgetQueryCacheScope(franchiseId);
+      if (franchiseId !== activeId) return;
+      await navigate({ to: "/" });
+      window.scrollTo({ top: 0 });
+    },
+    [remove, activeId, navigate],
   );
 }

@@ -6,6 +6,7 @@ import { Page } from "@/components/layout/Page";
 import { Section } from "@/components/layout/Section";
 import { Skeleton } from "@/components/ui/misc";
 import { FranchiseRecord } from "./FranchiseRecord";
+import { GoalsCard } from "./GoalsCard";
 import { InboxSummary } from "./InboxSummary";
 import { LastGameCard } from "./LastGameCard";
 import { MilestoneFeed } from "./MilestoneFeed";
@@ -24,8 +25,8 @@ const column = "contents @desktop:flex @desktop:min-w-0 @desktop:flex-col @deskt
 
 /**
  * Home (FEATURES.md 5.1): the selected season at a glance. Desktop puts the season, games, pulse
- * and milestones in a main column beside the inbox, lifecycle, ranks and moves; the phone stacks
- * the same cards in one column with the prompts and inbox first (5.13).
+ * and milestones in a main column beside the inbox, lifecycle, goals, ranks and moves; the phone
+ * stacks the same cards in one column with the prompts and inbox first (5.13).
  */
 export function HomeScreen() {
   const active = useFranchise();
@@ -90,6 +91,9 @@ export function HomeScreen() {
                 <Section title="This season" className="order-6 @desktop:order-none">
                   <SeasonCard active={active} />
                 </Section>
+              )}
+              {!imported && (
+                <GoalsCard seasonId={season._id} year={season.year} className="order-5 @desktop:order-none" />
               )}
               <Section title="Team ranks" className="order-8 @desktop:order-none">
                 <RankPulse year={season.year} />
