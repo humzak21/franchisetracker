@@ -97,7 +97,7 @@ describe("team goals", () => {
   });
 
   test("write-ins wait for the owner; a manual outcome overrides the numbers", () => {
-    expect(status(goal("custom", { text: "Beat Buffalo twice" }), team())).toBe("pending");
+    expect(status(goal("custom"), team())).toBe("pending");
     expect(status(goal("custom", { outcome: "hit" }), team())).toBe("hit");
     const overridden = evaluateGoal(
       goal("wins", { target: 10, outcome: "missed" }),

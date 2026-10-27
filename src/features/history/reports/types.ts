@@ -4,3 +4,4 @@ import type { api } from "@convex/_generated/api";
 export type SeasonReportData = FunctionReturnType<typeof api.seasons.reports.get>;
 export type Need = NonNullable<SeasonReportData["report"]>["needs"][number];
 export type ArchiveRow = FunctionReturnType<typeof api.seasons.reports.archive>[number];
+export type GoalRow = NonNullable<FunctionReturnType<typeof api.seasons.goals.list>>["goals"][number];

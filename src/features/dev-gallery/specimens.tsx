@@ -30,6 +30,7 @@ import {
   TEAM_STATS_2025,
 } from "./fixtures";
 import { SegmentedDemo, SheetDemo, TeamPickerDemo } from "./demos";
+import { GOAL_SPECIMENS } from "./goalSpecimens";
 import { HISTORY_SPECIMENS } from "./historySpecimens";
 import { INGESTION_SPECIMENS } from "./ingestionSpecimens";
 import { INSIGHT_SPECIMENS } from "./insightSpecimens";
@@ -74,6 +75,7 @@ export const SPECIMENS: Specimen[] = [
   ...INSIGHT_SPECIMENS,
   ...PLAYER_SPECIMENS,
   ...HISTORY_SPECIMENS,
+  ...GOAL_SPECIMENS,
   {
     id: "statcell",
     name: "StatCell · Highlight",
