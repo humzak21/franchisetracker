@@ -1,9 +1,12 @@
 import { Link } from "@tanstack/react-router";
+import { Pencil } from "lucide-react";
 import type { ReactNode } from "react";
-import { TRANSACTION_LABELS, weekLabel } from "@shared/domain";
+import { TRANSACTION_LABELS } from "@shared/domain";
 import { formatMoney } from "@shared/roster/cap";
+import { pickLabel, timingLabel } from "@shared/transactions";
 import { PlayerChip } from "@/components/player/PlayerChip";
 import { TeamChip } from "@/components/team/TeamChip";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import type { Move } from "./types";
@@ -44,7 +47,7 @@ function People({
       )}
       {picks.map((p, i) => (
         <div key={`pick-${i}`} className="text-sm">
-          {p.year} round {p.round} pick{p.origin ? ` (${p.origin})` : ""}
+          {pickLabel(p, p.origin)} pick
         </div>
       ))}
     </div>
@@ -52,7 +55,16 @@ function People({
 }
 
 /** One move in the log: what it was, when, who came and went, the terms and the notes. */
-export function MoveCard({ move, children }: { move: Move; children?: ReactNode }) {
+export function MoveCard({
+  move,
+  onEdit,
+  children,
+}: {
+  move: Move;
+  /** Opens the move's edit sheet. */
+  onEdit?: (move: Move) => void;
+  children?: ReactNode;
+}) {
   const c = move.contract;
   const terms = c
     ? [
@@ -74,12 +86,21 @@ export function MoveCard({ move, children }: { move: Move; children?: ReactNode 
         <Badge tone={move.type === "trade" ? "accent" : move.type === "release" ? "loss" : "neutral"}>
           {TRANSACTION_LABELS[move.type]}
         </Badge>
-        <span className="text-xs text-muted-foreground">
-          {move.weekKey ? weekLabel(move.weekKey, "long") : "Offseason"}
-        </span>
+        <span className="text-xs text-muted-foreground">{timingLabel(move.phase, move.weekKey)}</span>
         {move.team && <TeamChip team={move.team} label="abbr" size="xs" className="ml-auto text-xs" />}
         {move.counterpart && (
           <span className="text-xs text-muted-foreground">with {move.counterpart.abbr}</span>
+        )}
+        {onEdit && (
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label={`Edit ${TRANSACTION_LABELS[move.type].toLowerCase()}`}
+            onClick={() => onEdit(move)}
+            className={move.team ? undefined : "ml-auto"}
+          >
+            <Pencil />
+          </Button>
         )}
       </div>
       <div className="grid gap-3 @sm:grid-cols-2">

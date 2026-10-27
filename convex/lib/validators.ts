@@ -136,3 +136,12 @@ export const vPickAsset = v.object({
 
 /** A value an extraction produced or a user corrected it to. */
 export const vScalar = v.union(v.string(), v.number(), v.boolean(), v.null());
+
+/** How a player arrived on a roster entry (`rosterEntries.acquisition`). */
+export const vAcquisition = v.object({
+  type: vAcquisitionType,
+  year: v.optional(v.number()),
+  detail: v.optional(v.string()),
+  /** Free-text counterparts (trade partners, assets sent) as printed in the source. */
+  counterparts: v.optional(v.array(v.string())),
+});
