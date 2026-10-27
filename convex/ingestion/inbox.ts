@@ -19,6 +19,8 @@ const vInboxSet = v.object({
   weekKey: v.union(vWeekKey, v.null()),
   gameId: v.union(v.id("games"), v.null()),
   error: v.union(v.string(), v.null()),
+  /** When the running extraction started, while the set is extracting. */
+  extractionStartedAt: v.union(v.number(), v.null()),
   createdAt: v.number(),
   images: v.array(v.object({ _id: v.id("uploads"), url: v.union(v.string(), v.null()) })),
 });
@@ -57,6 +59,7 @@ export const list = query({
           weekKey: lead.weekKey ?? null,
           gameId: lead.gameId ?? null,
           error: group.find((u) => u.error)?.error ?? null,
+          extractionStartedAt: group.find((u) => u.status === "extracting")?.extractionStartedAt ?? null,
           createdAt: lead.createdAt,
           images: await Promise.all(
             group

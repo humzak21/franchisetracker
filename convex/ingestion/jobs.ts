@@ -2,6 +2,7 @@
 import { v } from "convex/values";
 import { INGESTION_TARGETS, isTargetKey } from "../../shared/ingestion/targets";
 import { weekLabel } from "../../shared/domain";
+import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx } from "../_generated/server";
 import { vDraft, vDraftWarning, vFieldConfidence, vTargetKey } from "../lib/draftValidators";
@@ -10,7 +11,7 @@ import { testModeEnabled } from "../lib/owner";
 import { vScalar } from "../lib/validators";
 import { MAX_FEW_SHOT } from "../../shared/ingestion/prompt";
 import { modelSettings } from "./models";
-import { setUploads } from "./sets";
+import { isCurrentRun, setUploads } from "./sets";
 
 /** Everything one extraction needs: images, target, prompt context, models and past corrections. */
 export const load = internalQuery({
@@ -96,9 +97,21 @@ export const load = internalQuery({
   },
 });
 
+/** Whether a run is still the one its set is waiting on (not stopped or restarted since). */
+export const isCurrent = internalQuery({
+  args: { setKey: v.string(), startedAt: v.number() },
+  returns: v.boolean(),
+  handler: async (ctx, { setKey, startedAt }) => {
+    const franchise = await activeFranchise(ctx);
+    const set = await setUploads(ctx, franchise._id, setKey);
+    return set.some((u) => isCurrentRun(u, startedAt));
+  },
+});
+
 export const save = internalMutation({
   args: {
     setKey: v.string(),
+    startedAt: v.number(),
     targetKey: vTargetKey,
     model: v.string(),
     rawJson: v.string(),
@@ -116,8 +129,8 @@ export const save = internalMutation({
     latencyMs: v.optional(v.number()),
   },
   returns: v.null(),
-  handler: async (ctx, { setKey, ...extraction }) =>
-    await finish(ctx, setKey, async (lead) => {
+  handler: async (ctx, { setKey, startedAt, ...extraction }) =>
+    await finish(ctx, setKey, startedAt, async (lead) => {
       const previous = await ctx.db
         .query("extractions")
         .withIndex("by_setKey", (q) => q.eq("setKey", setKey))
@@ -134,25 +147,51 @@ export const save = internalMutation({
 });
 
 export const fail = internalMutation({
-  args: { setKey: v.string(), error: v.string() },
+  args: { setKey: v.string(), startedAt: v.number(), error: v.string() },
   returns: v.null(),
-  handler: async (ctx, { setKey, error }) =>
-    await finish(ctx, setKey, async () => ({ status: "failed" as const, error: error.slice(0, 500) })),
+  handler: async (ctx, { setKey, startedAt, error }) =>
+    await finish(ctx, setKey, startedAt, async () => ({
+      status: "failed" as const,
+      error: error.slice(0, 500),
+    })),
 });
 
-/** Applies the outcome to every upload still extracting in the set; a deleted set is ignored. */
+/** How often the watchdog looks again at a run still waiting in the scheduler or running. */
+const WATCHDOG_RECHECK_MS = 60_000;
+
+/**
+ * Watchdog: a run that is over but never reported back (Convex stops an action at 10 minutes
+ * without running its error handling) leaves its set extracting; this fails the set instead.
+ */
+export const expire = internalMutation({
+  args: { setKey: v.string(), startedAt: v.number(), runId: v.id("_scheduled_functions") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const run = await ctx.db.system.get("_scheduled_functions", args.runId);
+    if (run?.state.kind === "pending" || run?.state.kind === "inProgress") {
+      await ctx.scheduler.runAfter(WATCHDOG_RECHECK_MS, internal.ingestion.jobs.expire, args);
+      return null;
+    }
+    return await finish(ctx, args.setKey, args.startedAt, async () => ({
+      status: "failed" as const,
+      error: "Timed out: the model never answered. Try again, or pick a faster model.",
+    }));
+  },
+});
+
+/** Applies the outcome to the set's uploads in this run; a deleted, stopped or restarted set is ignored. */
 async function finish(
   ctx: MutationCtx,
   setKey: string,
+  startedAt: number,
   outcome: (lead: Doc<"uploads">) => Promise<{ status: "review" | "failed"; error?: string }>,
 ): Promise<null> {
   const franchise = await activeFranchise(ctx);
   const set = await setUploads(ctx, franchise._id, setKey);
   const lead = set[0];
-  // Deleted, or retagged while the model was working: drop this answer.
-  if (!lead || !set.some((u) => u.status === "extracting")) return null;
-  const patch = await outcome(lead);
+  if (!lead || !set.some((u) => isCurrentRun(u, startedAt))) return null;
+  const patch = { ...(await outcome(lead)), extractionStartedAt: undefined };
   for (const upload of set)
-    if (upload.status === "extracting") await ctx.db.patch("uploads", upload._id, patch);
+    if (isCurrentRun(upload, startedAt)) await ctx.db.patch("uploads", upload._id, patch);
   return null;
 }

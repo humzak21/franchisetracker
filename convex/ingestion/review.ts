@@ -71,6 +71,8 @@ export const get = query({
     season: v.union(v.object({ _id: v.id("seasons"), year: v.number() }), v.null()),
     weekKey: v.union(vWeekKey, v.null()),
     error: v.union(v.string(), v.null()),
+    /** When the running extraction started, while the set is extracting. */
+    extractionStartedAt: v.union(v.number(), v.null()),
     images: v.array(v.object({ _id: v.id("uploads"), url: v.union(v.string(), v.null()) })),
     userTeamAbbr: v.string(),
     game: v.union(
@@ -112,6 +114,7 @@ export const get = query({
       season: season ? { _id: season._id, year: season.year } : null,
       weekKey: lead.weekKey ?? null,
       error: uploads.find((u) => u.error)?.error ?? null,
+      extractionStartedAt: uploads.find((u) => u.status === "extracting")?.extractionStartedAt ?? null,
       images: await Promise.all(
         uploads.map(async (u) => ({ _id: u._id, url: await ctx.storage.getUrl(u.storageId) })),
       ),

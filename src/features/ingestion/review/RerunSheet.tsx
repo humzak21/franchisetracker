@@ -1,9 +1,9 @@
 import { useMutation } from "convex/react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
+import { ModelPicker } from "@/components/forms/ModelPicker";
 import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { errorMessage } from "@/lib/errors";
 import { useQuery } from "@/lib/convex/useQuery";
 
@@ -44,20 +44,20 @@ export function RerunSheet({
           Re-run with {settings ? settings.models.primary : "the configured models"}
         </Button>
         <form
-          className="flex gap-2"
+          className="space-y-2"
           onSubmit={(e) => {
             e.preventDefault();
             if (model.trim()) void run(model.trim());
           }}
         >
-          <Input
+          <ModelPicker
+            presets={settings?.presets.map((p) => p.model) ?? []}
             value={model}
-            onChange={(e) => setModel(e.target.value)}
-            placeholder={settings?.models.fallback ?? "vendor/model"}
+            onChange={setModel}
             aria-label="Model for this run"
           />
-          <Button type="submit" disabled={!model.trim()}>
-            Use this model
+          <Button type="submit" className="w-full" disabled={!model.trim()}>
+            Read with this model
           </Button>
         </form>
         {error && <p className="text-sm text-loss">{error}</p>}

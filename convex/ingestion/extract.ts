@@ -24,22 +24,35 @@ import { blobToDataUrl, callVisionModel, openRouterKey, type VisionResult } from
 import type { StoredDraft } from "../lib/draftValidators";
 import { fixtureAnswer } from "./fixture";
 import { FIXTURE_MODEL } from "./models";
+import { RUN_BUDGET_MS } from "./sets";
 
-type Job = NonNullable<Awaited<ReturnType<typeof loadJob>>>;
+type Job = NonNullable<Awaited<ReturnType<typeof loadJob>>> & {
+  setKey: string;
+  startedAt: number;
+  deadline: number;
+};
 
 const loadJob = (ctx: ActionCtx, setKey: string) => ctx.runQuery(internal.ingestion.jobs.load, { setKey });
 
+/** Thrown when the user stopped or restarted the set mid-run: nothing is written. */
+class Superseded extends Error {}
+
+/** No point starting a model call with less time than this left. */
+const MIN_CALL_MS = 15_000;
+
 export const run = internalAction({
-  args: { setKey: v.string(), model: v.optional(v.string()) },
+  args: { setKey: v.string(), startedAt: v.number(), model: v.optional(v.string()) },
   returns: v.null(),
-  handler: async (ctx, { setKey, model }) => {
-    const job = await loadJob(ctx, setKey);
-    if (!job) return null;
+  handler: async (ctx, { setKey, startedAt, model }) => {
+    const loaded = await loadJob(ctx, setKey);
+    if (!loaded) return null;
+    const job = { ...loaded, setKey, startedAt, deadline: Date.now() + RUN_BUDGET_MS };
     try {
       const { normalized, last, usage, latencyMs } = await read(ctx, job, model);
       const draft = await resolvePlayers(ctx, job, normalized.draft, normalized.confidence);
       await ctx.runMutation(internal.ingestion.jobs.save, {
         setKey,
+        startedAt,
         targetKey: job.targetKey,
         model: last.model,
         rawJson: last.rawText.slice(0, 200_000),
@@ -50,8 +63,9 @@ export const run = internalAction({
         latencyMs,
       });
     } catch (error) {
+      if (error instanceof Superseded) return null;
       const message = error instanceof Error ? error.message : "Extraction failed";
-      await ctx.runMutation(internal.ingestion.jobs.fail, { setKey, error: message });
+      await ctx.runMutation(internal.ingestion.jobs.fail, { setKey, startedAt, error: message });
     }
     return null;
   },
@@ -129,6 +143,16 @@ async function answer(
   const models = model ? [model] : [...new Set([job.models.primary, job.models.fallback])];
   const errors: string[] = [];
   for (const candidate of models) {
+    // Checked before every call so a stopped set stops spending on the next screenshot or model.
+    const current = await ctx.runQuery(internal.ingestion.jobs.isCurrent, {
+      setKey: job.setKey,
+      startedAt: job.startedAt,
+    });
+    if (!current) throw new Superseded();
+    if (job.deadline - Date.now() < MIN_CALL_MS) {
+      errors.push("Out of time: try fewer screenshots in the set, or a faster model");
+      break;
+    }
     try {
       return await callVisionModel(key, {
         model: candidate,
@@ -139,6 +163,7 @@ async function answer(
         schema: schemaFor(job.targetKey),
         temperature: job.models.temperature,
         maxTokens: job.models.maxTokens,
+        deadline: job.deadline,
       });
     } catch (error) {
       errors.push(error instanceof Error ? error.message : String(error));

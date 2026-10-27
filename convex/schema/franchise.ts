@@ -31,6 +31,8 @@ export const franchiseTables = {
           fallback: v.optional(v.string()),
           temperature: v.optional(v.number()),
           maxTokens: v.optional(v.number()),
+          /** Model ids saved for the pickers, on top of the defaults. */
+          presets: v.optional(v.array(v.string())),
         }),
       ),
     }),

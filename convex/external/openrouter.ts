@@ -18,6 +18,8 @@ export type VisionRequest = {
   schema: JsonSchema;
   temperature: number;
   maxTokens: number;
+  /** Epoch ms the caller must be done by; the call is cut short to fit. */
+  deadline: number;
 };
 
 export type VisionResult = {
@@ -41,9 +43,10 @@ type Completion = {
 
 export async function callVisionModel(key: string, req: VisionRequest): Promise<VisionResult> {
   const started = Date.now();
+  const timeoutMs = Math.min(TIMEOUT_MS, req.deadline - started);
   const response = await fetch(ENDPOINT, {
     method: "POST",
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
     headers: {
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
@@ -69,6 +72,11 @@ export async function callVisionModel(key: string, req: VisionRequest): Promise<
         },
       ],
     }),
+  }).catch((error: unknown) => {
+    if (error instanceof Error && error.name === "TimeoutError") {
+      throw new Error(`${req.model}: no answer within ${Math.round(timeoutMs / 1000)} s`);
+    }
+    throw error;
   });
   const body = (await response.json().catch(() => ({}))) as Completion;
   if (!response.ok || body.error) {

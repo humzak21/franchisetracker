@@ -155,6 +155,33 @@ export const extract = mutation({
   },
 });
 
+/** Stopped by the user, as the error a stopped set shows. */
+const STOPPED = "Stopped before the model answered.";
+
+/**
+ * Stops sets that are extracting. A model call already under way finishes on OpenRouter, but its
+ * answer is dropped and no further calls start. The set can be read again from the inbox.
+ */
+export const stop = mutation({
+  args: { setKeys: v.array(v.string()) },
+  returns: v.null(),
+  handler: async (ctx, { setKeys }) => {
+    await requireOwner(ctx);
+    const franchise = await activeFranchise(ctx);
+    for (const key of setKeys) {
+      for (const upload of await requireSet(ctx, franchise._id, key)) {
+        if (upload.status !== "extracting") continue;
+        await ctx.db.patch("uploads", upload._id, {
+          status: "failed",
+          error: STOPPED,
+          extractionStartedAt: undefined,
+        });
+      }
+    }
+    return null;
+  },
+});
+
 export const reject = mutation({
   args: { setKeys: v.array(v.string()) },
   returns: v.null(),

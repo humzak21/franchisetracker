@@ -4,7 +4,8 @@ import { weekLabel } from "@shared/domain";
 import { INGESTION_TARGETS, isTargetKey } from "@shared/ingestion/targets";
 import { Badge } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
-import { formatAge } from "@/lib/time";
+import { useNow } from "@/lib/hooks/useNow";
+import { formatAge, formatElapsed } from "@/lib/time";
 import { STATUS, type InboxSet } from "./status";
 
 type SetCardProps = {
@@ -25,6 +26,8 @@ export function SetCard({ set, selecting, selected, onToggle }: SetCardProps) {
     .filter(Boolean)
     .join(" · ");
   const status = STATUS[set.status];
+  const started = set.status === "extracting" ? set.extractionStartedAt : null;
+  const now = useNow(1000, started !== null);
 
   const body = (
     <>
@@ -65,7 +68,9 @@ export function SetCard({ set, selecting, selected, onToggle }: SetCardProps) {
         </div>
         <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
           <span className="truncate">{where || "No season or week"}</span>
-          <span className="shrink-0">{formatAge(set.createdAt)}</span>
+          <span className="num shrink-0">
+            {started !== null ? `reading ${formatElapsed(started, now)}` : formatAge(set.createdAt)}
+          </span>
         </div>
         {set.error && <p className="line-clamp-2 text-xs text-loss">{set.error}</p>}
       </div>

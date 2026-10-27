@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { WeekKey } from "@shared/domain";
 import { CaptureFields, type CaptureFieldsValue } from "@/components/forms/CaptureFields";
+import { ModelPicker } from "@/components/forms/ModelPicker";
 import { StatComparison } from "@/components/data/StatComparison";
 import { ImageViewer } from "@/components/media/ImageViewer";
 import { Select } from "@/components/ui/select";
@@ -50,6 +51,18 @@ function CaptureFieldsDemo() {
     weekKey: "w3" as WeekKey,
   });
   return <CaptureFields seasons={SEASONS} value={value} onChange={setValue} allowUntagged />;
+}
+
+function ModelPickerDemo() {
+  const [value, setValue] = useState("google/gemini-4-argon");
+  return (
+    <ModelPicker
+      presets={["google/gemini-4-argon", "anthropic/claude-sonnet-5.5"]}
+      value={value}
+      onChange={setValue}
+      aria-label="Primary model"
+    />
+  );
 }
 
 function SelectDemo() {
@@ -117,6 +130,12 @@ export const INGESTION_SPECIMENS: Specimen[] = [
     name: "CaptureFields",
     note: "What a set of screenshots is and where it goes. Native selects open the phone's own picker.",
     render: () => <CaptureFieldsDemo />,
+  },
+  {
+    id: "modelpicker",
+    name: "ModelPicker",
+    note: "Saved OpenRouter models in a native select; Other model… opens a field for any id.",
+    render: () => <ModelPickerDemo />,
   },
   {
     id: "select",
