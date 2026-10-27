@@ -135,6 +135,13 @@ import type * as stats_refreshRecords from "../stats/refreshRecords.js";
 import type * as stats_refreshStreaks from "../stats/refreshStreaks.js";
 import type * as stats_season from "../stats/season.js";
 import type * as stats_streaks from "../stats/streaks.js";
+import type * as transactions_forms from "../transactions/forms.js";
+import type * as transactions_injuries from "../transactions/injuries.js";
+import type * as transactions_moves from "../transactions/moves.js";
+import type * as transactions_people from "../transactions/people.js";
+import type * as transactions_pickEffects from "../transactions/pickEffects.js";
+import type * as transactions_rosterEffects from "../transactions/rosterEffects.js";
+import type * as transactions_testkit from "../transactions/testkit.js";
 import type * as transactions_transactions from "../transactions/transactions.js";
 
 import type {
@@ -271,6 +278,13 @@ declare const fullApi: ApiFromModules<{
   "stats/refreshStreaks": typeof stats_refreshStreaks;
   "stats/season": typeof stats_season;
   "stats/streaks": typeof stats_streaks;
+  "transactions/forms": typeof transactions_forms;
+  "transactions/injuries": typeof transactions_injuries;
+  "transactions/moves": typeof transactions_moves;
+  "transactions/people": typeof transactions_people;
+  "transactions/pickEffects": typeof transactions_pickEffects;
+  "transactions/rosterEffects": typeof transactions_rosterEffects;
+  "transactions/testkit": typeof transactions_testkit;
   "transactions/transactions": typeof transactions_transactions;
 }>;
 
