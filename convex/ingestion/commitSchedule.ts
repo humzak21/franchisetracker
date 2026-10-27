@@ -1,13 +1,15 @@
 /**
  * Commit for the league schedule screen: one week's games across the league, upserted per
  * matchup into `leagueGames`. The user team's game also goes through the game path, so its
- * schedule row, score and the season record agree with the league view.
+ * schedule row, score and the season record agree with the league view; every other team's
+ * standings record is worked out again from the scores.
  */
 import { isWeekKey, weekLabel } from "../../shared/domain";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { invalid } from "../lib/errors";
+import { refreshLeagueRecords } from "../lib/leagueRecords";
 import { findGame, refreshSeasonRecord, upsertGame } from "./commitGame";
 import { numberOf, teamCache, textOf, type RowCommit, type RowCommitResult } from "./rowCommit";
 
@@ -75,8 +77,9 @@ export async function commitLeagueSchedule(ctx: MutationCtx, commit: RowCommit):
       overtime: before?.overtime ?? false,
       lineScore: null,
     });
+    // Also brings every other team's record up to date.
     await refreshSeasonRecord(ctx, seasonId);
     await ctx.scheduler.runAfter(0, internal.stats.refresh.afterGame, { gameId: game._id, playerIds: [] });
-  }
+  } else await refreshLeagueRecords(ctx, seasonId);
   return {};
 }

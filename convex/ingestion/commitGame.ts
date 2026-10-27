@@ -6,6 +6,7 @@ import type { GameHeader } from "../../shared/ingestion/types";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { invalid, must } from "../lib/errors";
+import { refreshLeagueRecords } from "../lib/leagueRecords";
 import { seasonGames } from "../lib/reports";
 
 export async function teamByAbbr(ctx: MutationCtx, abbr: string | null): Promise<Doc<"teams">> {
@@ -110,4 +111,6 @@ export async function refreshSeasonRecord(ctx: MutationCtx, seasonId: Id<"season
     userRecord: { ...season.userRecord, ...regular, ...(playoffResult ? { playoffResult } : {}) },
     status: laterStatus(season.status, statusFromGames(games)),
   });
+  // The opponent's record moves with the score too.
+  await refreshLeagueRecords(ctx, seasonId);
 }

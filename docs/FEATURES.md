@@ -124,7 +124,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - `standings`: per season per team: w, l, t, divisionRank, seed, playoffResult, pointsFor, pointsAgainst. Imported from screenshot or derived for the user team.
 - `leagueLeaders`: per season, per stat key, ranked rows (rank, playerId or raw name, teamId, value). Top 20 per category.
 - `teamSeasonStats`: per season per team per stat key: value, rank, attempts, note. Replaces the "27.3 - T-3rd" strings.
-- `leagueGames`: every game in the league for a week (away, home, scores when played, game time), from the Madden schedule screen or typed in. The user team's game also updates `games`.
+- `leagueGames`: every game in the league for a week (away, home, scores when played, game time), from the Madden schedule screen or typed in. The user team's game also updates `games`. Every other team's standings record (W-L-T, points) is worked out from these scores plus the user team's games after any score changes; a captured standings record is only replaced when the scores cover at least as many games.
 
 ### 4.3 Players
 
