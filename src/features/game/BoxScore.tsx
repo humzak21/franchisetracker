@@ -1,4 +1,5 @@
-import { ImageUp } from "lucide-react";
+import { useMutation } from "convex/react";
+import { ImageUp, ListPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
@@ -17,20 +18,23 @@ import { Button } from "@/components/ui/button";
 import { TeamChip } from "@/components/team/TeamChip";
 import { Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
-import { boxColumns, boxRows, totalsRow, type BoxTeam } from "./boxScoreColumns";
 import { useQuery } from "@/lib/convex/useQuery";
+import { BoxLinesSheet } from "./BoxLinesSheet";
+import { boxColumns, boxRows, totalsRow, type BoxTeam } from "./boxScoreColumns";
 
 type BoxScoreProps = { gameId: Id<"games">; onImport: () => void };
 
 /**
  * Game detail v2 box score: one category at a time, either team or both, with threshold
  * highlights. Phone tables keep each category's defining stats and fold the rest into the
- * tap-to-expand card.
+ * tap-to-expand card. Edit turns recorded stats into inputs; Player lines adds or removes lines.
  */
 export function BoxScore({ gameId, onImport }: BoxScoreProps) {
   const data = useQuery(api.games.boxScore.get, { gameId });
+  const setStat = useMutation(api.games.statLines.setStat);
   const [side, setSide] = useState<string>("both");
   const [picked, setPicked] = useState<StatCategory | null>(null);
+  const [linesOpen, setLinesOpen] = useState(false);
 
   const categories = useMemo(() => {
     const rows = (data?.teams ?? []).flatMap((t) => t.lines.map((l) => ({ line: l.stats as StatLine })));
@@ -38,22 +42,43 @@ export function BoxScore({ gameId, onImport }: BoxScoreProps) {
   }, [data]);
 
   if (data === undefined) return <Skeleton className="h-64 rounded-xl" />;
+  const category = picked && categories.includes(picked) ? picked : (categories[0] ?? "passing");
+  const linesSheet = (
+    <BoxLinesSheet
+      open={linesOpen}
+      onOpenChange={setLinesOpen}
+      gameId={gameId}
+      teams={data.teams}
+      category={category}
+    />
+  );
+  const addLines = (
+    <Button size="sm" variant="outline" onClick={() => setLinesOpen(true)} disabled={data.teams.length === 0}>
+      <ListPlus /> Player lines
+    </Button>
+  );
+
   if (!data.teams.some((t) => t.lines.length > 0)) {
     return (
-      <EmptyState
-        icon={ImageUp}
-        title="No box score yet"
-        description="Snap the box score screens and import them; passing, rushing, receiving and defense fill in here."
-        action={
-          <Button variant="primary" onClick={onImport}>
-            Import screenshot
-          </Button>
-        }
-      />
+      <>
+        <EmptyState
+          icon={ImageUp}
+          title="No box score yet"
+          description="Snap the box score screens and import them, or add player lines by hand; passing, rushing, receiving and defense fill in here."
+          action={
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button variant="primary" onClick={onImport}>
+                Import screenshot
+              </Button>
+              {addLines}
+            </div>
+          }
+        />
+        {linesSheet}
+      </>
     );
   }
 
-  const category = picked && categories.includes(picked) ? picked : (categories[0] ?? "passing");
   const shown: BoxTeam[] = data.teams.filter((t) => side === "both" || t.team.abbr === side);
   // Columns from both teams, so the two tables line up when shown together.
   const allLines = data.teams.flatMap((t) => t.lines.map((l) => ({ line: l.stats as StatLine })));
@@ -70,16 +95,19 @@ export function BoxScore({ gameId, onImport }: BoxScoreProps) {
             options={categories.map((c) => ({ value: c, label: STAT_CATEGORY_LABELS[c] }))}
           />
         </div>
-        <Segmented
-          size="sm"
-          aria-label="Team"
-          value={side}
-          onChange={setSide}
-          options={[
-            ...data.teams.map((t) => ({ value: t.team.abbr, label: t.team.abbr })),
-            { value: "both", label: "Both" },
-          ]}
-        />
+        <div className="flex items-center gap-2">
+          <Segmented
+            size="sm"
+            aria-label="Team"
+            value={side}
+            onChange={setSide}
+            options={[
+              ...data.teams.map((t) => ({ value: t.team.abbr, label: t.team.abbr })),
+              { value: "both", label: "Both" },
+            ]}
+          />
+          {addLines}
+        </div>
       </div>
       {shown.map((team) => {
         const rows = boxRows(team, stats);
@@ -95,6 +123,17 @@ export function BoxScore({ gameId, onImport }: BoxScoreProps) {
               identityColumn="player"
               primaryColumns={CATEGORY_PRIMARY[category]}
               totals={rows.length > 1 ? totalsRow(rows) : undefined}
+              onEdit={(row, statKey, value) =>
+                row.playerId
+                  ? setStat({
+                      gameId,
+                      playerId: row.playerId as Id<"players">,
+                      statKey,
+                      value: typeof value === "string" ? Number(value) : value,
+                    })
+                  : undefined
+              }
+              canEditRow={(row) => row.playerId !== null}
               emptyState={
                 <p className="py-6 text-center text-sm text-muted-foreground">
                   No {STAT_CATEGORY_LABELS[category].toLowerCase()} for {team.team.abbr}.
@@ -104,6 +143,7 @@ export function BoxScore({ gameId, onImport }: BoxScoreProps) {
           </section>
         );
       })}
+      {linesSheet}
     </div>
   );
 }

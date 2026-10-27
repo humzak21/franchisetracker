@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { ListChecks } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -8,6 +9,7 @@ import { positionGroupOf, weekIndex, weekLabel, type Position } from "@shared/do
 import {
   CATEGORY_GROUPS,
   gameHighlights,
+  isRawStatKey,
   STAT_CATEGORIES,
   STAT_CATEGORY_LABELS,
   STAT_REGISTRY,
@@ -88,13 +90,17 @@ function columns(position: Position, rows: readonly Row[]): { cols: DataColumn<R
         </span>
       ),
     },
-    ...stats.map((key) =>
-      statColumn<Row>(key, (r) => statValue(key, r.stats as StatLine), {
+    ...stats.map((key) => {
+      const column = statColumn<Row>(key, (r) => statValue(key, r.stats as StatLine), {
         group: STAT_CATEGORY_LABELS[STAT_REGISTRY[key].category],
         // Per-game cells skip season elite tiers; threshold badges mark the big games instead.
         highlight: false,
-      }),
-    ),
+      });
+      // Recorded stats edit in place (the same save as the box score); rates are worked out.
+      return isRawStatKey(key)
+        ? { ...column, edit: { kind: "number" as const, get: (r: Row) => (r.stats as StatLine)[key] } }
+        : column;
+    }),
   ];
   return { cols, primary: ["result", ...phonePrimary(position, stats).slice(0, 2)] };
 }
@@ -112,6 +118,7 @@ export function GameLog({ page }: { page: PlayerPage }) {
     api.players.gameLog.bySeason,
     seasonId ? { playerId: page.player._id, seasonId } : "skip",
   );
+  const setStat = useMutation(api.games.statLines.setStat);
   const position = page.history[page.history.length - 1]?.entry.position ?? page.player.position;
   const { cols, primary } = useMemo(() => columns(position, rows ?? []), [position, rows]);
 
@@ -144,6 +151,14 @@ export function GameLog({ page }: { page: PlayerPage }) {
         identityColumn="week"
         primaryColumns={primary}
         caption="Game log"
+        onEdit={(row, statKey, value) =>
+          setStat({
+            gameId: row.gameId,
+            playerId: page.player._id,
+            statKey,
+            value: typeof value === "string" ? Number(value) : value,
+          })
+        }
       />
     </div>
   );

@@ -1,4 +1,8 @@
 import { History } from "lucide-react";
+import { NFL_TEAMS } from "@shared/domain";
+import { GameForm } from "@/components/forms/GameForm";
+import { emptyGameForm } from "@/components/forms/gameFormValue";
+import { GameStars, type StarView } from "@/components/player/GameStars";
 import { Notice } from "@/components/data/Notice";
 import { RadarCompare } from "@/components/data/RadarCompare";
 import { TrendChart } from "@/components/data/TrendChart";
@@ -17,6 +21,14 @@ const OVR = [
   { key: "26-w4", label: "2026 · Week 4", group: "2026", value: 85 },
   { key: "26-w12", label: "2026 · Week 12", group: "2026", value: 88 },
 ];
+
+const GALLERY_STARS: StarView[] = [
+  { playerId: null, name: "Drake Maye", position: "QB", caption: "24/31, 301 yds, 3 TD", teamId: "ne" },
+  { playerId: null, name: "Stefon Diggs", position: "WR", caption: "9 rec, 131 yds, 1 TD", teamId: "ne" },
+  { playerId: null, name: "Josh Allen", position: "QB", caption: "2 rush TD", teamId: "buf" },
+  { playerId: null, name: "Christian Gonzalez", position: "CB", caption: "INT, 3 PD", teamId: "ne" },
+];
+const GALLERY_TEAMS = NFL_TEAMS.map((t) => ({ ...t, _id: t.abbr }));
 
 export const PLAYER_SPECIMENS: Specimen[] = [
   {
@@ -115,6 +127,35 @@ export const PLAYER_SPECIMENS: Specimen[] = [
             age: null,
             headshotUrl: null,
           }}
+        />
+      </div>
+    ),
+  },
+  {
+    id: "gamestars",
+    name: "GameStars",
+    note: "Stars of a game, as many as the owner picked, in order. List on game detail (captions), wrapping chips on schedule rows. Opponent stars wear the opponent's colors; typed names do not link.",
+    render: () => (
+      <div className="space-y-4">
+        <GameStars stars={GALLERY_STARS} team={NE} opponent={{ ...BUF, _id: "buf" }} />
+        <GameStars stars={GALLERY_STARS} team={NE} opponent={{ ...BUF, _id: "buf" }} layout="chips" />
+        <GameStars stars={[]} team={NE} />
+      </div>
+    ),
+  },
+  {
+    id: "gameform",
+    name: "GameForm",
+    note: "A game entered or edited by hand: week (playoff weeks are the rounds), opponent, side, optional final score, overtime, date, stadium, weather, or a bye. Checks the input before saving.",
+    render: () => (
+      <div className="max-w-xl">
+        <GameForm
+          teams={GALLERY_TEAMS}
+          userTeamId="NE"
+          initial={{ ...emptyGameForm("w8"), opponentTeamId: "BUF" }}
+          withNotes
+          submitLabel="Add game"
+          onSubmit={async () => undefined}
         />
       </div>
     ),

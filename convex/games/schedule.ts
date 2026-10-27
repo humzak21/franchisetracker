@@ -30,7 +30,7 @@ async function seasonGames(ctx: QueryCtx, seasonId: Id<"seasons">) {
   return sortByWeek(games);
 }
 
-/** The season's schedule in calendar order, with opponents and three stars resolved, a summary and the chart points. */
+/** The season's schedule in calendar order, with opponents and stars resolved, a summary and the chart points. */
 export const bySeason = query({
   args: { seasonId: v.id("seasons") },
   returns: v.object({ games: v.array(vGameRow), summary: vSeasonSummary, points: v.array(vWeekPoint) }),
