@@ -38,7 +38,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     categories: ["rushing", "receiving"],
     phone: ["rushAtt", "rushYds", "rushTd", "rushAvg"],
     lead: "rushYds",
-    counts: ["rush100", "rec100", "scrimmage2td"],
+    counts: ["rush100", "rec100", "rec5", "scrimmage2td"],
   },
   {
     id: "wrte",
@@ -47,7 +47,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     categories: ["receiving", "rushing"],
     phone: ["rec", "recYds", "recTd", "recAvg"],
     lead: "recYds",
-    counts: ["rec100", "rush100", "scrimmage2td"],
+    counts: ["rec100", "rec5", "rush100", "scrimmage2td"],
   },
   {
     id: "dl",

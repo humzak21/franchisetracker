@@ -40,7 +40,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Schedule",
     to: "/schedule",
     icon: CalendarDays,
-    description: "Weeks, results, three stars and game detail",
+    description: "Weeks, results, stars of the game and game detail",
     phoneTab: true,
   },
   {

@@ -53,8 +53,8 @@ describe("threshold games", () => {
 describe("group count columns", () => {
   test("each group declares the big games the season table always shows", () => {
     expect(statGroup("qb").counts).toEqual(["pass300", "pass3td", "perfectRating", "rush100"]);
-    expect(statGroup("rb").counts).toEqual(["rush100", "rec100", "scrimmage2td"]);
-    expect(statGroup("wrte").counts).toEqual(["rec100", "rush100", "scrimmage2td"]);
+    expect(statGroup("rb").counts).toEqual(["rush100", "rec100", "rec5", "scrimmage2td"]);
+    expect(statGroup("wrte").counts).toEqual(["rec100", "rec5", "rush100", "scrimmage2td"]);
     for (const id of ["dl", "lb", "db"]) expect(statGroup(id).counts).toEqual(["sacks2", "int2"]);
   });
 
