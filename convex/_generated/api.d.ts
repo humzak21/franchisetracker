@@ -66,6 +66,7 @@ import type * as ingestion_rowPlayers from "../ingestion/rowPlayers.js";
 import type * as ingestion_sets from "../ingestion/sets.js";
 import type * as ingestion_settings from "../ingestion/settings.js";
 import type * as ingestion_shortcut from "../ingestion/shortcut.js";
+import type * as ingestion_shortcutUploads from "../ingestion/shortcutUploads.js";
 import type * as ingestion_tokens from "../ingestion/tokens.js";
 import type * as ingestion_uploads from "../ingestion/uploads.js";
 import type * as ingestion_usage from "../ingestion/usage.js";
@@ -200,6 +201,7 @@ declare const fullApi: ApiFromModules<{
   "ingestion/sets": typeof ingestion_sets;
   "ingestion/settings": typeof ingestion_settings;
   "ingestion/shortcut": typeof ingestion_shortcut;
+  "ingestion/shortcutUploads": typeof ingestion_shortcutUploads;
   "ingestion/tokens": typeof ingestion_tokens;
   "ingestion/uploads": typeof ingestion_uploads;
   "ingestion/usage": typeof ingestion_usage;

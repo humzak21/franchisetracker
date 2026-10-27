@@ -5,7 +5,7 @@
 import { v } from "convex/values";
 import { INGESTION_TARGETS } from "../../shared/ingestion/targets";
 import type { Doc, Id } from "../_generated/dataModel";
-import { internalMutation, mutation, type MutationCtx } from "../_generated/server";
+import { mutation, type MutationCtx } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { vTargetKey } from "../lib/draftValidators";
 import { invalid, must } from "../lib/errors";
@@ -15,7 +15,7 @@ import { MAX_SET_SIZE, readyToExtract, requireSet, startExtraction } from "./set
 
 const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
 
-const vContext = {
+export const vContext = {
   targetKey: v.optional(vTargetKey),
   seasonId: v.optional(v.id("seasons")),
   weekKey: v.optional(vWeekKey),
@@ -39,6 +39,10 @@ type NewUploads = {
   seasonId?: Id<"seasons">;
   weekKey?: Doc<"uploads">["weekKey"];
   gameId?: Id<"games">;
+  /** Key for a grouped set that spans several requests (a Shortcut batch) instead of a new one. */
+  setKey?: string;
+  /** The caller starts extraction once it knows the set is complete. */
+  deferExtraction?: boolean;
 };
 
 /**
@@ -79,11 +83,13 @@ export async function insertUploads(ctx: MutationCtx, args: NewUploads): Promise
       status: "queued",
       createdAt: Date.now(),
     });
-    const setKey: string = grouped ? (sharedKey ??= id) : id;
+    const setKey: string = grouped ? (sharedKey ??= args.setKey ?? id) : id;
     await ctx.db.patch("uploads", id, { setKey });
     sets.set(setKey, [...(sets.get(setKey) ?? []), must(await ctx.db.get("uploads", id), "Upload")]);
   }
-  for (const uploads of sets.values()) if (readyToExtract(uploads[0]!)) await startExtraction(ctx, uploads);
+  if (!args.deferExtraction) {
+    for (const uploads of sets.values()) if (readyToExtract(uploads[0]!)) await startExtraction(ctx, uploads);
+  }
   return [...sets.keys()];
 }
 
@@ -99,13 +105,6 @@ export const create = mutation({
     await requireOwner(ctx);
     return await insertUploads(ctx, args);
   },
-});
-
-/** The Shortcut endpoint's write path; the HTTP action has already checked the bearer token. */
-export const createFromShortcut = internalMutation({
-  args: { storageIds: v.array(v.id("_storage")), ...vContext },
-  returns: v.array(v.string()),
-  handler: async (ctx, args) => await insertUploads(ctx, { ...args, source: "shortcut" }),
 });
 
 /**

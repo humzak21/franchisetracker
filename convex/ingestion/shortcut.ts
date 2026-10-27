@@ -5,15 +5,17 @@
  *
  *   GET  /shortcut/targets   the menu: targets from the registry, week keys, the current season
  *   POST /shortcut/upload    multipart `image` files plus `target`, optional `week` and `season` (year);
- *                            a missing week is inferred from the target and the schedule
+ *                            a missing week is inferred from the target and the schedule. Optional
+ *                            `batch` and `batchSize` gather one image per request into one set.
  */
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { WEEK_KEYS, isWeekKey, weekLabel } from "../../shared/domain";
 import { lastPlayedWeek, nextWeek } from "../../shared/games/summary";
 import { INGESTION_TARGETS, TARGET_KEYS, isTargetKey } from "../../shared/ingestion/targets";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { httpAction, internalQuery, type ActionCtx } from "../_generated/server";
+import type { AppErrorData } from "../lib/errors";
 import { activeFranchise } from "../lib/franchise";
 import { rateLimiter } from "../lib/rateLimits";
 import { vWeekKey } from "../lib/validators";
@@ -24,6 +26,18 @@ const MAX_GAMES_PER_SEASON = 40;
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+
+/** The optional batch fields; a string is the reason they are unusable. */
+function parseBatch(form: FormData): { key: string; size: number } | undefined | string {
+  const key = String(form.get("batch") ?? "");
+  const sizeText = String(form.get("batchSize") ?? "");
+  if (!key && !sizeText) return undefined;
+  const size = Number(sizeText);
+  if (!/^[\w-]{1,64}$/.test(key) || !Number.isInteger(size) || size < 1 || size > MAX_SET_SIZE) {
+    return `Send \`batch\` (letters, digits, - or _) with \`batchSize\` between 1 and ${MAX_SET_SIZE}`;
+  }
+  return { key, size };
+}
 
 async function authorized(ctx: ActionCtx, request: Request): Promise<boolean> {
   const token = /^Bearer\s+(\S+)$/i.exec(request.headers.get("Authorization") ?? "")?.[1];
@@ -126,13 +140,13 @@ export const upload = httpAction(async (ctx, request) => {
   if (year !== undefined && !Number.isInteger(year)) return json({ error: "Season must be a year" }, 400);
   const season = await ctx.runQuery(internal.ingestion.shortcut.season, { year });
   if (!season) return json({ error: "No such season in the franchise" }, 400);
+  const batch = parseBatch(form);
+  if (typeof batch === "string") return json({ error: batch }, 400);
+  const notImage = files.find((file) => !file.type.startsWith("image/"));
+  if (notImage) return json({ error: `${notImage.name || "A file"} is not an image` }, 400);
 
   const storageIds: Id<"_storage">[] = [];
-  for (const file of files) {
-    if (!file.type.startsWith("image/"))
-      return json({ error: `${file.name || "A file"} is not an image` }, 400);
-    storageIds.push(await ctx.storage.store(file));
-  }
+  for (const file of files) storageIds.push(await ctx.storage.store(file));
   const targetKey = target && isTargetKey(target) ? target : undefined;
   const scope = targetKey ? INGESTION_TARGETS[targetKey].scope : undefined;
   // Context inference: without a week, a game screen is the next game, a weekly one the week just played.
@@ -144,11 +158,20 @@ export const upload = httpAction(async (ctx, request) => {
         : scope === "week"
           ? season.lastWeek
           : undefined;
-  const sets = await ctx.runMutation(internal.ingestion.uploads.createFromShortcut, {
-    storageIds,
-    targetKey,
-    seasonId: season._id,
-    weekKey,
-  });
+  let sets: string[];
+  try {
+    sets = await ctx.runMutation(internal.ingestion.shortcutUploads.create, {
+      storageIds,
+      targetKey,
+      seasonId: season._id,
+      weekKey,
+      batch,
+    });
+  } catch (error) {
+    // Nothing was recorded, so the stored files would be orphans.
+    await Promise.allSettled(storageIds.map((id) => ctx.storage.delete(id)));
+    if (error instanceof ConvexError) return json({ error: (error.data as AppErrorData).message }, 400);
+    throw error;
+  }
   return json({ ok: true, sets: sets.length, images: storageIds.length });
 });

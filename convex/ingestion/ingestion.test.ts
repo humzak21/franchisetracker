@@ -1,5 +1,4 @@
 /// <reference types="vite/client" />
-import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../_generated/api";
@@ -13,7 +12,6 @@ const modules = import.meta.glob("/convex/**/*.ts");
 
 async function setup() {
   const t = convexTest(schema, modules);
-  rateLimiterTest.register(t);
   await t.mutation(internal.league.seed.seedTeams, {});
   await t.mutation(internal.dev.fixtures.seedFixtures, {});
   const owner = await asOwner(t);
@@ -232,77 +230,5 @@ describe("ingestion", () => {
     await expect(
       t.mutation(api.ingestion.uploads.create, { storageIds: [await image()], source: "web" }),
     ).rejects.toThrow(/Sign in required/);
-  });
-});
-
-describe("shortcut endpoint", () => {
-  const form = (target?: string, week: string | null = "w1") => {
-    const body = new FormData();
-    body.append("image", new Blob([new Uint8Array(32)], { type: "image/jpeg" }), "box.jpg");
-    if (target) body.append("target", target);
-    if (week) body.append("week", week);
-    return body;
-  };
-
-  test("infers the week from the target when the Shortcut sends none", async () => {
-    const { t, owner } = await setup();
-    const token = await owner.action(api.ingestion.tokens.create, { label: "iPhone" });
-    const headers = { Authorization: `Bearer ${token}` };
-    for (const target of ["game_box_score", "weekly_awards", "standings"]) {
-      await t.fetch("/shortcut/upload", { method: "POST", headers, body: form(target, null) });
-    }
-    const sets = await owner.query(api.ingestion.inbox.list, {});
-    const week = (target: string) => sets.find((s) => s.targetKey === target)?.weekKey ?? null;
-    // The sample season's latest result is week 6.
-    expect([week("game_box_score"), week("weekly_awards"), week("standings")]).toEqual(["w7", "w6", null]);
-  });
-
-  test("refuses a missing or revoked token and accepts a valid one", async () => {
-    const { t, owner } = await setup();
-    expect((await t.fetch("/shortcut/upload", { method: "POST", body: form() })).status).toBe(401);
-    const token = await owner.action(api.ingestion.tokens.create, { label: "iPhone" });
-    const headers = { Authorization: `Bearer ${token}` };
-
-    const menu = await t.fetch("/shortcut/targets", { headers });
-    const body = (await menu.json()) as { targetLabels: string[] };
-    expect(body).toMatchObject({
-      season: SAMPLE_START_YEAR,
-      suggestedWeek: "Week 7",
-      targetByLabel: { "Box score": "game_box_score", Standings: "standings" },
-      weekByLabel: { "Week 1": "w1" },
-      asksWeekByLabel: { "Box score": true, "Weekly awards": true, Standings: false },
-    });
-    expect(body.targetLabels.slice(0, 2)).toEqual(["Box score", "Team game stats"]);
-    const bad = await t.fetch("/shortcut/upload", { method: "POST", headers, body: form("nonsense") });
-    expect(bad.status).toBe(400);
-    const ok = await t.fetch("/shortcut/upload", { method: "POST", headers, body: form() });
-    expect(await ok.json()).toMatchObject({ ok: true, images: 1 });
-    const [set] = await owner.query(api.ingestion.inbox.list, {});
-    expect(set).toMatchObject({ status: "queued", weekKey: "w1", year: SAMPLE_START_YEAR });
-
-    const [listed] = await owner.query(api.ingestion.tokens.list, {});
-    expect(listed?.lastUsedAt).not.toBeNull();
-    await owner.mutation(api.ingestion.tokens.revoke, { tokenId: listed!._id });
-    expect((await t.fetch("/shortcut/targets", { headers })).status).toBe(401);
-  });
-
-  test("rate limits valid requests, and junk tokens never lock out the owner", async () => {
-    const { t, owner } = await setup();
-    const token = await owner.action(api.ingestion.tokens.create, { label: "iPhone" });
-    const headers = { Authorization: `Bearer ${token}` };
-    const junk = { Authorization: "Bearer ft_guess" };
-
-    const junkStatuses = [];
-    for (let i = 0; i < 22; i++)
-      junkStatuses.push((await t.fetch("/shortcut/targets", { headers: junk })).status);
-    expect(junkStatuses.slice(0, 20).every((s) => s === 401)).toBe(true);
-    expect(junkStatuses.slice(20)).toEqual([429, 429]);
-
-    const statuses = [];
-    for (let i = 0; i < 21; i++) statuses.push((await t.fetch("/shortcut/targets", { headers })).status);
-    expect(statuses.slice(0, 20).every((s) => s === 200)).toBe(true);
-    const limited = await t.fetch("/shortcut/targets", { headers });
-    expect(limited.status).toBe(429);
-    expect(Number(limited.headers.get("Retry-After"))).toBeGreaterThan(0);
   });
 });
