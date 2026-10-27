@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MAX_CHUNK_BYTES, chunkImages, mergeAnswers } from "./chunks";
-import { normalizeBoxScore } from "./normalize";
+import { normalizeBoxScore, normalizeGameLog, normalizeTeamStats } from "./normalize";
 
 const MB = 1024 * 1024;
 const images = (...sizes: number[]) => sizes.map((size, i) => ({ id: i, size }));
@@ -87,5 +87,58 @@ describe("mergeAnswers", () => {
     const { draft, warnings } = normalizeBoxScore(merged);
     expect(draft.lines).toHaveLength(1);
     expect(warnings).toContainEqual(expect.objectContaining({ message: expect.stringMatching(/disagree/) }));
+  });
+});
+
+describe("full game extraction", () => {
+  it("merges team columns across chunks together with player categories", () => {
+    const { draft } = normalizeGameLog(
+      mergeAnswers([
+        {
+          home_team: "NE",
+          away_team: "BUF",
+          home_score: 31,
+          away_score: 24,
+          passing: [{ name: "D. Maye", team: "NE", pass_yds: 284 }],
+          teams: [{ team: "NE", pass_yds: 284, rush_yds: null, total_yds: 650 }],
+        },
+        {
+          rushing: [{ name: "D. Maye", team: "NE", rush_yds: 24 }],
+          teams: [
+            { team: "NE", pass_yds: null, rush_yds: 128, total_yds: 650 },
+            { team: "BUF", pass_yds: 250, rush_yds: 100, total_yds: 500 },
+          ],
+        },
+      ]),
+    );
+    expect(draft.target).toBe("game_log");
+    expect(draft.lines).toHaveLength(1);
+    expect(draft.lines[0]?.stats).toMatchObject({ passYds: 284, rushYds: 24 });
+    expect(draft.teams).toEqual([
+      { teamAbbr: "NE", stats: { passYds: 284, rushYds: 128, totalYds: 412 } },
+      { teamAbbr: "BUF", stats: { passYds: 250, rushYds: 100, totalYds: 350 } },
+    ]);
+  });
+
+  it("does not substitute Madden's return-inclusive total when an input is missing", () => {
+    const { draft } = normalizeTeamStats({ teams: [{ team: "NE", pass_yds: 284, total_yds: 650 }] });
+    expect(draft.teams[0]?.stats).toEqual({ passYds: 284 });
+  });
+
+  it("adds zero or negative rushing yards correctly", () => {
+    const { draft, confidence } = normalizeTeamStats({
+      teams: [
+        {
+          team: "NE",
+          pass_yds: 0,
+          rush_yds: -4,
+          total_yds: 80,
+          confidence: 0.95,
+          unclear_fields: ["rush_yds"],
+        },
+      ],
+    });
+    expect(draft.teams[0]?.stats.totalYds).toBe(-4);
+    expect(confidence.find((c) => c.path === "teams.0.stats.totalYds")?.value).toBe(0.35);
   });
 });

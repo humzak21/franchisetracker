@@ -69,7 +69,7 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
   const details = [game.status === "played" ? game.dateLabel : null, header.stadium, header.weather]
     .filter(Boolean)
     .join(" · ");
-  const importScreenshot = (targetKey: "game_box_score" | "team_game_stats") =>
+  const importScreenshot = (targetKey: "game_log" | "game_box_score" | "team_game_stats" = "game_log") =>
     capture.open({ gameId: game._id, targetKey, gameLabel: `${season.year} · ${title}` });
   const sides = { user: userTeam, opponent };
 
@@ -124,10 +124,7 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
                   content: (
                     <div className="space-y-6">
                       <StarsSection gameId={game._id} stars={data.stars} {...sides} />
-                      <TeamStatsCompare
-                        gameId={game._id}
-                        onImport={() => importScreenshot("team_game_stats")}
-                      />
+                      <TeamStatsCompare gameId={game._id} onImport={() => importScreenshot()} />
                     </div>
                   ),
                 },
@@ -150,12 +147,12 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
             <Section
               title="Box score"
               actions={
-                <Button size="sm" variant="outline" onClick={() => importScreenshot("game_box_score")}>
-                  <ImageUp /> Import screenshot
+                <Button size="sm" variant="outline" onClick={() => importScreenshot()}>
+                  <ImageUp /> Import game log
                 </Button>
               }
             >
-              <BoxScore gameId={game._id} onImport={() => importScreenshot("game_box_score")} />
+              <BoxScore gameId={game._id} onImport={() => importScreenshot()} />
             </Section>
           </>
         )}

@@ -110,3 +110,11 @@ export function parseClock(text: string): number | null {
   const n = Number(text);
   return Number.isFinite(n) ? n : null;
 }
+
+/** Offensive yards exclude Madden's return-inclusive "Total yards gained". */
+export function offensiveYards(stats: TeamStatLine): TeamStatLine {
+  const { totalYds: _printed, ...rest } = stats;
+  return stats.passYds !== undefined && stats.rushYds !== undefined
+    ? { ...rest, totalYds: stats.passYds + stats.rushYds }
+    : rest;
+}

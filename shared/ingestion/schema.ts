@@ -103,9 +103,18 @@ export function teamStatsSchema(): JsonSchema {
       teamExtractionField(key),
       key === "possessionSec"
         ? nullable("string", "Time of possession as m:ss")
-        : nullable("integer", TEAM_STATS[key].label),
+        : nullable(
+            "integer",
+            key === "totalYds"
+              ? "Always null. The app calculates offensive yards from passing plus rushing. Never copy Total yards gained, which includes returns."
+              : TEAM_STATS[key].label,
+          ),
     ]),
   );
   const team = object({ team: nullable("string", "Team as printed."), ...stats, ...rowMeta });
   return object({ ...gameHeader, teams: { type: "array", items: team } });
+}
+
+export function gameLogSchema(): JsonSchema {
+  return object({ ...boxScoreSchema().properties, ...teamStatsSchema().properties });
 }

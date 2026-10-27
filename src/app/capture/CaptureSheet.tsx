@@ -60,7 +60,7 @@ function CaptureForm({
   // Inbox sets picked for this game (only offered when the sheet was opened from a game).
   const [picked, setPicked] = useState<string[]>([]);
   const [fields, setFields] = useState<CaptureFieldsValue<Id<"seasons">>>({
-    targetKey: preset.targetKey ?? "game_box_score",
+    targetKey: preset.targetKey ?? "game_log",
     seasonId: currentSeason(seasons)?._id ?? null,
     weekKey: null,
   });

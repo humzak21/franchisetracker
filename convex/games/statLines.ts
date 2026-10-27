@@ -6,7 +6,7 @@
 import { v } from "convex/values";
 import { validGameStat, withStat } from "../../shared/games/statEdit";
 import { isRawStatKey, type StatLine } from "../../shared/stats";
-import { isTeamStatKey } from "../../shared/stats/teamRegistry";
+import { isTeamStatKey, offensiveYards } from "../../shared/stats/teamRegistry";
 import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, type MutationCtx } from "../_generated/server";
 import { ensureRosterEntry, playerFor } from "../ingestion/rowPlayers";
@@ -157,12 +157,14 @@ export const setTeamStat = mutation({
     const { franchise, game } = await ownGame(ctx, gameId);
     sideOf(game, teamId);
     if (!isTeamStatKey(statKey)) throw invalid(`Unknown team stat ${statKey}`);
+    if (statKey === "totalYds")
+      throw invalid("Total yards is calculated from passing and rushing; edit those instead");
     checkValue(value);
     const row = await ctx.db
       .query("gameTeamStats")
       .withIndex("by_gameId_and_teamId", (q) => q.eq("gameId", gameId).eq("teamId", teamId))
       .first();
-    const stats = withStat(row?.stats ?? {}, statKey, value);
+    const stats = offensiveYards(withStat(row?.stats ?? {}, statKey, value));
     if (row && Object.keys(stats).length === 0) await ctx.db.delete("gameTeamStats", row._id);
     else if (row) await ctx.db.patch("gameTeamStats", row._id, { stats });
     else if (Object.keys(stats).length > 0) {

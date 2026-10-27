@@ -77,10 +77,16 @@ export function parseBackup(value: unknown): BackupFile {
   if (!Array.isArray(file.teams) || typeof file.tables !== "object" || file.tables === null) {
     throw new Error("The backup file is incomplete");
   }
+  // Older version-1 backups predate saved player assignments.
+  const tables = {
+    ...file.tables,
+    playerNameAssignments:
+      file.tables.playerNameAssignments === undefined ? [] : file.tables.playerNameAssignments,
+  };
   for (const table of BACKUP_TABLES) {
-    if (!Array.isArray(file.tables[table])) throw new Error(`The backup has no ${table}`);
+    if (!Array.isArray(tables[table])) throw new Error(`The backup has no ${table}`);
   }
-  return file as BackupFile;
+  return { ...file, tables } as BackupFile;
 }
 
 /**

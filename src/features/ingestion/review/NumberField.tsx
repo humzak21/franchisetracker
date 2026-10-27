@@ -14,6 +14,7 @@ type NumberFieldProps = {
   format?: (value: number) => string;
   parse?: (text: string) => number | undefined | null;
   className?: string;
+  readOnly?: boolean;
 };
 
 const flagClass: Record<Exclude<FieldFlag, null>, string> = {
@@ -34,6 +35,7 @@ export function NumberField({
   format,
   parse,
   className,
+  readOnly = false,
 }: NumberFieldProps) {
   const id = useId();
   const show = (v: number | null | undefined) =>
@@ -54,6 +56,7 @@ export function NumberField({
       </label>
       <input
         id={id}
+        readOnly={readOnly}
         inputMode={format ? "text" : "decimal"}
         autoComplete="off"
         value={text}

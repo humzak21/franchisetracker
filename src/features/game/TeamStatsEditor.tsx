@@ -39,7 +39,7 @@ function TeamStatInput({
     if (draft === seen) setDraft(initial);
   }
   const commit = async () => {
-    if (draft === initial) return;
+    if (statKey === "totalYds" || draft === initial) return;
     const parsed = draft.trim() === "" ? null : parseClock(draft);
     if (draft.trim() !== "" && parsed === null) return setError("Not a number");
     setError(null);
@@ -53,7 +53,8 @@ function TeamStatInput({
   return (
     <input
       aria-label={`${team.abbr} ${TEAM_STATS[statKey].label}`}
-      title={error ?? undefined}
+      readOnly={statKey === "totalYds"}
+      title={error ?? (statKey === "totalYds" ? "Passing yards plus rushing yards" : undefined)}
       aria-invalid={error !== null || undefined}
       inputMode={TEAM_STATS[statKey].format === "time" ? "text" : "numeric"}
       placeholder={TEAM_STATS[statKey].format === "time" ? "31:42" : "—"}

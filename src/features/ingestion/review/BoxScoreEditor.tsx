@@ -16,7 +16,7 @@ export function BoxScoreEditor() {
   const header = "game" in draft ? [draft.game.awayAbbr, draft.game.homeAbbr] : [];
   const teams = header.filter((t): t is string => t !== null);
   const [team, setTeam] = useState<string>(teams[0] ?? UNASSIGNED);
-  if (draft.target !== "game_box_score") return null;
+  if (!("lines" in draft)) return null;
 
   const groups = [
     ...teams.map((abbr) => ({
@@ -57,9 +57,7 @@ export function BoxScoreEditor() {
         title={`Add a player${teamAbbr ? ` for ${teamAbbr}` : ""}`}
         onAdd={(who) =>
           update((d) =>
-            d.target === "game_box_score"
-              ? { ...d, lines: [...d.lines, newLine(d.lines, { ...who, teamAbbr })] }
-              : d,
+            "lines" in d ? { ...d, lines: [...d.lines, newLine(d.lines, { ...who, teamAbbr })] } : d,
           )
         }
       />

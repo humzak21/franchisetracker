@@ -91,9 +91,18 @@ describe("games/statLines", () => {
 
   test("edits team stats, clearing the row when empty", async () => {
     const { owner, w1, user, userTeamId } = await setup();
-    const base = { gameId: w1._id, teamId: userTeamId, statKey: "totalYds" };
-    await owner.mutation(api.games.statLines.setTeamStat, { ...base, value: 412 });
-    expect((await user()).stats).toEqual({ totalYds: 412 });
+    const base = { gameId: w1._id, teamId: userTeamId, statKey: "passYds" };
+    await owner.mutation(api.games.statLines.setTeamStat, { ...base, value: 284 });
+    expect((await user()).stats).toEqual({ passYds: 284 });
+    await owner.mutation(api.games.statLines.setTeamStat, { ...base, statKey: "rushYds", value: 128 });
+    expect((await user()).stats).toEqual({ passYds: 284, rushYds: 128, totalYds: 412 });
+    await owner.mutation(api.games.statLines.setTeamStat, { ...base, value: 300 });
+    expect((await user()).stats?.totalYds).toBe(428);
+    await expect(
+      owner.mutation(api.games.statLines.setTeamStat, { ...base, statKey: "totalYds", value: 999 }),
+    ).rejects.toThrow(/calculated from passing and rushing/);
+    await owner.mutation(api.games.statLines.setTeamStat, { ...base, statKey: "rushYds", value: null });
+    expect((await user()).stats).toEqual({ passYds: 300 });
     await owner.mutation(api.games.statLines.setTeamStat, { ...base, value: null });
     expect((await user()).stats).toBeNull();
     await expect(

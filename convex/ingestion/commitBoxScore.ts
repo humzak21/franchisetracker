@@ -10,7 +10,7 @@ import { recomputeCareer, recomputePlayerSeason } from "../stats/recompute";
 import { teamByAbbr } from "./commitGame";
 import { ensureRosterEntry, playerFor } from "./rowPlayers";
 
-type BoxScore = Extract<StoredDraft, { target: "game_box_score" }>;
+type BoxScore = Extract<StoredDraft, { target: "game_box_score" | "game_log" }>;
 
 /** Two full rosters' worth of lines with room to spare. */
 const MAX_LINES_PER_GAME = 200;
@@ -37,7 +37,12 @@ export async function commitBoxScore(
   for (const line of draft.lines) {
     if (Object.keys(line.stats).length === 0) continue;
     const team = await teamByAbbr(ctx, line.teamAbbr);
-    const player = await playerFor(ctx, franchise._id, { ...line, stats: line.stats as StatLine });
+    const player = await playerFor(ctx, franchise._id, {
+      ...line,
+      stats: line.stats as StatLine,
+      seasonId: game.seasonId,
+      teamAbbr: team.abbr,
+    });
     const position = line.position ?? player.position;
     await ensureRosterEntry(ctx, {
       player,

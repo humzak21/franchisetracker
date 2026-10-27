@@ -64,7 +64,7 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 - Targets live in `shared/ingestion/targets.ts`; each declares its schema (generated from the stat registry and a new team stat registry, `shared/stats/teamRegistry.ts`), prompt, normalizer and validator. Review editors and commit functions are keyed by target, so a new target does not typecheck until both exist.
 - Commit creates the game when the week has none (franchises start without a schedule), refreshes the season record cache, creates new players and partial roster entries for names the rosters do not know, and remembers a printed name as an alias when review maps it to an existing player.
 - Without `OPENROUTER_API_KEY`, a local test deployment answers extraction with a built-in sample (`convex/ingestion/fixture.ts`) so the loop can be exercised and tested end to end; cloud deployments fail the upload with the reason instead.
-- Review edits autosave to the extraction, so a review survives a reload or a switch of device.
+- Review edits autosave to the extraction, so a review survives a reload or a switch of device. Full game log is the default capture target and commits team and player stats together; offensive yards derive from passing plus rushing. Player choices are remembered per team and season, and review recommendations can be applied or approved without retyping.
 - The Shortcut is built by hand from `docs/SHORTCUT.md` (Settings links to it); there is no prebuilt `.shortcut` file to download, because a signed file would carry the token. The menus come from `GET /shortcut/targets`, which is generated from the registry.
 - Career-high markers in the box score wait for Sprint 3's records engine; threshold highlights ship now.
 

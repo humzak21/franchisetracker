@@ -63,7 +63,7 @@ describe("shortcut endpoint", () => {
       weekByLabel: { "Week 1": "w1" },
       asksWeekByLabel: { "Box score": true, "Weekly awards": true, Standings: false },
     });
-    expect(body.targetLabels.slice(0, 2)).toEqual(["Box score", "Team game stats"]);
+    expect(body.targetLabels.slice(0, 3)).toEqual(["Full game log", "Box score", "Team game stats"]);
     expect((await upload(form({ target: "nonsense", week: "w1" }))).status).toBe(400);
     const ok = await upload(form({ week: "w1" }));
     expect(await ok.json()).toMatchObject({ ok: true, images: 1 });

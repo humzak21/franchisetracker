@@ -5,7 +5,7 @@
  */
 import { v } from "convex/values";
 import { chunkImages, mergeAnswers } from "../../shared/ingestion/chunks";
-import { matchPlayer } from "../../shared/ingestion/nameMatch";
+import { matchPlayer, nameTokens } from "../../shared/ingestion/nameMatch";
 import { buildPrompt } from "../../shared/ingestion/prompt";
 import type { Normalized } from "../../shared/ingestion/normalize";
 import {
@@ -193,7 +193,7 @@ const UNSETTLED_NAME = 0.4;
 
 /** The printed names in a draft and the teams to look them up in. */
 function namesOf(draft: Draft, userTeamAbbr: string): { names: string[]; teams: string[] } | null {
-  if (draft.target === "game_box_score") {
+  if ("lines" in draft) {
     return {
       names: draft.lines.map((l) => l.name),
       teams: [draft.game.homeAbbr, draft.game.awayAbbr, ...draft.lines.map((l) => l.teamAbbr)].filter(
@@ -222,6 +222,25 @@ async function resolvePlayers(
 ): Promise<StoredDraft> {
   const wanted = namesOf(draft, job.teams.userIsHome ? job.teams.home : job.teams.away);
   if (!wanted) return draft as StoredDraft;
+  const userTeamAbbr = job.teams.userIsHome ? job.teams.home : job.teams.away;
+  const metaTeam = isRowDraft(draft) && typeof draft.meta.team === "string" ? draft.meta.team : null;
+  const printed =
+    "lines" in draft
+      ? draft.lines
+      : isRowDraft(draft)
+        ? draft.rows.flatMap((r) =>
+            r.name ? [{ name: r.name, teamAbbr: r.teamAbbr ?? metaTeam ?? userTeamAbbr }] : [],
+          )
+        : [];
+  const remembered = new Map<string, { playerId: Id<"players">; name: string; score: number }>();
+  for (let i = 0; i < printed.length; i += NAMES_PER_LOOKUP) {
+    const found = await ctx.runQuery(internal.ingestion.candidates.assignments, {
+      seasonId: job.seasonId,
+      names: printed.slice(i, i + NAMES_PER_LOOKUP).map((r) => ({ name: r.name, teamAbbr: r.teamAbbr })),
+    });
+    for (const r of found)
+      remembered.set(`${r.teamAbbr}|${r.normalizedName}`, { playerId: r.playerId, name: r.name, score: 1 });
+  }
   const teamAbbrs = [...new Set(wanted.teams)];
   const candidates: Awaited<ReturnType<typeof lookup>> = [];
   const lookup = (names: string[]) =>
@@ -231,6 +250,12 @@ async function resolvePlayers(
     for (const c of found) if (!candidates.some((k) => k.playerId === c.playerId)) candidates.push(c);
   }
   const resolve = <T extends { name: string; teamAbbr: string | null }>(row: T, path: string) => {
+    const saved = remembered.get(`${row.teamAbbr}|${nameTokens(row.name).join(" ")}`);
+    if (saved) {
+      const entry = confidence.find((c) => c.path === path);
+      if (entry) entry.value = 1;
+      return { match: { status: "matched" as const, candidates: [saved] }, playerId: saved.playerId };
+    }
     const match = matchPlayer<Id<"players">>(row.name, candidates, row);
     if (match.status === "ambiguous") {
       const entry = confidence.find((c) => c.path === path);
@@ -238,19 +263,21 @@ async function resolvePlayers(
     }
     return { match, playerId: match.status === "matched" ? (match.candidates[0]?.playerId ?? null) : null };
   };
-  if (draft.target === "game_box_score") {
+  if ("lines" in draft) {
     return {
       ...draft,
       lines: draft.lines.map((line) => ({ ...line, ...resolve(line, `lines.${line.id}.name`) })),
     };
   }
   if (!isRowDraft(draft)) return draft as StoredDraft;
-  const metaTeam = typeof draft.meta.team === "string" ? draft.meta.team : null;
   return {
     ...draft,
     rows: draft.rows.map((row) => {
       if (!row.name) return { ...row, playerId: null, match: null };
-      const resolved = resolve({ name: row.name, teamAbbr: row.teamAbbr ?? metaTeam }, `rows.${row.id}.name`);
+      const resolved = resolve(
+        { name: row.name, teamAbbr: row.teamAbbr ?? metaTeam ?? userTeamAbbr },
+        `rows.${row.id}.name`,
+      );
       // A name the rosters could not settle waits for a decision before it commits.
       return { ...row, ...resolved, accepted: row.accepted && resolved.match.status !== "ambiguous" };
     }),

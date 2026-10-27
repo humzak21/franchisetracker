@@ -6,15 +6,17 @@
 import { normalizePosition, type Position } from "../domain/positions";
 import { resolveTeamAbbr } from "../domain/teams";
 import { STAT_CATEGORIES, extractionField, type RawStatKey, type StatLine } from "../stats/registry";
-import { TEAM_STAT_KEYS, parseClock, type TeamStatLine } from "../stats/teamRegistry";
+import { TEAM_STAT_KEYS, parseClock, offensiveYards, type TeamStatLine } from "../stats/teamRegistry";
 import { nameTokens } from "./nameMatch";
 import { rawKeysInCategory, teamExtractionField } from "./schema";
 import type {
   BoxScoreDraft,
+  Draft,
   DraftLine,
   DraftWarning,
   FieldConfidence,
   GameHeader,
+  GameLogDraft,
   TeamStatsDraft,
 } from "./types";
 
@@ -142,7 +144,17 @@ export function normalizeTeamStats(raw: unknown): Normalized<TeamStatsDraft> {
   const confidence: FieldConfidence[] = [];
   const obj = isObj(raw) ? raw : {};
   const game = header(obj, warnings);
-  const teams = rows(obj.teams).map((row, i) => {
+  // Team columns can repeat across image chunks. Merge their visible fields before deriving totals.
+  const columns = new Map<string, Obj>();
+  for (const row of rows(obj.teams)) {
+    const key = resolveTeamAbbr(str(row.team)) ?? `unknown-${columns.size}`;
+    const previous = columns.get(key) ?? {};
+    columns.set(key, {
+      ...previous,
+      ...Object.fromEntries(Object.entries(row).filter(([, v]) => v !== null)),
+    });
+  }
+  const teams = [...columns.values()].map((row, i) => {
     const printed = str(row.team);
     const teamAbbr = resolveTeamAbbr(printed);
     if (printed && !teamAbbr) {
@@ -151,6 +163,7 @@ export function normalizeTeamStats(raw: unknown): Normalized<TeamStatsDraft> {
     const stats: TeamStatLine = {};
     const fields: Record<string, string> = {};
     for (const key of TEAM_STAT_KEYS) {
+      if (key === "totalYds") continue;
       const field = teamExtractionField(key);
       const value =
         key === "possessionSec" ? (str(row[field]) ? parseClock(String(row[field])) : null) : num(row[field]);
@@ -159,7 +172,13 @@ export function normalizeTeamStats(raw: unknown): Normalized<TeamStatsDraft> {
       fields[field] = `stats.${key}`;
     }
     rowConfidence(row, `teams.${i}`, fields, confidence);
-    return { teamAbbr, stats };
+    if (stats.passYds !== undefined && stats.rushYds !== undefined) {
+      const inputs = confidence.filter(
+        (c) => c.path === `teams.${i}.stats.passYds` || c.path === `teams.${i}.stats.rushYds`,
+      );
+      confidence.push({ path: `teams.${i}.stats.totalYds`, value: Math.min(...inputs.map((c) => c.value)) });
+    }
+    return { teamAbbr, stats: offensiveYards(stats) };
   });
   return { draft: { target: "team_game_stats", game, teams }, confidence, warnings };
 }
@@ -175,4 +194,21 @@ export function inferPosition(stats: StatLine): Position {
   if (has("sacks") || has("tacklesForLoss")) return "LEDG";
   if (has("defInt") || has("passDeflections")) return "CB";
   return "MLB";
+}
+
+export function normalizeGameLog(raw: unknown): Normalized<GameLogDraft> {
+  const players = normalizeBoxScore(raw);
+  const teams = normalizeTeamStats(raw);
+  return {
+    draft: { ...players.draft, target: "game_log", teams: teams.draft.teams },
+    confidence: [...players.confidence, ...teams.confidence],
+    warnings: [...players.warnings, ...teams.warnings.filter((w) => !w.path?.startsWith("game."))],
+  };
+}
+
+/** Recompute derived totals after review edits and at the server boundary. */
+export function deriveDraft<D extends Draft>(draft: D): D {
+  return "teams" in draft
+    ? { ...draft, teams: draft.teams.map((team) => ({ ...team, stats: offensiveYards(team.stats) })) }
+    : draft;
 }

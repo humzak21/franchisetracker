@@ -13,11 +13,12 @@ import { Badge } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/cn";
+import { choosePlayerAt } from "./draftEdit";
 import { NumberField } from "./NumberField";
 import { PlayerPickerSheet } from "./PlayerPickerSheet";
 import { useReviewDraft, type ReviewDraft } from "./reviewDraft";
 
-type Line = Extract<ReviewDraft, { target: "game_box_score" }>["lines"][number];
+type Line = Extract<ReviewDraft, { target: "game_box_score" | "game_log" }>["lines"][number];
 
 const statLabel = (key: RawStatKey) =>
   `${STAT_CATEGORY_LABELS[RAW_STATS[key].category].slice(0, 4)} ${RAW_STATS[key].abbr}`;
@@ -86,9 +87,7 @@ export function LineEditor({ line, teams }: { line: Line; teams: readonly string
           size="icon-sm"
           aria-label={`Remove ${line.name}`}
           onClick={() =>
-            update((d) =>
-              d.target === "game_box_score" ? { ...d, lines: d.lines.filter((l) => l.id !== line.id) } : d,
-            )
+            update((d) => ("lines" in d ? { ...d, lines: d.lines.filter((l) => l.id !== line.id) } : d))
           }
         >
           <Trash2 />
@@ -129,19 +128,7 @@ export function LineEditor({ line, teams }: { line: Line; teams: readonly string
         printedName={line.name}
         match={line.match}
         value={line.playerId}
-        onChange={(player) =>
-          update((d) => {
-            if (d.target !== "game_box_score") return d;
-            const lines = d.lines.map((l) => {
-              if (l.id !== line.id) return l;
-              if (!player) return { ...l, playerId: null };
-              const others = l.match.candidates.filter((c) => c.playerId !== player._id);
-              const candidates = [{ playerId: player._id, name: player.name, score: 1 }, ...others];
-              return { ...l, playerId: player._id, match: { ...l.match, candidates } };
-            });
-            return { ...d, lines };
-          })
-        }
+        onChange={(player) => update((d) => choosePlayerAt(d, base, player))}
       />
     </article>
   );

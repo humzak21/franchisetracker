@@ -169,13 +169,22 @@ export function StatusBanner({ data }: { data: Review }) {
     );
   }
   const replaces =
-    data.extraction?.draft.target === "game_box_score" ? game?.hasBoxScore : game?.hasTeamStats;
+    data.extraction?.draft.target === "game_log"
+      ? game?.hasBoxScore || game?.hasTeamStats
+      : data.extraction?.draft.target === "game_box_score"
+        ? game?.hasBoxScore
+        : game?.hasTeamStats;
   if (game && replaces && !isRows) {
     return (
       <Banner tone="warn" icon={<Replace className="text-warn" />}>
         This game already has{" "}
-        {data.extraction?.draft.target === "game_box_score" ? "a box score" : "team stats"}
-        {game.opponentAbbr ? ` against ${game.opponentAbbr}` : ""}. Committing replaces it.
+        {data.extraction?.draft.target === "game_log"
+          ? "game stats"
+          : data.extraction?.draft.target === "game_box_score"
+            ? "a box score"
+            : "team stats"}
+        {game.opponentAbbr ? ` against ${game.opponentAbbr}` : ""}. Committing replaces the stats included in
+        this upload.
       </Banner>
     );
   }

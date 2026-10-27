@@ -85,3 +85,43 @@ export const forNames = internalQuery({
     }));
   },
 });
+
+/** Exact saved choices are scoped by franchise, season, and team, including players outside search hits. */
+export const assignments = internalQuery({
+  args: {
+    seasonId: v.union(v.id("seasons"), v.null()),
+    names: v.array(v.object({ name: v.string(), teamAbbr: v.union(v.string(), v.null()) })),
+  },
+  returns: v.array(
+    v.object({
+      normalizedName: v.string(),
+      teamAbbr: v.string(),
+      playerId: v.id("players"),
+      name: v.string(),
+    }),
+  ),
+  handler: async (ctx, { seasonId, names }) => {
+    if (!seasonId) return [];
+    const franchise = await activeFranchise(ctx);
+    const out = [];
+    for (const row of names.slice(0, MAX_NAMES)) {
+      if (!row.teamAbbr) continue;
+      const normalizedName = nameTokens(row.name).join(" ");
+      const saved = await ctx.db
+        .query("playerNameAssignments")
+        .withIndex("by_franchiseId_and_seasonId_and_teamAbbr_and_normalizedName", (q) =>
+          q
+            .eq("franchiseId", franchise._id)
+            .eq("seasonId", seasonId)
+            .eq("teamAbbr", row.teamAbbr!)
+            .eq("normalizedName", normalizedName),
+        )
+        .unique();
+      if (!saved) continue;
+      const player = await ctx.db.get("players", saved.playerId);
+      if (player?.franchiseId === franchise._id)
+        out.push({ normalizedName, teamAbbr: row.teamAbbr, playerId: player._id, name: player.displayName });
+    }
+    return out;
+  },
+});

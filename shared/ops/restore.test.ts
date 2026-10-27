@@ -99,6 +99,16 @@ describe("backup round trip", () => {
     expect(inventory!.acquiredTransactionId).toBe(transaction!._id);
   });
 
+  test("restores backups made before player assignments were added", async () => {
+    const pieces: string[] = [];
+    await writeBackup(reader, (text) => pieces.push(text), 1);
+    const legacy = JSON.parse(pieces.join(""));
+    delete legacy.tables.playerNameAssignments;
+    const file = parseBackup(legacy);
+    expect(file.tables.playerNameAssignments).toEqual([]);
+    expect((await restoreBackup(file, memoryWriter().writer, "restored")).rows).toBe(6);
+  });
+
   test("refuses files that are not backups", () => {
     expect(() => parseBackup({ hello: "world" })).toThrow(/Not a FranchiseTracker backup/);
     expect(() => parseBackup({ version: 1, teams: [], tables: {} })).toThrow(/has no franchises/);

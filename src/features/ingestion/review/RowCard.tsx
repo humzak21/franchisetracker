@@ -5,6 +5,7 @@ import type { RowField } from "@shared/ingestion/rows/types";
 import type { RowTargetDraft } from "@shared/ingestion/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { choosePlayerAt } from "./draftEdit";
 import { PlayerPickerSheet } from "./PlayerPickerSheet";
 import { useReviewDraft } from "./reviewDraft";
 import { RowFieldInput } from "./RowFieldInput";
@@ -163,19 +164,7 @@ export function RowCard({
           printedName={row.name ?? ""}
           match={row.match}
           value={row.playerId}
-          onChange={(chosen) =>
-            update((d) => {
-              if (!("rows" in d)) return d;
-              const rows = d.rows.map((r) => {
-                if (r.id !== row.id || !r.match) return r;
-                if (!chosen) return { ...r, playerId: null };
-                const others = r.match.candidates.filter((c) => c.playerId !== chosen._id);
-                const candidates = [{ playerId: chosen._id, name: chosen.name, score: 1 }, ...others];
-                return { ...r, playerId: chosen._id, match: { ...r.match, candidates } };
-              });
-              return { ...d, rows };
-            })
-          }
+          onChange={(chosen) => update((d) => choosePlayerAt(d, base, chosen))}
         />
       )}
     </article>

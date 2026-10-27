@@ -22,9 +22,16 @@ export function DraftEditor() {
           <Section title="Final score" variant="card">
             <GameHeaderFields />
           </Section>
-          <Section title={draft.target === "game_box_score" ? "Players" : "Team stats"}>
-            {draft.target === "game_box_score" ? <BoxScoreEditor /> : <TeamStatsEditor />}
-          </Section>
+          {"lines" in draft && (
+            <Section title="Players">
+              <BoxScoreEditor />
+            </Section>
+          )}
+          {"teams" in draft && (
+            <Section title="Team stats">
+              <TeamStatsEditor />
+            </Section>
+          )}
         </>
       )}
     </>

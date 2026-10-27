@@ -4,9 +4,9 @@
  */
 import { isRawStatKey, getStat } from "@shared/stats";
 import { isTeamStatKey, TEAM_STATS } from "@shared/stats/teamRegistry";
-import { CHECK_BELOW, ROW_CHECK_BELOW } from "@shared/ingestion/normalize";
+import { CHECK_BELOW, ROW_CHECK_BELOW, deriveDraft } from "@shared/ingestion/normalize";
 import { isRowDraft, rowTarget } from "@shared/ingestion/targets";
-import type { Draft, DraftWarning, FieldConfidence } from "@shared/ingestion/types";
+import type { Draft, DraftWarning, FieldConfidence, PlayerMatch } from "@shared/ingestion/types";
 
 type Node = Record<string, unknown> | unknown[];
 
@@ -44,7 +44,7 @@ export function setAt<D extends Draft>(draft: D, path: string, value: unknown): 
     } else obj[segment] = write(obj[segment] ?? {}, depth + 1);
     return obj;
   };
-  return write(draft, 0) as D;
+  return deriveDraft(write(draft, 0) as D);
 }
 
 const HEADER_LABELS: Record<string, string> = {
@@ -64,7 +64,7 @@ function statLabel(key: string): string {
 export function fieldLabel(draft: Draft, path: string): string {
   const [root, id, field, key] = path.split(".");
   if (root === "game") return HEADER_LABELS[id ?? ""] ?? id ?? path;
-  if (root === "lines" && draft.target === "game_box_score") {
+  if (root === "lines" && "lines" in draft) {
     const line = draft.lines.find((l) => l.id === id);
     const who = line?.name ?? "Player";
     if (field === "stats" && key) return `${who} · ${statLabel(key)}`;
@@ -81,7 +81,7 @@ export function fieldLabel(draft: Draft, path: string): string {
     if (field === "teamAbbr") return `${who} · Team`;
     return who;
   }
-  if (root === "teams" && draft.target === "team_game_stats") {
+  if (root === "teams" && "teams" in draft) {
     const team = draft.teams[Number(id)]?.teamAbbr ?? `Team ${Number(id) + 1}`;
     return key ? `${team} · ${statLabel(key)}` : team;
   }
@@ -142,4 +142,18 @@ export function parseStat(text: string): number | undefined | null {
   if (trimmed === "") return undefined;
   const n = Number(trimmed);
   return Number.isFinite(n) ? n : null;
+}
+
+/** Apply a reviewed player choice without changing the name printed on the screenshot. */
+export function choosePlayerAt<D extends Draft>(
+  draft: D,
+  base: string,
+  player: { _id: string; name: string } | null,
+): D {
+  const match = getAt(draft, `${base}.match`) as PlayerMatch | null;
+  const candidates = match?.candidates.filter((c) => c.playerId !== player?._id) ?? [];
+  return setAt(setAt(draft, `${base}.playerId`, player?._id ?? null), `${base}.match`, {
+    status: player ? "matched" : "new",
+    candidates: player ? [{ playerId: player._id, name: player.name, score: 1 }, ...candidates] : candidates,
+  });
 }

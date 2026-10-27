@@ -36,19 +36,21 @@ for (const theme of ["dark", "light"] as const) {
   });
 }
 
-test("a box score goes from capture to review to the game's box score", async ({ page }, info) => {
+test("a full game log goes from capture to review to team and player stats", async ({ page }, info) => {
   const week = weekFor(info);
   const sheet = await openCapture(page, info);
+  await expect(sheet.getByLabel("Screen", { exact: true })).toHaveValue("game_log");
   await sheet.getByLabel("Season", { exact: true }).selectOption({ label: String(SAMPLE_YEAR + 1) });
   await sheet.getByLabel("Week", { exact: true }).selectOption(`w${week}`);
   await sheet.getByLabel("Choose screenshots").setInputFiles([
     { name: "passing.png", mimeType: "image/png", buffer: PNG },
     { name: "rushing.png", mimeType: "image/png", buffer: PNG },
+    { name: "team-stats.png", mimeType: "image/png", buffer: PNG },
   ]);
-  await page.getByRole("button", { name: "Upload 2 screenshots" }).click();
+  await page.getByRole("button", { name: "Upload 3 screenshots" }).click();
 
   await expect(page).toHaveURL(/\/inbox\/.+/);
-  await expect(page.getByRole("heading", { level: 1, name: "Box score" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Full game log" })).toBeVisible();
   if (isPhone(info.project.name)) {
     await expect(page.getByRole("button", { name: "Screen 2" })).toBeVisible();
     await page.getByRole("radio", { name: "Draft" }).click();
@@ -57,7 +59,21 @@ test("a box score goes from capture to review to the game's box score", async ({
   await expect(page.getByText("T. Henderson · Rushing yards")).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
-  // Fix the doubtful field in place, then commit.
+  const total = page.getByLabel("Total yards (pass + rush)", { exact: true }).first();
+  await expect(total).toHaveValue("412");
+  await expect(total).toHaveAttribute("readonly", "");
+  await page
+    .getByRole("group", { name: "Team stats draft" })
+    .getByLabel("Passing yards", { exact: true })
+    .first()
+    .fill("300");
+  await expect(total).toHaveValue("428");
+  // Accept a computed score recommendation without typing the recommended number.
+  await page.getByLabel("Score", { exact: true }).nth(1).fill("30");
+  await page.getByRole("button", { name: "Apply 31 for Home score", exact: true }).click();
+  await expect(page.getByLabel("Score", { exact: true }).nth(1)).toHaveValue("31");
+
+  // Fix the doubtful player field in place, then commit.
   await page.getByLabel("T. Henderson · Rushing yards", { exact: true }).fill("110");
   await page.getByRole("button", { name: "Commit", exact: true }).click();
 

@@ -8,12 +8,20 @@
 import type { WeekKey } from "../domain/calendar";
 import { lastPlayedWeek, nextWeek, type GameLike } from "../games/summary";
 import { emptyHeader, emptyRowsDraft } from "./manual";
-import { boxScoreSchema, teamStatsSchema, type JsonSchema } from "./schema";
-import { normalizeBoxScore, normalizeTeamStats, type Normalized } from "./normalize";
+import { boxScoreSchema, teamStatsSchema, gameLogSchema, type JsonSchema } from "./schema";
+import { normalizeBoxScore, normalizeTeamStats, normalizeGameLog, type Normalized } from "./normalize";
 import { mergeRowDrafts, normalizeRows, rowsSchema, validateRows } from "./rows/engine";
 import { ROW_TARGETS, type RowTargetDef, type RowTargetKey, type TargetScope } from "./rows/targets";
 import { validateBoxScore, validateTeamStats } from "./validate";
-import type { BoxScoreDraft, Draft, DraftWarning, GameHeader, RowTargetDraft, TeamStatsDraft } from "./types";
+import type {
+  BoxScoreDraft,
+  GameLogDraft,
+  GameHeader,
+  Draft,
+  DraftWarning,
+  RowTargetDraft,
+  TeamStatsDraft,
+} from "./types";
 
 export type { TargetScope } from "./rows/targets";
 
@@ -34,7 +42,41 @@ type GameTargetDef<D extends Draft> = {
   empty: (game: GameHeader) => D;
 };
 
+const TEAM_YARDS_INSTRUCTIONS =
+  "Read passing and rushing yards separately and leave total_yds null. The app calculates total yards as passing plus rushing only; never copy Madden's Total yards gained, which includes return yards.";
+
 const GAME_TARGETS = {
+  game_log: {
+    kind: "game",
+    label: "Full game log",
+    description: "Team stats and every player's stats together in one upload",
+    scope: "game",
+    multiImage: true,
+    instructions: [
+      "These are Madden post-game screenshots for one game: score summary, side-by-side team stats,",
+      "and player stats tabs (passing, rushing, receiving, defense, kicking, punting, returns).",
+      "Put each player row in its category array and each team's comparison column in teams.",
+      "Use null for columns not visible and empty arrays for screens not supplied.",
+      TEAM_YARDS_INSTRUCTIONS,
+    ].join(" "),
+    empty: (game) => ({
+      target: "game_log",
+      game,
+      lines: [],
+      teams: [
+        { teamAbbr: game.homeAbbr, stats: {} },
+        { teamAbbr: game.awayAbbr, stats: {} },
+      ],
+    }),
+    schema: gameLogSchema,
+    normalize: normalizeGameLog,
+    validate: (draft: GameLogDraft) => [
+      ...validateBoxScore({ ...draft, target: "game_box_score" }),
+      ...validateTeamStats({ ...draft, target: "team_game_stats" }).filter(
+        (w) => !w.path?.startsWith("game."),
+      ),
+    ],
+  } satisfies GameTargetDef<GameLogDraft>,
   game_box_score: {
     kind: "game",
     label: "Box score",
@@ -62,6 +104,7 @@ const GAME_TARGETS = {
     instructions: [
       "This is the Madden post-game team stats screen comparing the two teams side by side.",
       "Return one entry in `teams` per team column.",
+      TEAM_YARDS_INSTRUCTIONS,
     ].join(" "),
     schema: teamStatsSchema,
     normalize: normalizeTeamStats,
@@ -110,6 +153,7 @@ export function schemaFor(key: TargetKey): JsonSchema {
 
 export function normalizeFor(target: TargetKey, raw: unknown): Normalized<Draft> {
   if (isRowTarget(target)) return normalizeRows(target, ROW_TARGETS[target].spec, raw);
+  if (target === "game_log") return normalizeGameLog(raw);
   return target === "game_box_score" ? normalizeBoxScore(raw) : normalizeTeamStats(raw);
 }
 
@@ -124,6 +168,7 @@ export function mergeFor(
 /** Runs the target's validator on a draft of any target. */
 export function validateDraft(draft: Draft): DraftWarning[] {
   if (isRowDraft(draft)) return validateRows(ROW_TARGETS[draft.target].spec, draft);
+  if (draft.target === "game_log") return GAME_TARGETS.game_log.validate(draft);
   return draft.target === "game_box_score" ? validateBoxScore(draft) : validateTeamStats(draft);
 }
 
