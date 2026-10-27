@@ -12,6 +12,10 @@ import { TeamLink } from "./TeamLink";
 import { toRow, type Standing } from "./types";
 import { useQuery } from "@/lib/convex/useQuery";
 
+/** Division winners hold the top seeds: three before 2002, four since; the rank says which. */
+const wonDivision = (r: Standing) =>
+  r.divisionRank !== undefined ? r.divisionRank === 1 : (r.seed ?? 9) <= 4;
+
 function DivisionCard({ title, rows, userAbbr }: { title: string; rows: Standing[]; userAbbr?: string }) {
   return (
     <section className="rounded-xl border border-border bg-surface" aria-label={title}>
@@ -30,7 +34,7 @@ function DivisionCard({ title, rows, userAbbr }: { title: string; rows: Standing
             <span className="num w-4 text-xs text-subtle-foreground">{r.divisionRank ?? i + 1}</span>
             <TeamLink team={r.team} label="name" size="xs" className="flex-1" />
             {r.seed !== undefined && (
-              <Badge tone={r.seed <= 4 ? "solid" : "accent"} title={`Playoff seed ${r.seed}`}>
+              <Badge tone={wonDivision(r) ? "solid" : "accent"} title={`Playoff seed ${r.seed}`}>
                 {r.seed}
               </Badge>
             )}
@@ -97,7 +101,13 @@ export function StandingsView({ seasonId }: { seasonId: Id<"seasons"> }) {
       )}
       {groupStandings(shared).map(({ conference, divisions }) => (
         <Section key={conference} title={conference}>
-          <div className="grid gap-3 @tablet:grid-cols-2 @desktop:grid-cols-4">
+          {/* Three divisions a conference before the 2002 realignment, four since. */}
+          <div
+            className={cn(
+              "grid gap-3 @tablet:grid-cols-2",
+              divisions.length === 3 ? "@desktop:grid-cols-3" : "@desktop:grid-cols-4",
+            )}
+          >
             {divisions.map(({ division, rows: inDivision }) => (
               <DivisionCard
                 key={division}
