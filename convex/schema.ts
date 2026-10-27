@@ -13,6 +13,7 @@ import { historyTables } from "./schema/history";
 import { hofTables } from "./schema/hof";
 import { ingestionTables } from "./schema/ingestion";
 import { leagueTables } from "./schema/league";
+import { leagueGameTables } from "./schema/leagueGames";
 import { opsTables } from "./schema/ops";
 import { playerTables } from "./schema/players";
 import { statTables } from "./schema/stats";
@@ -23,6 +24,7 @@ export default defineSchema({
   ...authTables,
   ...franchiseTables,
   ...leagueTables,
+  ...leagueGameTables,
   ...playerTables,
   ...gameTables,
   ...goalTables,

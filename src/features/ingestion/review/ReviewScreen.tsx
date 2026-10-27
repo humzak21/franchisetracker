@@ -1,27 +1,26 @@
 import { Link } from "@tanstack/react-router";
+import { useMutation } from "convex/react";
 import { FileWarning } from "lucide-react";
+import { useCallback } from "react";
 import { api } from "@convex/_generated/api";
 import { weekLabel } from "@shared/domain";
 import { INGESTION_TARGETS, isTargetKey } from "@shared/ingestion/targets";
 import { EmptyState } from "@/components/data/EmptyState";
 import { Page } from "@/components/layout/Page";
-import { Section } from "@/components/layout/Section";
 import { SplitPane } from "@/components/layout/SplitPane";
 import { ImageViewer } from "@/components/media/ImageViewer";
 import { Skeleton } from "@/components/ui/misc";
-import { AttentionList } from "./AttentionList";
-import { BoxScoreEditor } from "./BoxScoreEditor";
-import { GameHeaderFields } from "./GameHeaderFields";
+import { DraftEditor } from "./DraftEditor";
 import { ReviewActions } from "./ReviewActions";
-import { ReviewDraftProvider } from "./reviewDraft";
-import { RowsEditor } from "./RowsEditor";
+import { ReviewDraftProvider, type ReviewDraft } from "./reviewDraft";
 import { StatusBanner } from "./StatusBanner";
-import { TeamStatsEditor } from "./TeamStatsEditor";
 import { useQuery } from "@/lib/convex/useQuery";
 
 /** Review (FEATURES.md 5.11 and 9): screenshots beside the editable draft, two swipeable panes on phones. */
 export function ReviewScreen({ setKey }: { setKey: string }) {
   const data = useQuery(api.ingestion.review.get, { setKey });
+  const saveDraft = useMutation(api.ingestion.review.saveDraft);
+  const save = useCallback((draft: ReviewDraft) => saveDraft({ setKey, draft }), [saveDraft, setKey]);
   const back = { to: "/inbox", label: "Inbox" };
 
   if (data === undefined) {
@@ -53,7 +52,7 @@ export function ReviewScreen({ setKey }: { setKey: string }) {
         {extraction && data.status !== "extracting" ? (
           <ReviewDraftProvider
             key={extraction._id}
-            setKey={setKey}
+            onSave={save}
             initial={extraction.draft}
             confidence={extraction.confidence}
             extractionNotes={extraction.warnings}
@@ -71,25 +70,7 @@ export function ReviewScreen({ setKey }: { setKey: string }) {
                   label: "Draft",
                   content: (
                     <div className="space-y-5">
-                      <AttentionList />
-                      {"rows" in extraction.draft ? (
-                        <RowsEditor />
-                      ) : (
-                        <>
-                          <Section title="Final score" variant="card">
-                            <GameHeaderFields />
-                          </Section>
-                          <Section
-                            title={extraction.draft.target === "game_box_score" ? "Players" : "Team stats"}
-                          >
-                            {extraction.draft.target === "game_box_score" ? (
-                              <BoxScoreEditor />
-                            ) : (
-                              <TeamStatsEditor />
-                            )}
-                          </Section>
-                        </>
-                      )}
+                      <DraftEditor />
                       <p className="text-xs text-subtle-foreground">
                         Read by {extraction.model}
                         {extraction.latencyMs ? ` in ${(extraction.latencyMs / 1000).toFixed(1)}s` : ""}

@@ -3,6 +3,7 @@ import { api } from "@convex/_generated/api";
 import { useCapture } from "@/app/capture/CaptureProvider";
 import { useSeason } from "@/app/season";
 import { EmptyState } from "@/components/data/EmptyState";
+import { ManualEntryLink } from "@/components/forms/ManualEntryLink";
 import { Page } from "@/components/layout/Page";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
@@ -50,9 +51,14 @@ export function AwardsScreen() {
   const awards = useQuery(api.awards.awards.bySeason, season ? { seasonId: season._id } : "skip");
   const current = VIEWS.find((v) => v.value === view) ?? VIEWS[0]!;
   const shown = awards?.filter(current.has) ?? [];
+  // Team awards have their own form; every league award can be typed in like its screenshot.
+  const addAward =
+    season && view !== "team" ? (
+      <ManualEntryLink target={current.target} seasonId={season._id} label="Add award" />
+    ) : undefined;
 
   return (
-    <Page title="Awards" eyebrow={season ? `${season.year} season` : undefined} season>
+    <Page title="Awards" eyebrow={season ? `${season.year} season` : undefined} season actions={addAward}>
       <div className="@container space-y-5">
         <Segmented
           aria-label="View"
@@ -73,7 +79,7 @@ export function AwardsScreen() {
           <EmptyState
             icon={Medal}
             title={`No ${current.label.toLowerCase()} awards for ${season.year}`}
-            description="Capture the awards screens and they fill in here."
+            description="Capture the awards screens or type them in, and they fill in here."
             action={
               <Button variant="primary" onClick={() => capture.open({ targetKey: current.target })}>
                 <Camera /> Capture awards

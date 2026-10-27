@@ -1,5 +1,6 @@
+import { Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
-import { CheckSquare, Inbox, RotateCcw, Square, Tag, Trash2, X } from "lucide-react";
+import { CheckSquare, Inbox, PencilLine, RotateCcw, Square, Tag, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
 import { useCapture } from "@/app/capture/CaptureProvider";
@@ -9,6 +10,7 @@ import { Page } from "@/components/layout/Page";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
+import { OpenEntries } from "../manual/OpenEntries";
 import { SetCard } from "./SetCard";
 import { TagSheet } from "./TagSheet";
 import { filterOf, type InboxFilter } from "./status";
@@ -69,18 +71,26 @@ export function InboxScreen() {
     <Page
       title="Inbox"
       actions={
-        sets && sets.length > 0 ? (
-          <Button
-            variant={selecting ? "secondary" : "ghost"}
-            size="sm"
-            onClick={selecting ? stopSelecting : () => setSelecting(true)}
-          >
-            {selecting ? <X /> : <CheckSquare />} {selecting ? "Done" : "Select"}
+        <>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/inbox/manual" aria-label="Enter manually">
+              <PencilLine /> <span className="hidden @tablet:inline">Enter manually</span>
+            </Link>
           </Button>
-        ) : undefined
+          {sets && sets.length > 0 && (
+            <Button
+              variant={selecting ? "secondary" : "ghost"}
+              size="sm"
+              onClick={selecting ? stopSelecting : () => setSelecting(true)}
+            >
+              {selecting ? <X /> : <CheckSquare />} {selecting ? "Done" : "Select"}
+            </Button>
+          )}
+        </>
       }
     >
       <div className="space-y-4">
+        <OpenEntries />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Segmented
             value={filter}
@@ -115,9 +125,16 @@ export function InboxScreen() {
                 : "Committed and rejected screenshots show up here."
             }
             action={
-              <Button variant="primary" onClick={() => openCapture()}>
-                Capture screenshots
-              </Button>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button variant="primary" onClick={() => openCapture()}>
+                  Capture screenshots
+                </Button>
+                <Button asChild>
+                  <Link to="/inbox/manual">
+                    <PencilLine /> Enter manually
+                  </Link>
+                </Button>
+              </div>
             }
           />
         ) : (
