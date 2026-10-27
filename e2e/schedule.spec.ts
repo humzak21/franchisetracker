@@ -30,7 +30,7 @@ test("game detail shows the score bug, stars and saves notes", async ({ page }, 
       .filter({ visible: true })
       .first(),
   ).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Three stars" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Stars of the game" })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
   // On phones the notes live in the second pane of the split view.
@@ -62,4 +62,54 @@ test("next game navigation moves through the season", async ({ page }) => {
   await expect(page).not.toHaveURL(first);
   await page.getByRole("button", { name: "Previous game" }).click();
   await expect(page).toHaveURL(first);
+});
+
+test("the stars picker opens with the game's players and saves", async ({ page }, info) => {
+  const gameIndex = ["desktop", "phone", "phone-large"].indexOf(info.project.name);
+  await openSchedule(page);
+  await page.locator('a[href^="/games/"]').nth(Math.max(gameIndex, 0)).click();
+  await page.getByRole("button", { name: "Edit stars" }).click();
+  const sheet = page.getByRole("dialog", { name: "Stars of the game" });
+  await expect(sheet.getByLabel("Find a player")).toBeVisible();
+  await expect(sheet.getByRole("list", { name: "Players" })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  // Saving the list unchanged is a no-op, so parallel projects never disturb each other.
+  await sheet.getByRole("button", { name: "Save stars" }).click();
+  await expect(sheet).toBeHidden();
+});
+
+/** Each project adds its own week so parallel runs never collide. */
+const ADD_WEEK: Record<string, number> = { desktop: 15, phone: 16, "phone-large": 17 };
+
+async function deleteGame(page: Page, row: ReturnType<Page["getByRole"]>) {
+  await row.click();
+  await page.getByRole("button", { name: "Edit game" }).click();
+  await page.getByRole("dialog", { name: "Edit game" }).getByRole("button", { name: "Delete game" }).click();
+  await page
+    .getByRole("dialog", { name: "Delete this game?" })
+    .getByRole("button", { name: "Delete game" })
+    .click();
+  await expect(page).toHaveURL(/\/schedule$/);
+}
+
+test("a game is added by hand, shows on the schedule and is deleted", async ({ page }, info) => {
+  const week = ADD_WEEK[info.project.name] ?? 15;
+  await openSchedule(page);
+  const row = page.getByRole("link", { name: new RegExp(`^Week ${week} `) });
+  // A run that stopped halfway may have left its game behind.
+  if ((await row.count()) > 0) await deleteGame(page, row.first());
+
+  await page.getByRole("button", { name: "Add game" }).click();
+  const sheet = page.getByRole("dialog", { name: "Add game" });
+  await sheet.getByLabel("Week", { exact: true }).selectOption(`w${week}`);
+  await sheet.getByLabel("Opponent").selectOption({ label: "Kansas City Chiefs" });
+  await sheet.getByLabel("Our score").fill("24");
+  await sheet.getByLabel("Their score").fill("21");
+  await sheet.getByRole("button", { name: "Add game" }).click();
+  await expect(sheet).toBeHidden();
+  await expect(page.getByRole("link", { name: `Week ${week} vs Chiefs` })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await deleteGame(page, page.getByRole("link", { name: `Week ${week} vs Chiefs` }));
+  await expect(page.getByRole("link", { name: `Week ${week} vs Chiefs` })).toHaveCount(0);
 });
