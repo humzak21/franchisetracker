@@ -21,7 +21,7 @@ export const load = internalQuery({
     v.object({
       targetKey: vTargetKey,
       seasonId: v.union(v.id("seasons"), v.null()),
-      images: v.array(v.object({ storageId: v.id("_storage"), mime: v.string() })),
+      images: v.array(v.object({ storageId: v.id("_storage"), mime: v.string(), size: v.number() })),
       context: v.object({
         when: v.optional(v.string()),
         userTeam: v.string(),
@@ -75,7 +75,13 @@ export const load = internalQuery({
     return {
       targetKey: lead.targetKey,
       seasonId: lead.seasonId ?? null,
-      images: set.map((u) => ({ storageId: u.storageId, mime: u.mime })),
+      images: await Promise.all(
+        set.map(async (u) => ({
+          storageId: u.storageId,
+          mime: u.mime,
+          size: (await ctx.db.system.get("_storage", u.storageId))?.size ?? 0,
+        })),
+      ),
       context: {
         when: season ? `${season.year} season${weekKey ? `, ${weekLabel(weekKey, "long")}` : ""}` : undefined,
         userTeam: `${userTeam.abbr} (${userTeam.city} ${userTeam.name})`,
