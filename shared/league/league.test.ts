@@ -74,7 +74,10 @@ describe("league", () => {
   });
 
   test("the all-time table counts playoff wins without byes", () => {
-    const table = leagueTable([field, field]);
+    const table = leagueTable([
+      { year: 2024, rows: field },
+      { year: 2025, rows: field },
+    ]);
     const kc = table.find((r) => r.teamAbbr === "KC")!;
     // Seed 1 rests in the wild card: two wins and a Super Bowl loss each year.
     expect(kc).toMatchObject({
@@ -87,6 +90,17 @@ describe("league", () => {
     });
     expect(table[0]).toMatchObject({ teamAbbr: "PHI", playoffW: 8, playoffL: 0, superBowls: 2 });
     expect(table.find((r) => r.teamAbbr === "NE")).toMatchObject({ playoffs: 0, playoffW: 0 });
+  });
+
+  test("byes follow the season's format, also for one team's rows alone", () => {
+    const one = (year: number, seed: number) => ({
+      year,
+      rows: [row("NE", "AFC", { seed, playoffResult: "conf_loss" })],
+    });
+    // A 2 seed rested before 2020 and plays the wild card round since; a 3 seed never rests.
+    expect(leagueTable([one(2001, 2)])[0]).toMatchObject({ playoffW: 1 });
+    expect(leagueTable([one(2024, 2)])[0]).toMatchObject({ playoffW: 2 });
+    expect(leagueTable([one(2010, 3)])[0]).toMatchObject({ playoffW: 2 });
   });
 });
 

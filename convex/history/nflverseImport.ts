@@ -1,70 +1,29 @@
 /**
  * One step of the real NFL history import (docs/NFL-HISTORY.md): fetch an nflverse file, parse
  * it with `shared/history`, write it in batches, then hand back to `importJob.advance`. The CSV
- * reader streams, so even `players.csv` (7 MB, 24k rows) parses in about 11 MB.
+ * reader streams, so even `players.csv` (7 MB, 24k rows) parses in about 11 MB. Steps with a
+ * year range ("players:1999-2001") belong to the earlier-years import (`shared/history/importPlan`).
  */
 import { v } from "convex/values";
-import {
-  importYears,
-  NFLVERSE_FIRST_YEAR,
-  NFLVERSE_URLS,
-  parsePlayoffs,
-  parseStandings,
-} from "../../shared/history/nflverse";
+import { inRange, parseRange, splitStep } from "../../shared/history/importPlan";
+import { NFLVERSE_FIRST_YEAR, NFLVERSE_URLS } from "../../shared/history/nflverse";
 import {
   parseDraftPicks,
   parsePlayers,
   parseRoster,
+  type ImportedPlayer,
   type ImportedRosterRow,
 } from "../../shared/history/nflversePlayers";
 import { parseSeasonStats } from "../../shared/history/nflverseStats";
 import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
 import { internalAction, type ActionCtx } from "../_generated/server";
 import { cacheHeadshots, cacheTeamLogos } from "../external/media";
+import { batches, fetchOptional, fetchText, type Job, type StepArgs, type StepResult } from "./importStep";
+import { seasons } from "./seasonsStep";
 
-const FETCH_TIMEOUT_MS = 120_000;
-const BATCH = 250;
 /** Career pages per action run; the step continues in a fresh run after this many. */
 const CAREER_PAGES_PER_RUN = 12;
 const CAREER_PAGE = 150;
-
-type Job = { startYear: number; userTeamId: Id<"teams">; firstYear: number | null };
-type StepArgs = { franchiseId: Id<"franchises">; step: string; cursor?: string };
-type Counts = {
-  seasons?: number;
-  players?: number;
-  statRows?: number;
-  draftPicks?: number;
-  rosterEntries?: number;
-};
-type StepResult = {
-  counts: Counts;
-  plan?: string[];
-  firstYear?: number;
-  lastYear?: number;
-  continueCursor?: string;
-};
-
-/** A file's text, or null when it is not published (404), e.g. a season's postseason file. */
-async function fetchOptional(url: string): Promise<string | null> {
-  const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`nflverse returned ${res.status} for ${url}`);
-  return await res.text();
-}
-
-async function fetchText(url: string): Promise<string> {
-  const text = await fetchOptional(url);
-  if (text === null) throw new Error(`nflverse has no ${url}`);
-  return text;
-}
-
-async function batches<T>(items: readonly T[], write: (batch: T[]) => Promise<number>): Promise<number> {
-  let total = 0;
-  for (let i = 0; i < items.length; i += BATCH) total += await write(items.slice(i, i + BATCH));
-  return total;
-}
 
 /** Rosters for the franchise's first season, or the latest published season before it. */
 async function startRoster(startYear: number): Promise<ImportedRosterRow[]> {
@@ -75,31 +34,8 @@ async function startRoster(startYear: number): Promise<ImportedRosterRow[]> {
   return [];
 }
 
-async function seasons(ctx: ActionCtx, { franchiseId }: StepArgs, job: Job): Promise<StepResult> {
-  const [standingsCsv, gamesCsv] = await Promise.all([
-    fetchText(NFLVERSE_URLS.standings),
-    fetchText(NFLVERSE_URLS.games),
-  ]);
-  const playoffs = parsePlayoffs(gamesCsv);
-  const years = importYears(job.startYear, playoffs);
-  const standings = parseStandings(standingsCsv, playoffs).filter((s) => years.includes(s.year));
-  let written = 0;
-  for (let i = 0; i < years.length; i += 4) {
-    const chunk = new Set(years.slice(i, i + 4));
-    written += await ctx.runMutation(internal.history.importSeasons.writeSeasons, {
-      franchiseId,
-      standings: standings.filter((s) => chunk.has(s.year)),
-    });
-  }
-  // A franchise starting before the covered era gets logos and nothing else.
-  const plan =
-    years.length === 0
-      ? ["seasons", "media"]
-      : ["seasons", "players", ...years.map((y) => `stats:${y}`), "draft", "rosters", "careers", "media"];
-  return { counts: { seasons: written }, plan, firstYear: years[0], lastYear: years.at(-1) };
-}
-
-async function players(ctx: ActionCtx, { franchiseId }: StepArgs, job: Job): Promise<StepResult> {
+/** Everyone whose last season is covered, plus the first-season rosters. */
+async function everyPlayer(job: Job): Promise<(ImportedPlayer & { active: boolean })[]> {
   const firstYear = job.firstYear ?? NFLVERSE_FIRST_YEAR;
   const roster = await startRoster(job.startYear);
   const active = new Set(roster.map((r) => r.player.nflverseId));
@@ -108,12 +44,20 @@ async function players(ctx: ActionCtx, { franchiseId }: StepArgs, job: Job): Pro
     (p) => active.has(p.nflverseId) || (p.lastSeason ?? 0) >= firstYear,
   );
   const known = new Set(listed.map((p) => p.nflverseId));
-  const all = [...listed, ...roster.map((r) => r.player).filter((p) => !known.has(p.nflverseId))].map(
-    (p) => ({
-      ...p,
-      active: active.has(p.nflverseId),
-    }),
-  );
+  return [...listed, ...roster.map((r) => r.player).filter((p) => !known.has(p.nflverseId))].map((p) => ({
+    ...p,
+    active: active.has(p.nflverseId),
+  }));
+}
+
+async function players(ctx: ActionCtx, { franchiseId, step }: StepArgs, job: Job): Promise<StepResult> {
+  const range = parseRange(splitStep(step)[1]);
+  // The earlier-years import adds only players whose careers ended in its seasons: all retired.
+  const all = range
+    ? parsePlayers(await fetchText(NFLVERSE_URLS.players), (p) => inRange(p.lastSeason ?? 0, range)).map(
+        (p) => ({ ...p, active: false }),
+      )
+    : await everyPlayer(job);
   const count = await batches(all, (batch) =>
     ctx.runMutation(internal.history.importPlayers.upsertPlayers, { franchiseId, players: batch }),
   );
@@ -121,7 +65,7 @@ async function players(ctx: ActionCtx, { franchiseId }: StepArgs, job: Job): Pro
 }
 
 async function stats(ctx: ActionCtx, { franchiseId, step }: StepArgs): Promise<StepResult> {
-  const year = Number(step.slice("stats:".length));
+  const year = Number(splitStep(step)[1]);
   let count = 0;
   for (const split of ["regular", "postseason"] as const) {
     const url = NFLVERSE_URLS.seasonStats(year, split);
@@ -134,10 +78,14 @@ async function stats(ctx: ActionCtx, { franchiseId, step }: StepArgs): Promise<S
   return { counts: { statRows: count } };
 }
 
-async function draft(ctx: ActionCtx, { franchiseId }: StepArgs, job: Job): Promise<StepResult> {
-  const years = new Set<number>();
+async function draft(ctx: ActionCtx, { franchiseId, step }: StepArgs, job: Job): Promise<StepResult> {
   // The franchise's first draft happened before its first season, so it is history too.
-  for (let y = job.firstYear ?? NFLVERSE_FIRST_YEAR; y <= job.startYear; y++) years.add(y);
+  const range = parseRange(splitStep(step)[1]) ?? {
+    from: job.firstYear ?? NFLVERSE_FIRST_YEAR,
+    to: job.startYear,
+  };
+  const years = new Set<number>();
+  for (let y = range.from; y <= range.to; y++) years.add(y);
   const picks = parseDraftPicks(await fetchText(NFLVERSE_URLS.draftPicks), years);
   const count = await batches(picks, (batch) =>
     ctx.runMutation(internal.history.importStats.upsertDraftPicks, { franchiseId, picks: batch }),
@@ -186,12 +134,12 @@ async function media(ctx: ActionCtx, { franchiseId }: StepArgs): Promise<StepRes
   return { counts: {} };
 }
 
+const STEPS = { seasons, players, stats, draft, rosters, careers, media } as const;
+
 function stepFn(step: string) {
-  if (step.startsWith("stats:")) return stats;
-  const steps = { seasons, players, draft, rosters, careers, media } as const;
-  const fn = steps[step as keyof typeof steps];
-  if (!fn) throw new Error(`Unknown import step "${step}"`);
-  return fn;
+  const name = splitStep(step)[0];
+  if (!Object.hasOwn(STEPS, name)) throw new Error(`Unknown import step "${step}"`);
+  return STEPS[name as keyof typeof STEPS];
 }
 
 export const runStep = internalAction({
