@@ -132,13 +132,7 @@ async function answer(
     const json = fixtureAnswer(job.targetKey, job.teams);
     return { json, rawText: JSON.stringify(json), model: FIXTURE_MODEL, usage: undefined, latencyMs: 0 };
   }
-  const urls = await Promise.all(
-    images.map(async (image) => {
-      const blob = await ctx.storage.get(image.storageId);
-      if (!blob) throw new Error("A screenshot in this set is missing from storage");
-      return await blobToDataUrl(blob, image.mime);
-    }),
-  );
+  const urls = await Promise.all(images.map((image) => imageUrl(ctx, image)));
   const { system, user } = buildPrompt(job.targetKey, job.context, job.corrections);
   const models = model ? [model] : [...new Set([job.models.primary, job.models.fallback])];
   const errors: string[] = [];
@@ -153,8 +147,9 @@ async function answer(
       errors.push("Out of time: try fewer screenshots in the set, or a faster model");
       break;
     }
+    const callStarted = Date.now();
     try {
-      return await callVisionModel(key, {
+      const result = await callVisionModel(key, {
         model: candidate,
         system,
         user,
@@ -165,11 +160,31 @@ async function answer(
         maxTokens: job.models.maxTokens,
         deadline: job.deadline,
       });
+      console.log(`${candidate}: ${images.length} screenshot(s) read in ${Date.now() - callStarted} ms`);
+      return result;
     } catch (error) {
-      errors.push(error instanceof Error ? error.message : String(error));
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(
+        `${candidate}: ${images.length} screenshot(s) failed after ${Date.now() - callStarted} ms`,
+      );
+      errors.push(message);
     }
   }
   throw new Error(errors.join(" · "));
+}
+
+/**
+ * How the model gets a screenshot. On a cloud deployment it is the storage URL, which OpenRouter
+ * fetches, so the action never holds the images: a set of full-size phone screenshots as base64
+ * ran it out of memory, and Convex stops such an action without running its error handling. A
+ * local backend's URLs are not reachable from OpenRouter, so it sends `data:` URLs instead.
+ */
+async function imageUrl(ctx: ActionCtx, image: Job["images"][number]): Promise<string> {
+  const url = await ctx.storage.getUrl(image.storageId);
+  if (url?.startsWith("https://")) return url;
+  const blob = await ctx.storage.get(image.storageId);
+  if (!blob) throw new Error("A screenshot in this set is missing from storage");
+  return await blobToDataUrl(blob, image.mime);
 }
 
 /** Low confidence on a name the rosters could not settle, so review shows it first. */

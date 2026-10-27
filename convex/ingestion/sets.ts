@@ -40,8 +40,11 @@ export function readyToExtract(upload: Doc<"uploads">): boolean {
  * its error handling, so the run gives up first and reports why.
  */
 export const RUN_BUDGET_MS = 9 * 60_000;
-/** When the watchdog first looks at a run: just past the 10 minutes Convex allows an action. */
-const WATCHDOG_MS = 11 * 60_000;
+/**
+ * When the watchdog first looks at a run. Soon, so a run Convex stopped (out of memory, past its
+ * time limit) is reported within a minute or two instead of looking like a slow model.
+ */
+const WATCHDOG_MS = 60_000;
 
 /**
  * Marks a set as extracting and schedules the extraction action, with a watchdog for a run that

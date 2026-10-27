@@ -12,7 +12,7 @@ export type VisionRequest = {
   model: string;
   system: string;
   user: string;
-  /** `data:` URLs; local and cloud deployments alike can send them without a public image host. */
+  /** Image URLs the provider fetches, or `data:` URLs from a backend OpenRouter cannot reach. */
   images: string[];
   schemaName: string;
   schema: JsonSchema;
