@@ -1,9 +1,11 @@
 import { History } from "lucide-react";
+import { useState } from "react";
 import { Notice } from "@/components/data/Notice";
 import { RadarCompare } from "@/components/data/RadarCompare";
 import { TrendChart } from "@/components/data/TrendChart";
 import { JumpLinks } from "@/components/layout/JumpLinks";
 import { MatchCandidate } from "@/components/player/MatchCandidate";
+import { MovePlayerSheet } from "@/components/player/MovePlayerSheet";
 import { PlayerCard } from "@/components/player/PlayerCard";
 import { Button } from "@/components/ui/button";
 import { BUF, KC, NE, PLAYERS } from "./fixtures";
@@ -17,6 +19,27 @@ const OVR = [
   { key: "26-w4", label: "2026 · Week 4", group: "2026", value: 85 },
   { key: "26-w12", label: "2026 · Week 12", group: "2026", value: 88 },
 ];
+
+/** The move sheet against local state; a screen passes the move mutation. */
+function MoveSheetDemo() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        Move Drake Maye…
+      </Button>
+      <MovePlayerSheet
+        open={open}
+        onOpenChange={setOpen}
+        name="Drake Maye"
+        seasons={[{ value: "s26", label: "2026" }]}
+        teams={[NE, BUF].map((t) => ({ value: t.abbr, label: t.abbr }))}
+        initial={{ seasonId: "s26", teamId: NE.abbr, status: "active" }}
+        onMove={() => Promise.resolve()}
+      />
+    </>
+  );
+}
 
 export const PLAYER_SPECIMENS: Specimen[] = [
   {
@@ -118,6 +141,12 @@ export const PLAYER_SPECIMENS: Specimen[] = [
         />
       </div>
     ),
+  },
+  {
+    id: "moveplayersheet",
+    name: "MovePlayerSheet",
+    note: "Moves a player by hand, no transaction logged: team, status and week for a season; changing teams asks whether the old team traded or released him.",
+    render: () => <MoveSheetDemo />,
   },
   {
     id: "notice",

@@ -39,6 +39,28 @@ test("player notes save on blur", async ({ page }) => {
   await expect(page.getByText("Saved")).toBeVisible();
 });
 
+test("Edit opens the player's facts and Move opens the move sheet", async ({ page }) => {
+  await openDiggs(page);
+  await page.getByRole("button", { name: "Edit", exact: true }).first().click();
+  const sheet = page.getByRole("dialog", { name: "Edit player" });
+  await expect(sheet.getByRole("textbox").first()).toHaveValue("Stefon");
+  await sheet.getByRole("button", { name: "Cancel" }).click();
+  await expect(sheet).toHaveCount(0);
+  await page.getByRole("button", { name: "Move", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Move Stefon Diggs" })).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+});
+
+test("roster history edits inline", async ({ page }) => {
+  await openDiggs(page);
+  const history = page.locator("section#rosters");
+  await history.getByRole("button", { name: "Edit", exact: true }).click();
+  await expect(history.getByRole("textbox").first()).toBeVisible();
+  await history.getByRole("button", { name: "Done" }).click();
+  await expect(history.getByRole("textbox")).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+});
+
 test("back link returns to the players index", async ({ page }) => {
   await openDiggs(page);
   await page.getByRole("link", { name: "Back to Players" }).click();

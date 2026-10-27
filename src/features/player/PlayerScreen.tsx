@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useAction, useMutation } from "convex/react";
 import { Columns3, Gauge, Landmark, ScanFace } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { POSITION_INFO } from "@shared/domain";
@@ -18,6 +18,7 @@ import { HallOfFameSheet } from "./HallOfFameSheet";
 import { IdentityPanel } from "./IdentityPanel";
 import { OvrProgression } from "./OvrProgression";
 import { PlayerActivity } from "./PlayerActivity";
+import { PlayerEditActions } from "./PlayerEditActions";
 import { PlayerHero } from "./PlayerHero";
 import { PlayerHighlights } from "./PlayerHighlights";
 import { PlayerStatCards } from "./PlayerStatCards";
@@ -46,6 +47,11 @@ export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
   const plaque = useQuery(api.hof.entries.forPlayer, { playerId });
   const updateNotes = useMutation(api.players.player.updateNotes);
   const ensureHeadshot = useAction(api.players.headshots.ensure);
+  const teams = useQuery(api.league.teams.list, {});
+  const teamOptions = useMemo(
+    () => (teams ?? []).map((t) => ({ value: t._id, label: `${t.city} ${t.name}` })),
+    [teams],
+  );
   const [espnOpen, setEspnOpen] = useState(false);
   const [ratingsOpen, setRatingsOpen] = useState(false);
   const [hofOpen, setHofOpen] = useState(false);
@@ -74,6 +80,7 @@ export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
             page={page}
             actions={
               <>
+                <PlayerEditActions page={page} teams={teamOptions} />
                 <Button asChild size="sm" variant="outline">
                   <Link to="/players/compare" search={{ ids: [playerId] }}>
                     <Columns3 /> Compare
@@ -119,7 +126,7 @@ export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
             <GameLog page={page} />
           </Section>
           <Section id="rosters" title="Roster history">
-            <RosterHistoryTable page={page} />
+            <RosterHistoryTable page={page} teams={teamOptions} />
           </Section>
           <Section id="activity" title="Awards and moves">
             <PlayerActivity playerId={playerId} />

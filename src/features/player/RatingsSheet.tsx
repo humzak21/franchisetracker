@@ -21,7 +21,7 @@ export function RatingsSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const update = useMutation(api.players.progression.updateRatings);
+  const update = useMutation(api.players.roster.updateEntry);
   const [ovr, setOvr] = useState(row.entry.ovr?.toString() ?? "");
   const [trait, setTrait] = useState<DevTrait>(row.entry.devTrait ?? "normal");
   const [abilities, setAbilities] = useState((row.entry.abilities ?? []).join(", "));
@@ -32,9 +32,7 @@ export function RatingsSheet({
     try {
       await update({
         entryId: row.entry._id,
-        ovr: ovr === "" ? null : Number(ovr),
-        devTrait: trait,
-        abilities: abilities.split(","),
+        patch: { ovr: ovr === "" ? null : Number(ovr), devTrait: trait, abilities: abilities.split(",") },
       });
       onOpenChange(false);
     } catch (e) {
