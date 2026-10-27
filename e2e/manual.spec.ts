@@ -4,13 +4,14 @@ import { SAMPLE_YEAR, expect, expectNoHorizontalOverflow, test } from "./fixture
 // Every project shares one backend. Each test starts its own entry; committing the same award
 // twice is skipped as a duplicate, so parallel runs converge on the same data.
 
-async function start(page: Page, target: string) {
+async function start(page: Page, target: string, week?: string) {
   await page.goto("/inbox");
   await expect(page.getByRole("heading", { level: 1, name: "Inbox" })).toBeVisible();
   await page.getByRole("link", { name: "Enter manually" }).first().click();
   await expect(page.getByRole("heading", { level: 1, name: "Enter manually" })).toBeVisible();
   await page.getByLabel("Screen", { exact: true }).selectOption(target);
   await page.getByLabel("Season", { exact: true }).selectOption({ label: String(SAMPLE_YEAR) });
+  if (week) await page.getByLabel("Week", { exact: true }).selectOption(week);
   await page.getByRole("button", { name: "Start entering" }).click();
   await expect(page).toHaveURL(/\/inbox\/manual\/.+/, { timeout: 20_000 });
 }
@@ -47,6 +48,19 @@ test("a yearly award typed in by hand commits and shows on the awards screen", a
   await page.getByRole("button", { name: "Commit 1 row" }).click();
   await expect(page).toHaveURL(/\/awards$/, { timeout: 20_000 });
   await expectNoHorizontalOverflow(page);
+});
+
+test("a score typed under more fields keeps focus for every digit", async ({ page }) => {
+  await start(page, "league_schedule", "w1");
+  await page.getByRole("button", { name: "Add row" }).click();
+  await page.getByRole("button", { name: /more field/ }).click();
+  const away = page.getByLabel("Away score", { exact: true });
+  await away.click();
+  await page.keyboard.type("24");
+  await expect(away).toHaveValue("24");
+  await expect(away).toBeFocused();
+  await page.getByRole("button", { name: "Discard" }).click();
+  await page.getByRole("button", { name: "Confirm discard" }).click();
 });
 
 test("the draft screen links to manual entry with the target preset", async ({ page }) => {
