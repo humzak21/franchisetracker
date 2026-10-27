@@ -146,6 +146,9 @@ export function TableGrid<T>(props: TableGridProps<T>) {
     ));
 
   const virtual = rows !== null && rows.length > VIRTUAL_MIN_ROWS;
+  // TanStack Virtual returns fresh functions each render by design; this component re-renders on
+  // every scroll anyway, so skipping the compiler's memoization here costs nothing.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: virtual ? rows.length : 0,
     getScrollElement: props.scrollElement,

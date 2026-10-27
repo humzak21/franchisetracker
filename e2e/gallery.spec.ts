@@ -34,8 +34,11 @@ test.describe("component gallery", () => {
     const scroller = frame.locator("[data-swipe-ignore] [data-swipe-ignore]").first();
     await expect(frame.getByRole("row", { name: /^Row 1\b/ })).toBeVisible();
     expect(await frame.locator("tbody tr").count()).toBeLessThan(100);
-    await scroller.evaluate((el) => el.scrollTo({ top: el.scrollHeight }));
-    await expect(frame.getByRole("row", { name: /^Row 400\b/ })).toBeVisible();
+    // Rows are measured as they render, so the bottom moves; keep scrolling until the last row shows.
+    await expect(async () => {
+      await scroller.evaluate((el) => el.scrollTo({ top: el.scrollHeight }));
+      await expect(frame.getByRole("row", { name: /^Row 400\b/ })).toBeVisible({ timeout: 500 });
+    }).toPass();
   });
 
   test("TeamPicker selects one team at a time", async ({ page }) => {
