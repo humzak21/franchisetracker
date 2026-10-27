@@ -4,12 +4,19 @@
  * Names come from the sample franchise so they resolve to its players.
  */
 import type { RowTargetKey } from "../../shared/ingestion/rows/targets";
+import { fixtureSchedule } from "./fixtureSchedule";
 
 const sure = { confidence: 0.95, unclear_fields: [] as string[] };
 const unsure = (...fields: string[]) => ({ confidence: 0.7, unclear_fields: fields });
 
-export function fixtureRows(target: RowTargetKey, us: string): Record<string, unknown> {
+export function fixtureRows(
+  target: RowTargetKey,
+  us: string,
+  game: { home: string; away: string; userIsHome: boolean },
+): Record<string, unknown> {
   switch (target) {
+    case "league_schedule":
+      return fixtureSchedule(game);
     case "season_player_stats":
       return {
         passing: [

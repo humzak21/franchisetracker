@@ -11,6 +11,7 @@ const LANDING = {
   league_leaders: "/stats",
   team_season_stats: "/stats",
   standings: "/league",
+  league_schedule: "/league",
   weekly_awards: "/awards",
   yearly_awards: "/awards",
   draft_results: "/draft",

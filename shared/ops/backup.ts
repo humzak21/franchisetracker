@@ -14,6 +14,7 @@ export const BACKUP_VERSION = 1;
 export const BACKUP_TABLES = [
   "franchises",
   "seasons",
+  "leagueGames",
   "players",
   "games",
   "gameStatLines",
