@@ -23,7 +23,11 @@ type SideTableProps = {
 export function SideTable({ side, year, rows, columns, onEdit }: SideTableProps) {
   const title = SIDE_TITLES[side];
   return (
-    <Section id={side} title={title} description={rows ? `${rows.length} players` : undefined}>
+    <Section
+      id={side}
+      title={title}
+      description={rows ? `${rows.length} player${rows.length === 1 ? "" : "s"}` : undefined}
+    >
       <DataTable<RosterRow>
         id={`roster-${side}`}
         data={rows}

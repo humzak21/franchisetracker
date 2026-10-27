@@ -87,16 +87,16 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
       title={title}
       eyebrow={`${season.year} · ${postseason ? "Postseason" : "Regular season"}`}
       back={{ to: "/schedule", label: "Schedule" }}
-      actions={
-        <>
-          <Button size="sm" variant="outline" onClick={() => setEditing(true)} aria-label="Edit game">
-            <Pencil /> Edit
-          </Button>
-          {nav}
-        </>
-      }
+      actions={nav}
     >
       <div ref={swipeArea} className="space-y-6">
+        {/* Below the header, not in it: a third header button would cut the title short on phones. */}
+        <div className="flex items-center justify-end gap-3">
+          {!bye && details && <p className="mr-auto text-sm text-muted-foreground">{details}</p>}
+          <Button size="sm" variant="outline" onClick={() => setEditing(true)} aria-label="Edit game">
+            <Pencil /> Edit game
+          </Button>
+        </div>
         {bye ? (
           <>
             <EmptyState
@@ -115,7 +115,6 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
               overtime={game.overtime}
               userTeam={userTeam.abbr}
             />
-            {details && <p className="-mt-3 text-center text-sm text-muted-foreground">{details}</p>}
             <SplitPane
               ratio="3fr 2fr"
               panes={[
