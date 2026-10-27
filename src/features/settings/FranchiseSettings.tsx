@@ -15,8 +15,8 @@ import { useQuery } from "@/lib/convex/useQuery";
 
 /**
  * Franchises (FEATURES.md 5.12): every franchise with its team and latest season, switching
- * between them, starting another, and deleting one that is not active. Exactly one is active;
- * the rest keep their data.
+ * between them, starting another, and deleting any of them, the active one included. Exactly one
+ * is active; the rest keep their data.
  */
 export function FranchiseSettings() {
   const franchises = useQuery(api.franchise.franchises.list, {});
@@ -73,7 +73,14 @@ export function FranchiseSettings() {
                   {pending === f._id ? "Switching…" : "Switch"}
                 </Button>
               )}
-              {!f.isActive && !f.deleting && <DeleteFranchise franchiseId={f._id} name={f.name} />}
+              {!f.deleting && (
+                <DeleteFranchise
+                  franchiseId={f._id}
+                  name={f.name}
+                  isActive={f.isActive}
+                  lastOne={franchises.every((o) => o._id === f._id || o.deleting)}
+                />
+              )}
             </li>
           ))}
         </ul>
