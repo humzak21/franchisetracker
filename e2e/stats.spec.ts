@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, expectNoHorizontalOverflow, test } from "./fixtures";
+import { expect, expectNoHorizontalOverflow, isPhone, test } from "./fixtures";
 
 async function openView(page: Page, view: "Season" | "Records" | "Leaders" | "Streaks") {
   await page.goto("/stats");
@@ -31,6 +31,28 @@ test("season stats add up from the sample box scores", async ({ page }) => {
   await expect(
     page.getByRole("table", { name: "RB season stats" }).getByText("TreVeyon Henderson"),
   ).toBeVisible();
+});
+
+test("big-game counts always show and season highs link to their game", async ({ page }, testInfo) => {
+  await openView(page, "Season");
+  await page.getByRole("radio", { name: "Regular season" }).click();
+  await page.getByRole("radio", { name: "QB", exact: true }).click();
+  const table = page.getByRole("table", { name: "QB season stats" });
+  const maye = table.getByRole("row").filter({ hasText: "Drake Maye" }).first();
+  await expect(maye).toBeVisible();
+  // Phones keep these columns in the tap-to-expand card.
+  if (isPhone(testInfo.project.name)) {
+    await maye.click();
+    await expect(maye).toHaveAttribute("aria-expanded", "true");
+    await expect(table.getByText("Big games: perfect passer rating")).toBeVisible();
+  } else {
+    await expect(table.getByRole("columnheader", { name: "158.3s", exact: true })).toBeVisible();
+  }
+  await table
+    .getByRole("link", { name: /^W\d+$/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/games\//);
 });
 
 test("the records book, leaders and streaks", async ({ page }) => {
