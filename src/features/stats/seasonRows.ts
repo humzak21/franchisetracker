@@ -5,6 +5,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { positionGroupOf } from "@shared/domain";
 import {
   aggregateLines,
+  isRawStatKey,
   statsInCategory,
   statValue,
   type SeasonHigh,
@@ -30,7 +31,8 @@ export type Row = {
 
 /** Players in the group: by season position, or anyone with stats in the group's categories. */
 export function groupRows(rows: readonly SeasonStatRow[], group: StatGroup): Row[] {
-  const keys = group.categories.flatMap((c) => statsInCategory(c));
+  // Raw stats only: everyone with a line scores fantasy points.
+  const keys = group.categories.flatMap((c) => statsInCategory(c)).filter(isRawStatKey);
   return rows
     .filter((r) => {
       if (group.positions) return group.positions.includes(r.positionGroup ?? positionGroupOf(r.position));

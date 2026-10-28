@@ -18,6 +18,7 @@ export const CATEGORY_PRIMARY: Record<StatCategory, StatKey[]> = {
   kicking: ["fgm", "fga", "xpm"],
   punting: ["punts", "puntYds", "puntAvg"],
   returns: ["kickReturnYds", "puntReturnYds"],
+  fantasy: ["fantasyPts"],
 };
 
 type Row = { line: StatLine; games?: number };

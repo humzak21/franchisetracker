@@ -15,6 +15,7 @@ import {
 } from "./commitPeopleRows";
 import {
   commitLeagueLeaders,
+  commitLeagueTeamStats,
   commitSeasonStats,
   commitStandings,
   commitTeamSeasonStats,
@@ -28,6 +29,7 @@ const COMMITS: Record<RowTargetKey, (ctx: MutationCtx, commit: RowCommit) => Pro
   league_leaders: commitLeagueLeaders,
   records_list: commitRecordsList,
   team_season_stats: commitTeamSeasonStats,
+  league_team_stats: commitLeagueTeamStats,
   standings: commitStandings,
   league_schedule: commitLeagueSchedule,
   weekly_awards: commitWeeklyAwards,

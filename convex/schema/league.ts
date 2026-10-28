@@ -1,6 +1,13 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
-import { playerRefFields, vConference, vDivision, vPlayoffResult, vStandingSource } from "../lib/validators";
+import {
+  playerRefFields,
+  vConference,
+  vDivision,
+  vPlayoffResult,
+  vStandingSource,
+  vStatMap,
+} from "../lib/validators";
 
 export const leagueTables = {
   /** League-wide reference data shared by every franchise (no franchiseId). */
@@ -80,4 +87,16 @@ export const leagueTables = {
     .index("by_seasonId_and_teamId_and_statKey", ["seasonId", "teamId", "statKey"])
     .index("by_seasonId_and_statKey", ["seasonId", "statKey"])
     .index("by_franchiseId_and_teamId_and_statKey", ["franchiseId", "teamId", "statKey"]),
+
+  /**
+   * Every team's season numbers from Madden's league team stats screen, one row per team and
+   * season. `stats` is keyed by the raw keys of `shared/stats/leagueTeamRegistry.ts`; each tab
+   * captured merges into it.
+   */
+  leagueTeamStats: defineTable({
+    franchiseId: v.id("franchises"),
+    seasonId: v.id("seasons"),
+    teamId: v.id("teams"),
+    stats: vStatMap,
+  }).index("by_seasonId_and_teamId", ["seasonId", "teamId"]),
 };

@@ -1,4 +1,7 @@
-/** Extraction validators for the stat screens: league leaders, team season stats and standings. */
+/**
+ * Extraction validators for the stat screens: league leaders, team season stats, league team
+ * stats and standings.
+ */
 import { describe, expect, test } from "vitest";
 import { normalizeFor, validateDraft, type RowTargetKey } from "../targets";
 import type { RowTargetDraft } from "../types";
@@ -47,6 +50,20 @@ describe("team season stats", () => {
       ["sacks", null],
     ]);
     expect(messages(draft)).toContain("Ranks run from 1 to 32");
+  });
+});
+
+describe("league team stats", () => {
+  test("each tab's columns land on one row per team, nicknames resolved", () => {
+    const draft = read("league_team_stats", {
+      offense: [{ team: "Bengals", pass_yds: 5590, rush_yds: 846, points_pg: 26.9, ...sure }],
+      defense: [{ team: "Patriots", def_int: 5, fumbles_recovered: 5, ...sure }],
+      turnovers: [{ team: "Patriots", int_thrown: 15, fumbles_lost: 6, def_int: 5, ...sure }],
+      conversions: [{ team: "Jets", third_down_conv: 170, third_down_att: 168, ...sure }],
+    });
+    expect(draft.rows.map((r) => r.teamAbbr)).toEqual(["CIN", "NE", "NYJ"]);
+    expect(draft.rows[1]!.values).toEqual({ defInt: 5, fumblesRecovered: 5, intThrown: 15, fumblesLost: 6 });
+    expect(messages(draft)).toContain("NYJ: third downs converted is more than the attempts");
   });
 });
 

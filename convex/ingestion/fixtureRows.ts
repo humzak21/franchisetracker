@@ -4,6 +4,7 @@
  * Names come from the sample franchise so they resolve to its players.
  */
 import type { RowTargetKey } from "../../shared/ingestion/rows/targets";
+import { fixtureLeagueTeams } from "./fixtureLeagueTeams";
 import { fixtureSchedule } from "./fixtureSchedule";
 
 const sure = { confidence: 0.95, unclear_fields: [] as string[] };
@@ -71,6 +72,8 @@ export function fixtureRows(
           { rank: 3, name: "P. Mahomes", team: "KC", value: 1398, ...unsure("value") },
         ],
       };
+    case "league_team_stats":
+      return fixtureLeagueTeams();
     case "records_list":
       return {
         book: "league",

@@ -1,4 +1,5 @@
-import { getStat, type StatKey, type ThresholdOverrides } from "@shared/stats";
+import { formatValue, getStat, type StatFormat, type StatKey, type ThresholdOverrides } from "@shared/stats";
+import { cn } from "@/lib/cn";
 import { StatCell } from "../StatCell";
 import type { DataColumn, StatColumnOptions } from "./types";
 
@@ -36,6 +37,37 @@ export function statColumn<T>(
       />
     ),
     ...rest,
+  };
+}
+
+/**
+ * A column for a stat from another registry (a team's season numbers): the same header, title,
+ * alignment, sort direction and tabular formatting as `statColumn`, without player highlights.
+ */
+export function formattedColumn<T>(
+  id: string,
+  def: { abbr: string; label: string; format: StatFormat; better: "higher" | "lower" },
+  value: (row: T) => number | null | undefined,
+  options: Partial<Pick<DataColumn<T>, "group">> = {},
+): DataColumn<T> {
+  return {
+    id,
+    header: def.abbr,
+    title: def.label,
+    align: "right",
+    sortable: true,
+    sortDescFirst: def.better === "higher",
+    searchable: false,
+    value,
+    cell: (row) => {
+      const v = value(row);
+      return (
+        <span className={cn("num", (v === null || v === undefined) && "text-subtle-foreground")}>
+          {formatValue(v, def.format)}
+        </span>
+      );
+    },
+    ...options,
   };
 }
 

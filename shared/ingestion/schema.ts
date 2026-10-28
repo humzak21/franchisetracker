@@ -4,7 +4,7 @@
  * required and nullable instead of optional, and no additional properties are allowed.
  */
 import {
-  STAT_CATEGORIES,
+  RAW_STAT_CATEGORIES,
   RAW_STATS,
   extractionField,
   type RawStatKey,
@@ -72,7 +72,7 @@ export function rawKeysInCategory(category: StatCategory): RawStatKey[] {
 /** Box score: one array per stat category, the way Madden's player stats screens are split. */
 export function boxScoreSchema(): JsonSchema {
   const categories = Object.fromEntries(
-    STAT_CATEGORIES.map((category) => {
+    RAW_STAT_CATEGORIES.map((category) => {
       const stats = Object.fromEntries(
         rawKeysInCategory(category).map((key) => [
           extractionField(key),

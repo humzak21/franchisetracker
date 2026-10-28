@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, expectNoHorizontalOverflow, isPhone, test } from "./fixtures";
 
-async function openView(page: Page, view: "Season" | "Records" | "Leaders" | "Streaks") {
+async function openView(page: Page, view: "Season" | "League" | "Records" | "Leaders" | "Streaks") {
   await page.goto("/stats");
   await expect(page.getByRole("heading", { level: 1, name: "Stats" })).toBeVisible();
   await page.getByRole("radio", { name: view, exact: true }).click();
@@ -12,7 +12,7 @@ for (const theme of ["dark", "light"] as const) {
     test.use({ theme });
 
     test("every stats view loads without overflow", async ({ page }) => {
-      for (const view of ["Season", "Records", "Leaders", "Streaks"] as const) {
+      for (const view of ["Season", "League", "Records", "Leaders", "Streaks"] as const) {
         await openView(page, view);
         await expectNoHorizontalOverflow(page);
       }
@@ -31,6 +31,40 @@ test("season stats add up from the sample box scores", async ({ page }) => {
   await expect(
     page.getByRole("table", { name: "RB season stats" }).getByText("TreVeyon Henderson"),
   ).toBeVisible();
+});
+
+test("league stats put our players beside the league's, with fantasy points", async ({ page }, testInfo) => {
+  await openView(page, "League");
+  await page.getByRole("radio", { name: "QB", exact: true }).click();
+  const table = page.getByRole("table", { name: "QB league stats" });
+  await expect(table.getByText("Drake Maye")).toBeVisible();
+  await expect(table.getByText("Josh Allen")).toBeVisible();
+  if (!isPhone(testInfo.project.name)) {
+    await expect(table.getByRole("columnheader", { name: "FPTS", exact: true })).toBeVisible();
+  }
+  await page.getByRole("radio", { name: "Rest of league" }).click();
+  await expect(table.getByText("Josh Allen")).toBeVisible();
+  await expect(table.getByText("Drake Maye")).toHaveCount(0);
+  await page.getByRole("radio", { name: "Everyone" }).click();
+  await expectNoHorizontalOverflow(page);
+});
+
+test("league team stats: every team per Madden tab, rates computed from the counts", async ({ page }) => {
+  await openView(page, "League");
+  await page.getByRole("radio", { name: "Teams", exact: true }).click();
+  await page.getByRole("radio", { name: "Turnovers", exact: true }).click();
+  const table = page.getByRole("table", { name: "Turnovers team stats" });
+  await expect(table.getByText("Dolphins")).toBeVisible();
+  // Miami: 4 takeaways against 8 giveaways.
+  await expect(table.getByRole("row").filter({ hasText: "Dolphins" }).getByText("-4")).toBeVisible();
+  await page.getByRole("radio", { name: "Offense", exact: true }).click();
+  await expect(page.getByRole("table", { name: "Offense team stats" }).getByText("Patriots")).toBeVisible();
+  // New England: 1,950 offensive yards over its 5 games.
+  await page.getByRole("radio", { name: "Per game", exact: true }).click();
+  const perGame = page.getByRole("table", { name: "Offense team stats per game" });
+  await expect(perGame.getByRole("row").filter({ hasText: "Patriots" }).getByText("390.0")).toBeVisible();
+  await page.getByRole("radio", { name: "Totals", exact: true }).click();
+  await expectNoHorizontalOverflow(page);
 });
 
 test("big-game counts always show and season highs link to their game", async ({ page }, testInfo) => {

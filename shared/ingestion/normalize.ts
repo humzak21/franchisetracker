@@ -5,7 +5,7 @@
  */
 import { normalizePosition, type Position } from "../domain/positions";
 import { resolveTeamAbbr } from "../domain/teams";
-import { STAT_CATEGORIES, extractionField, type RawStatKey, type StatLine } from "../stats/registry";
+import { RAW_STAT_CATEGORIES, extractionField, type RawStatKey, type StatLine } from "../stats/registry";
 import { TEAM_STAT_KEYS, parseClock, offensiveYards, type TeamStatLine } from "../stats/teamRegistry";
 import { nameTokens } from "./nameMatch";
 import { rawKeysInCategory, teamExtractionField } from "./schema";
@@ -97,7 +97,7 @@ export function normalizeBoxScore(raw: unknown): Normalized<BoxScoreDraft> {
   const byKey = new Map<string, DraftLine>();
   const ids = new Set<string>();
 
-  for (const category of STAT_CATEGORIES) {
+  for (const category of RAW_STAT_CATEGORIES) {
     for (const row of rows(obj[category])) {
       const name = str(row.name);
       if (!name) continue;

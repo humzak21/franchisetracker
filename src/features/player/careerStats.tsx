@@ -4,7 +4,7 @@ import {
   aggregateLines,
   CATEGORY_GROUPS,
   preferLogs,
-  STAT_CATEGORIES,
+  RAW_STAT_CATEGORIES,
   STAT_CATEGORY_LABELS,
   STAT_REGISTRY,
   statsWithData,
@@ -63,14 +63,14 @@ export function totalsRow(rows: readonly CareerRow[]): CareerRow {
 
 /**
  * Stats worth a column: recorded raw stats, plus derived stats whose inputs were all recorded.
- * Categories for the player's own position group come first.
+ * Categories for the player's own position group come first; fantasy points close the row.
  */
 export function visibleStats(position: Position, rows: readonly CareerRow[]): StatKey[] {
   const group = positionGroupOf(position);
-  const own = STAT_CATEGORIES.filter((c) => CATEGORY_GROUPS[c].includes(group));
-  const rest = STAT_CATEGORIES.filter((c) => !own.includes(c));
+  const own = RAW_STAT_CATEGORIES.filter((c) => CATEGORY_GROUPS[c].includes(group));
+  const rest = RAW_STAT_CATEGORIES.filter((c) => !own.includes(c));
   return statsWithData(
-    [...own, ...rest],
+    [...own, ...rest, "fantasy"],
     rows.map((r) => ({ line: r.line, games: r.games })),
   );
 }

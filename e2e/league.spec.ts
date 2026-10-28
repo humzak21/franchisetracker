@@ -92,6 +92,37 @@ test("weekly awards, and a team award given and taken back", async ({ page }, in
   await expect(page.getByText(name)).toHaveCount(0);
 });
 
+// Projects share one backend, so each overrides its own award and leaves the others' counts alone.
+const COUNTED: Record<string, [award: string, leader: string]> = {
+  desktop: ["Ball Hawk", "Sauce Gardner"],
+  phone: ["Sack Leader", "Zach Sieler"],
+  "phone-large": ["Heat Seeker", "Terrel Bernard"],
+};
+
+test("season awards counted from the stats, overridden by hand and back", async ({ page }, info) => {
+  const [award, leader] = COUNTED[info.project.name] ?? COUNTED.desktop!;
+  await page.goto("/awards");
+  await page.getByRole("radio", { name: /^Season/ }).click();
+  const slot = page.getByRole("listitem").filter({ hasText: award });
+  await expect(slot.getByText(leader)).toBeVisible();
+
+  await slot.getByRole("button", { name: `${award} actions` }).click();
+  await page.getByRole("button", { name: "Assign winner" }).click();
+  const sheet = page.getByRole("dialog", { name: `Assign ${award}` });
+  await sheet.getByLabel("Search players").fill("Christian Gon");
+  await sheet
+    .getByRole("list", { name: "Search results" })
+    .getByRole("button", { name: /Christian Gonzalez/ })
+    .click();
+  await expect(slot.getByText("Christian Gonzalez")).toBeVisible();
+  await expect(slot.getByText(leader)).toHaveCount(0);
+
+  await slot.getByRole("button", { name: `${award} actions` }).click();
+  await page.getByRole("button", { name: "Back to the count" }).click();
+  await expect(slot.getByText(leader)).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
 test("the draft: a graded class, the pick inventory and the board", async ({ page }, info) => {
   await openWithSeason(page, "/draft", "draft", 2024);
   await page.getByRole("radio", { name: "Draft", exact: true }).click();

@@ -308,6 +308,25 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 ---
 
+## Sprint 12 — League stats, fantasy points, more awards (M)
+
+**Goal:** the season awards can be argued from the numbers: the whole league's stats sit next to ours, every table scores fantasy points, and the awards Madden does not give are counted.
+
+- Fantasy points (ESPN default PPR) as a column in every stat table.
+- Stats → League: everyone's season totals by position group, ours from the logs and the rest from captured season stats screens; and every team's season from Madden's league team stats screen (offense, defense, conversions, red zone, turnovers), captured or typed in.
+- Awards: Madden's best-at-each-position awards; Fantasy Player of the Year, Sack Leader, Ball Hawk, Heat Seeker and the most players of the week counted from the stats; any season award assigned or overridden by hand.
+
+**Done when:** a season stats screen of another team lands in League stats, the counted awards name its leaders, and an award assigned by hand replaces the count on phone and desktop.
+
+**As built:**
+
+- `fantasy` is a stat category with two derived stats, `fantasyPts` and `fantasyPpg`, that list no inputs, so they are a column wherever a table has rows. Box score categories are `RAW_STAT_CATEGORIES`; extraction schemas and line editors read those. Season rows pick up a fantasy season high after `npx convex run stats/rebuild:all`.
+- `convex/lib/leagueStats.ts` merges the user team's logs with `reportedSeasonStats` for every team; `stats/league:bySeason` serves the League view and `awards/counted:bySeason` the counted awards (`shared/awards/counted.ts`). Counted awards are not stored: an assigned winner (`awards/assign`) is an ordinary award row that wins over the count.
+- The yearly awards import offers the new best-at-position awards; counted awards are never extracted.
+- `league_team_stats` reads any of the five tabs into one array per tab (headings repeat across tabs with different meanings, so the tab decides the field) and merges each team's tabs into its `leagueTeamStats` row. Only counts are read; rates, margins, differentials and per-game figures come from `shared/stats/leagueTeamRegistry.ts` (tab layout in `leagueTeamTabs.ts`), so rates show one decimal where Madden rounds down.
+
+---
+
 ## Later (not scheduled)
 
 - Scoring plays and drive charts if a Madden screen provides them cleanly.

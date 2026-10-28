@@ -1,5 +1,9 @@
-/** Commits for the season number screens: season stats, league leaders, team season stats, standings. */
+/**
+ * Commits for the season number screens: season stats, league leaders, team season stats, league
+ * team stats, standings.
+ */
 import { isRawStatKey } from "../../shared/stats";
+import { isLeagueTeamRawKey } from "../../shared/stats/leagueTeamRegistry";
 import { isTeamSeasonStatKey } from "../../shared/stats/teamSeasonRegistry";
 import type { MutationCtx } from "../_generated/server";
 import { invalid } from "../lib/errors";
@@ -109,6 +113,35 @@ export async function commitTeamSeasonStats(ctx: MutationCtx, commit: RowCommit)
         teamId: team._id,
         statKey,
         ...fields,
+      });
+    }
+  }
+  return {};
+}
+
+/** Merges each team's numbers into its season row; a tab captured again replaces its own values. */
+export async function commitLeagueTeamStats(ctx: MutationCtx, commit: RowCommit): Promise<RowCommitResult> {
+  const team = teamCache(ctx);
+  for (const row of commit.rows) {
+    if (!row.teamAbbr) continue;
+    const teamId = (await team(row.teamAbbr))._id;
+    const stats = Object.fromEntries(
+      Object.entries(row.values).filter(
+        (e): e is [string, number] => isLeagueTeamRawKey(e[0]) && typeof e[1] === "number",
+      ),
+    );
+    const existing = await ctx.db
+      .query("leagueTeamStats")
+      .withIndex("by_seasonId_and_teamId", (q) => q.eq("seasonId", commit.season._id).eq("teamId", teamId))
+      .unique();
+    if (existing)
+      await ctx.db.patch("leagueTeamStats", existing._id, { stats: { ...existing.stats, ...stats } });
+    else {
+      await ctx.db.insert("leagueTeamStats", {
+        franchiseId: commit.franchise._id,
+        seasonId: commit.season._id,
+        teamId,
+        stats,
       });
     }
   }

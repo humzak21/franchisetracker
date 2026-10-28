@@ -10,7 +10,7 @@ import {
   CATEGORY_GROUPS,
   gameHighlights,
   isRawStatKey,
-  STAT_CATEGORIES,
+  RAW_STAT_CATEGORIES,
   STAT_CATEGORY_LABELS,
   STAT_REGISTRY,
   statsWithData,
@@ -31,10 +31,10 @@ type Row = FunctionReturnType<typeof api.players.gameLog.bySeason>[number];
 
 function columns(position: Position, rows: readonly Row[]): { cols: DataColumn<Row>[]; primary: string[] } {
   const group = positionGroupOf(position);
-  const own = STAT_CATEGORIES.filter((c) => CATEGORY_GROUPS[c].includes(group));
-  const rest = STAT_CATEGORIES.filter((c) => !own.includes(c));
+  const own = RAW_STAT_CATEGORIES.filter((c) => CATEGORY_GROUPS[c].includes(group));
+  const rest = RAW_STAT_CATEGORIES.filter((c) => !own.includes(c));
   const stats = statsWithData(
-    [...own, ...rest],
+    [...own, ...rest, "fantasy"],
     rows.map((r) => ({ line: r.stats as StatLine })),
     { singleGame: true },
   );
