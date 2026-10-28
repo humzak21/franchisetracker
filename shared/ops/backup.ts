@@ -34,6 +34,7 @@ export const BACKUP_TABLES = [
   "streaks",
   "milestones",
   "awards",
+  "coaches",
   "draftPicks",
   "transactions",
   "draftPickInventory",

@@ -1,5 +1,6 @@
 export * from "./awards";
 export * from "./calendar";
+export * from "./coaches";
 export * from "./coaching";
 export * from "./goals";
 export * from "./positions";

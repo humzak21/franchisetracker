@@ -78,7 +78,7 @@ describe("counted awards", () => {
     expect(ballHawk).toHaveLength(1);
     expect(ballHawk[0]).toMatchObject({ name: "Sauce Gardner", isUser: false, team: { abbr: "NYJ" } });
 
-    await owner.mutation(api.awards.assign.assign, { seasonId, type: "BestDB", playerId });
+    await owner.mutation(api.awards.assign.assign, { seasonId, type: "BestDB", conference: "AFC", playerId });
     await owner.mutation(api.awards.assign.clear, { seasonId, type: "BallHawk" });
     awards = await owner.query(api.awards.awards.bySeason, { seasonId });
     expect(awards.filter((a) => a.type === "BallHawk")).toEqual([]);

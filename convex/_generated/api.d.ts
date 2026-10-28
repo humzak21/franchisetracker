@@ -12,6 +12,7 @@ import type * as account from "../account.js";
 import type * as auth from "../auth.js";
 import type * as awards_assign from "../awards/assign.js";
 import type * as awards_awards from "../awards/awards.js";
+import type * as awards_coaches from "../awards/coaches.js";
 import type * as awards_counted from "../awards/counted.js";
 import type * as crons from "../crons.js";
 import type * as dashboard_activity from "../dashboard/activity.js";
@@ -65,6 +66,7 @@ import type * as ingestion_commitRecordRows from "../ingestion/commitRecordRows.
 import type * as ingestion_commitRows from "../ingestion/commitRows.js";
 import type * as ingestion_commitSchedule from "../ingestion/commitSchedule.js";
 import type * as ingestion_commitSeasonRows from "../ingestion/commitSeasonRows.js";
+import type * as ingestion_commitSet from "../ingestion/commitSet.js";
 import type * as ingestion_commitTeamStats from "../ingestion/commitTeamStats.js";
 import type * as ingestion_corrections from "../ingestion/corrections.js";
 import type * as ingestion_extract from "../ingestion/extract.js";
@@ -88,6 +90,7 @@ import type * as ingestion_shortcutUploads from "../ingestion/shortcutUploads.js
 import type * as ingestion_tokens from "../ingestion/tokens.js";
 import type * as ingestion_uploads from "../ingestion/uploads.js";
 import type * as ingestion_usage from "../ingestion/usage.js";
+import type * as ingestion_weeklyAwards from "../ingestion/weeklyAwards.js";
 import type * as league_board from "../league/board.js";
 import type * as league_logos from "../league/logos.js";
 import type * as league_records from "../league/records.js";
@@ -100,6 +103,7 @@ import type * as league_teams from "../league/teams.js";
 import type * as leagueGames_importSchedule from "../leagueGames/importSchedule.js";
 import type * as leagueGames_scores from "../leagueGames/scores.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_coaches from "../lib/coaches.js";
 import type * as lib_draftValidators from "../lib/draftValidators.js";
 import type * as lib_errors from "../lib/errors.js";
 import type * as lib_franchise from "../lib/franchise.js";
@@ -193,6 +197,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   "awards/assign": typeof awards_assign;
   "awards/awards": typeof awards_awards;
+  "awards/coaches": typeof awards_coaches;
   "awards/counted": typeof awards_counted;
   crons: typeof crons;
   "dashboard/activity": typeof dashboard_activity;
@@ -246,6 +251,7 @@ declare const fullApi: ApiFromModules<{
   "ingestion/commitRows": typeof ingestion_commitRows;
   "ingestion/commitSchedule": typeof ingestion_commitSchedule;
   "ingestion/commitSeasonRows": typeof ingestion_commitSeasonRows;
+  "ingestion/commitSet": typeof ingestion_commitSet;
   "ingestion/commitTeamStats": typeof ingestion_commitTeamStats;
   "ingestion/corrections": typeof ingestion_corrections;
   "ingestion/extract": typeof ingestion_extract;
@@ -269,6 +275,7 @@ declare const fullApi: ApiFromModules<{
   "ingestion/tokens": typeof ingestion_tokens;
   "ingestion/uploads": typeof ingestion_uploads;
   "ingestion/usage": typeof ingestion_usage;
+  "ingestion/weeklyAwards": typeof ingestion_weeklyAwards;
   "league/board": typeof league_board;
   "league/logos": typeof league_logos;
   "league/records": typeof league_records;
@@ -281,6 +288,7 @@ declare const fullApi: ApiFromModules<{
   "leagueGames/importSchedule": typeof leagueGames_importSchedule;
   "leagueGames/scores": typeof leagueGames_scores;
   "lib/auth": typeof lib_auth;
+  "lib/coaches": typeof lib_coaches;
   "lib/draftValidators": typeof lib_draftValidators;
   "lib/errors": typeof lib_errors;
   "lib/franchise": typeof lib_franchise;

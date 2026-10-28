@@ -18,6 +18,7 @@ import { ScoreBug } from "@/components/team/ScoreBug";
 import { TeamChip } from "@/components/team/TeamChip";
 import { TeamLogo } from "@/components/team/TeamLogo";
 import { Button } from "@/components/ui/button";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { Badge } from "@/components/ui/misc";
 import {
   BUF,
@@ -268,7 +269,7 @@ export const SPECIMENS: Specimen[] = [
   },
   {
     id: "controls",
-    name: "Button · Badge · ActionMenu · Segmented · BottomSheet",
+    name: "Button · Badge · ActionMenu · Segmented · BottomSheet · Disclosure",
     render: () => (
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2">
@@ -288,6 +289,11 @@ export const SPECIMENS: Specimen[] = [
         </div>
         <SegmentedDemo />
         <SheetDemo />
+        <Disclosure title="Not awarded yet" count={3}>
+          <p className="text-sm text-muted-foreground">
+            What a screen keeps out of the way until it is wanted.
+          </p>
+        </Disclosure>
       </div>
     ),
   },

@@ -73,7 +73,7 @@ export async function commitLeagueLeaders(ctx: MutationCtx, commit: RowCommit): 
   const values = commit.rows.map((r) => numberOf(r, "value"));
   for (const [i, row] of commit.rows.entries()) {
     const teamId = row.teamAbbr ? (await team(row.teamAbbr))._id : undefined;
-    const player = teamId ? await rowPlayer(ctx, commit, row, teamId) : null;
+    const player = row.name || row.playerId ? await rowPlayer(ctx, commit, row, teamId) : null;
     const value = values[i] ?? 0;
     await ctx.db.insert("leagueLeaders", {
       franchiseId: commit.franchise._id,

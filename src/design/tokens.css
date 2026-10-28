@@ -65,6 +65,8 @@
   --color-ot: var(--ot);
   --color-warn: var(--warn);
   --color-low-conf: var(--low-conf);
+  --color-afc: var(--afc);
+  --color-nfc: var(--nfc);
   --color-destructive: var(--loss);
 
   /* Position colors (`shared/domain/positions.ts` POSITION_COLORS). */
@@ -113,6 +115,10 @@
   --warn: oklch(0.66 0.16 65);
   --low-conf: oklch(0.7 0.17 65);
 
+  /* Conference marks: the AFC's red and the NFC's blue. */
+  --afc: oklch(0.52 0.19 22);
+  --nfc: oklch(0.47 0.15 258);
+
   --elite-1: color-mix(in oklch, var(--team-accent) 14%, transparent);
   --elite-2: var(--team-accent);
   --elite-2-foreground: var(--team-accent-foreground);
@@ -153,6 +159,9 @@
   --ot: oklch(0.72 0.15 295);
   --warn: oklch(0.8 0.15 75);
   --low-conf: oklch(0.82 0.15 75);
+
+  --afc: oklch(0.7 0.16 22);
+  --nfc: oklch(0.72 0.12 255);
 
   --elite-1: color-mix(in oklch, var(--team-accent) 22%, transparent);
 
