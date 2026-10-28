@@ -82,8 +82,19 @@ export function contractInput(draft: ContractDraft): Contract | undefined {
   return Object.keys(contract).length ? contract : undefined;
 }
 
-/** A new move or injury started from a player (a roster row, the player page): him, and his team then. */
-export type Prefill = { person: Person; teamId?: Id<"teams"> };
+/** A player a new move starts from, and the team he plays for when known. */
+export type PrefillPlayer = { person: Person; teamId?: Id<"teams"> };
+
+/**
+ * A new move or injury started from players (a roster row, the player page, a batch picked on the
+ * roster or the players list). Moves other than trades record one transaction per player.
+ */
+export type Prefill = { players: PrefillPlayer[] };
+
+/** The prefill for one player. */
+export const prefillOf = (person: Person, teamId?: Id<"teams">): Prefill => ({
+  players: [{ person, teamId }],
+});
 
 /** Which sheet is open, and the move or injury it edits (none for a new one, maybe started from a player). */
 export type Editing =
@@ -125,16 +136,18 @@ export function tradeSides(move: Move): [TradeSide, TradeSide] {
 }
 
 /**
- * A new trade's two sides. Team A is the user team; a player started from goes on the side of
- * the team he plays for (Team B when that is another team or unknown), so trading him away and
- * trading for him both start with him in place.
+ * A new trade's two sides. Team A is the user team; each player started from goes on the side of
+ * the team he plays for (Team B when that is another team or unknown, the first such team), so
+ * trading players away and trading for them both start with them in place.
  */
 export function newTradeSides(userTeamId: Id<"teams">, prefill?: Prefill): [TradeSide, TradeSide] {
-  const a: TradeSide = { teamId: userTeamId, players: [], picks: [] };
-  const b: TradeSide = { players: [], picks: [] };
-  if (!prefill) return [a, b];
-  if (prefill.teamId === userTeamId) return [{ ...a, players: [prefill.person] }, b];
-  return [a, { teamId: prefill.teamId, players: [prefill.person], picks: [] }];
+  const players = prefill?.players ?? [];
+  const ours = players.filter((p) => p.teamId === userTeamId);
+  const theirs = players.filter((p) => p.teamId !== userTeamId);
+  const a: TradeSide = { teamId: userTeamId, players: ours.map((p) => p.person), picks: [] };
+  const b: TradeSide = { players: theirs.map((p) => p.person), picks: [] };
+  const other = theirs.find((p) => p.teamId)?.teamId;
+  return [a, theirs.length > 0 ? { teamId: other, ...b } : b];
 }
 
 /** The save arguments for a trade between the two sides, from the first side's view. */

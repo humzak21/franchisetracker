@@ -44,10 +44,10 @@ export function InjurySheet({
   const [person, setPerson] = useState<Person | null>(
     p?.playerId
       ? { kind: "existing", playerId: p.playerId, name: p.name, position: p.position }
-      : (prefill?.person ?? null),
+      : (prefill?.players[0]?.person ?? null),
   );
   const [teamId, setTeamId] = useState<Id<"teams">>(
-    injury?.team?._id ?? prefill?.teamId ?? context.userTeamId,
+    injury?.team?._id ?? prefill?.players[0]?.teamId ?? context.userTeamId,
   );
   const [weekKey, setWeekKey] = useState<WeekKey | undefined>(injury?.weekKey);
   const [injuryType, setInjuryType] = useState(injury?.injuryType ?? "");

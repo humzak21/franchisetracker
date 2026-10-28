@@ -26,7 +26,7 @@ export function PositionTable({ group, year, rows, columns, onEdit }: PositionTa
         columns={columns}
         getRowId={(r) => r.entry._id}
         identityColumn="player"
-        primaryColumns={["position", "ovr", "age"]}
+        primaryColumns={["position", "ovr", "age", "select"]}
         caption={`${year} ${title.toLowerCase()}`}
         onEdit={onEdit}
       />

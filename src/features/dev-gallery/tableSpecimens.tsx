@@ -3,6 +3,10 @@ import { useState } from "react";
 import { statValue } from "@shared/stats";
 import { DataTable, statColumn, type DataColumn } from "@/components/data/DataTable";
 import { EmptyState } from "@/components/data/EmptyState";
+import { SelectionBar } from "@/components/data/SelectionBar";
+import { Button } from "@/components/ui/button";
+import { SelectBox } from "@/components/ui/SelectBox";
+import { useSelection } from "@/lib/hooks/useSelection";
 import { PlayerChip } from "@/components/player/PlayerChip";
 import { RECEIVERS_2025, type ReceiverRow } from "./fixtures";
 import type { Specimen } from "./specimens";
@@ -223,4 +227,43 @@ export const TABLE_SPECIMENS: Specimen[] = [
       </div>
     ),
   },
+  {
+    id: "selection",
+    name: "SelectionBar + SelectBox",
+    note: "Pick rows for a batch move: a box per row, select all with a partial state, actions while anything is picked.",
+    render: () => <SelectionDemo />,
+  },
 ];
+
+const PICKABLE = ["Drake Maye", "Stefon Diggs", "Hunter Henry"];
+
+function SelectionDemo() {
+  const selection = useSelection(PICKABLE);
+  return (
+    <div className="space-y-2">
+      <SelectionBar
+        count={selection.picked.length}
+        total={PICKABLE.length}
+        state={selection.state}
+        onToggleAll={selection.toggleAll}
+        onClear={selection.clear}
+      >
+        <Button size="sm" variant="destructive">
+          Release
+        </Button>
+      </SelectionBar>
+      <ul className="space-y-1">
+        {PICKABLE.map((name) => (
+          <li key={name} className="flex min-h-11 items-center gap-2 text-sm">
+            <SelectBox
+              checked={selection.has(name)}
+              onChange={() => selection.toggle(name)}
+              label={`Pick ${name}`}
+            />
+            {name}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

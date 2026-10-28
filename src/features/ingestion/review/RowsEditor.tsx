@@ -1,4 +1,4 @@
-import { CheckCheck, Plus } from "lucide-react";
+import { CheckCheck, ListX, Plus } from "lucide-react";
 import { useState } from "react";
 import type { Id } from "@convex/_generated/dataModel";
 import { emptyRow, type NewEntry } from "@shared/ingestion/manual";
@@ -22,6 +22,8 @@ export function RowsEditor() {
   const { spec } = rowTarget(draft.target);
   const fields = spec.fields(draft);
   const accepted = draft.rows.filter((r) => r.accepted).length;
+  // One button flips the whole list: accept every row, or clear them all to pick a few.
+  const allAccepted = draft.rows.length > 0 && accepted === draft.rows.length;
   const addRow = (who?: NewEntry<Id<"players">>) =>
     update((d) => (isRowDraft(d) ? { ...d, rows: [...d.rows, emptyRow(spec, d, who)] } : d));
 
@@ -53,14 +55,14 @@ export function RowsEditor() {
             <Button
               size="sm"
               variant="outline"
-              disabled={accepted === draft.rows.length}
+              disabled={draft.rows.length === 0}
               onClick={() =>
                 update((d) =>
-                  "rows" in d ? { ...d, rows: d.rows.map((r) => ({ ...r, accepted: true })) } : d,
+                  "rows" in d ? { ...d, rows: d.rows.map((r) => ({ ...r, accepted: !allAccepted })) } : d,
                 )
               }
             >
-              <CheckCheck /> Accept all
+              {allAccepted ? <ListX /> : <CheckCheck />} {allAccepted ? "Deselect all" : "Select all"}
             </Button>
           </div>
         }

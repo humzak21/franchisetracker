@@ -4,6 +4,7 @@
  */
 import { v } from "convex/values";
 import { ageInSeason } from "../../shared/players/format";
+import { onRoster } from "../../shared/roster/averages";
 import type { Doc, Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
@@ -26,6 +27,8 @@ const vRow = v.object({
   /** Franchise seasons on this team's roster. */
   seasons: v.number(),
   latestYear: v.number(),
+  /** Still on this team's roster in his latest season: not released or traded away. */
+  onRoster: v.boolean(),
   isReal: v.boolean(),
   retired: v.boolean(),
   headshotUrl: v.union(v.string(), v.null()),
@@ -72,6 +75,7 @@ export const byTeam = query({
           age: entry.age ?? ageInSeason(player, year),
           seasons: count,
           latestYear: year,
+          onRoster: onRoster(entry.status),
           isReal: player.isReal,
           retired: player.retired,
           headshotUrl: urls.get(playerId) ?? null,
