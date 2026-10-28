@@ -71,6 +71,18 @@ export function fixtureRows(
           { rank: 3, name: "P. Mahomes", team: "KC", value: 1398, ...unsure("value") },
         ],
       };
+    case "records_list":
+      return {
+        book: "league",
+        scope: "career",
+        split: "regular",
+        stat: "sacks",
+        rows: [
+          { rank: 1, name: "Bruce Smith", team: "BUF", year: 2003, value: 200, ...sure },
+          { rank: 2, name: "Reggie White", team: "PHI", year: 2000, value: 198, ...sure },
+          { rank: 3, name: "Kevin Greene", team: "PIT", year: 1999, value: 160, ...unsure("team") },
+        ],
+      };
     case "team_season_stats":
       return {
         team: us,

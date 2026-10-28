@@ -167,7 +167,8 @@ export type RankedEntry<I extends string = string> = {
   typedId?: I;
 };
 
-const normalize = (name: string) => name.toLowerCase().replace(/[^a-z]/g, "");
+/** Names compared for "the same holder": case, spaces and punctuation aside. */
+export const normalizeName = (name: string) => name.toLowerCase().replace(/[^a-z]/g, "");
 
 /**
  * A list as shown: computed entries with the typed ones merged in, best first, ties sharing a
@@ -185,7 +186,7 @@ export function rankList<I extends string>(
     typed.some((t) => {
       const samePlayer = t.playerId
         ? t.playerId === e.playerId
-        : normalize(t.name) === normalize(nameOf(e.playerId) ?? "");
+        : normalizeName(t.name) === normalizeName(nameOf(e.playerId) ?? "");
       return samePlayer && (scope === "career" || t.year === undefined || t.year === e.year);
     });
   const merged: Omit<RankedEntry<I>, "rank">[] = [

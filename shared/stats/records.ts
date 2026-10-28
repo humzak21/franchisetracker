@@ -9,6 +9,9 @@ import { RAW_STAT_KEYS, RAW_STATS, type RawStatKey, type StatLine } from "./regi
 export const RECORD_SCOPES = ["game", "season", "career"] as const;
 export type RecordScope = (typeof RECORD_SCOPES)[number];
 
+export const isRecordScope = (value: string): value is RecordScope =>
+  (RECORD_SCOPES as readonly string[]).includes(value);
+
 export const RECORD_SCOPE_LABELS: Record<RecordScope, string> = {
   game: "Single game",
   season: "Season",
