@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { MAX_IMAGE_BYTES, TOO_LARGE } from "../../shared/ingestion/limits";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { SAMPLE_START_YEAR } from "../dev/fixtures";
@@ -182,6 +183,17 @@ describe("ingestion", () => {
     const sets = await owner.query(api.ingestion.inbox.list, {});
     expect(sets).toHaveLength(1);
     expect(sets[0]!.images).toHaveLength(4);
+  });
+
+  test("an oversized upload is refused", async () => {
+    const { t, owner } = await setup();
+    const big = await t.run((ctx) =>
+      ctx.storage.store(new Blob([new Uint8Array(MAX_IMAGE_BYTES + 1)], { type: "image/png" })),
+    );
+    await expect(
+      owner.mutation(api.ingestion.uploads.create, { storageIds: [big], source: "web" }),
+    ).rejects.toThrow(TOO_LARGE);
+    expect(await owner.query(api.ingestion.inbox.list, {})).toEqual([]);
   });
 
   test("without an OpenRouter key outside test mode, extraction fails with a clear error", async () => {

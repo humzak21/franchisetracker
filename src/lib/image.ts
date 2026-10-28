@@ -3,14 +3,25 @@
 export type PreparedImage = { blob: Blob; width?: number; height?: number };
 
 /**
- * Long edge after downscaling. Box score digits stay sharp at this size, and a 12 MP phone
- * photo shrinks to a fraction of the upload time and model tokens.
+ * Long edge after downscaling. The vision models scale anything bigger down to about this
+ * before reading it, so extra pixels only cost Convex egress each time a model or a screen
+ * fetches the file.
  */
-export const MAX_EDGE = 2400;
+export const MAX_EDGE = 2048;
+/** High enough that small box score digits stay crisp; a screenshot PNG shrinks several times over. */
+export const JPEG_QUALITY = 0.85;
+
+/** The size to draw at: the long edge capped at `MAX_EDGE`, never upscaled. */
+export function fitWithin(width: number, height: number): { width: number; height: number } {
+  const scale = Math.min(1, MAX_EDGE / Math.max(width, height));
+  return { width: Math.round(width * scale), height: Math.round(height * scale) };
+}
 
 /**
- * Downscales large photos to JPEG and reads dimensions. Anything the browser cannot decode
- * (HEIC in some browsers) is sent as is; the model reads it either way.
+ * Re-encodes every image as a downscaled JPEG and reads its dimensions: screenshots arrive as
+ * PNGs several megabytes each, and every byte stored is paid for again whenever it is read. A
+ * JPEG already within size is kept if it is the smaller file. Anything the browser cannot
+ * decode (HEIC in some browsers) is sent as is; the model reads it either way.
  */
 export async function prepareImage(file: Blob): Promise<PreparedImage> {
   let bitmap: ImageBitmap;
@@ -19,19 +30,19 @@ export async function prepareImage(file: Blob): Promise<PreparedImage> {
   } catch {
     return { blob: file };
   }
-  const { width, height } = bitmap;
-  const scale = Math.min(1, MAX_EDGE / Math.max(width, height));
-  if (scale === 1 && (file.type === "image/jpeg" || file.type === "image/png")) {
-    bitmap.close();
-    return { blob: file, width, height };
-  }
+  const original = { width: bitmap.width, height: bitmap.height };
+  const size = fitWithin(original.width, original.height);
   const canvas = document.createElement("canvas");
-  canvas.width = Math.round(width * scale);
-  canvas.height = Math.round(height * scale);
-  canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  canvas.width = size.width;
+  canvas.height = size.height;
+  canvas.getContext("2d")?.drawImage(bitmap, 0, 0, size.width, size.height);
   bitmap.close();
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
-  return blob ? { blob, width: canvas.width, height: canvas.height } : { blob: file, width, height };
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/jpeg", JPEG_QUALITY),
+  );
+  const keepOriginal =
+    !blob || (file.type === "image/jpeg" && size.width === original.width && file.size <= blob.size);
+  return keepOriginal ? { blob: file, ...original } : { blob, ...size };
 }
 
 /** Image files from a paste or drop, ignoring text and other file types. */

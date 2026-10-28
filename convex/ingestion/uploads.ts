@@ -3,6 +3,7 @@
  * everything it needs starts extraction straight away. The inbox listing is in `inbox.ts`.
  */
 import { v } from "convex/values";
+import { MAX_IMAGE_BYTES, TOO_LARGE } from "../../shared/ingestion/limits";
 import { INGESTION_TARGETS } from "../../shared/ingestion/targets";
 import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, type MutationCtx } from "../_generated/server";
@@ -12,8 +13,6 @@ import { invalid, must } from "../lib/errors";
 import { activeFranchise } from "../lib/franchise";
 import { vUploadSource, vWeekKey } from "../lib/validators";
 import { MAX_SET_SIZE, readyToExtract, requireSet, startExtraction } from "./sets";
-
-const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
 
 export const vContext = {
   targetKey: v.optional(vTargetKey),
@@ -65,10 +64,9 @@ export async function insertUploads(ctx: MutationCtx, args: NewUploads): Promise
   let sharedKey: string | null = null;
   for (const [i, storageId] of args.storageIds.entries()) {
     const file = must(await ctx.db.system.get("_storage", storageId), "Uploaded file");
-    if (!file.contentType?.startsWith("image/") || file.size > MAX_IMAGE_BYTES) {
-      await ctx.storage.delete(storageId);
-      throw invalid("Only images up to 25 MB can be imported");
-    }
+    // The throw rolls back any delete here, so the callers clean up: the Shortcut endpoint deletes
+    // what it stored, and the web app refuses an oversized file before uploading it.
+    if (!file.contentType?.startsWith("image/") || file.size > MAX_IMAGE_BYTES) throw invalid(TOO_LARGE);
     const id = await ctx.db.insert("uploads", {
       franchiseId: franchise._id,
       storageId,
