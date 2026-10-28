@@ -1,9 +1,15 @@
-/** The league schedule screen: one week's games across the league, with final scores once played. */
-import { WEEK_KEYS, weekLabel } from "../../domain";
+/**
+ * The league schedule screen: a week's games across the league, with final scores once played.
+ * One set may hold several weeks' screens (the whole schedule at the start of a season); each
+ * row then carries the week from its screen's header.
+ */
+import { WEEK_KEYS, weekLabel, type WeekKey } from "../../domain";
 import type { DraftWarning } from "../types";
 import type { RowSpec, RowsDraft } from "./types";
 
 const teamOf = (value: unknown) => (typeof value === "string" ? value : null);
+
+const weekOf = (value: unknown) => (typeof value === "string" ? value : "");
 
 /** A team plays once a week, scores come in pairs, and a team never plays itself. */
 function scheduleRules(draft: RowsDraft): DraftWarning[] {
@@ -17,17 +23,19 @@ function scheduleRules(draft: RowsDraft): DraftWarning[] {
     if (away && away === home) {
       out.push({ path: `${path}.homeTeam`, message: `${away} cannot play itself`, severity: "error" });
     }
+    const week = weekOf(row.values.week);
     for (const team of [away, home]) {
       if (!team) continue;
-      const other = seen.get(team);
+      const key = `${week}|${team}`;
+      const other = seen.get(key);
       if (other && other !== row.id) {
         out.push({
           path: `${path}.awayTeam`,
-          message: `${team} is in two games this week`,
+          message: `${team} is in two games ${week ? `in ${weekLabel(week as WeekKey, "long")}` : "this week"}`,
           severity: "error",
         });
       }
-      seen.set(team, row.id);
+      seen.set(key, row.id);
     }
     const scores = [row.values.awayScore, row.values.homeScore].map((s) => typeof s === "number");
     if (scores[0] !== scores[1]) {
@@ -92,7 +100,16 @@ export const leagueScheduleSpec: RowSpec = {
       hint: "The home team's points: the second number in the result, null if not played",
     },
     { key: "time", label: "Game time", type: "text", hint: 'Game time as printed ("Thu 8:15 PM")' },
+    {
+      key: "week",
+      label: "Week",
+      type: "enum",
+      hint: "The week in the header of the screen this game is on (SEASON WEEK 15 is w15), else null",
+      options: WEEK_KEYS.map((w) => ({ value: w, label: weekLabel(w, "long") })),
+    },
   ],
-  identity: (row) => `${String(row.values.awayTeam ?? "?")}@${String(row.values.homeTeam ?? "?")}`,
+  // Division rivals meet twice a season, so a set of several weeks tells games apart by week.
+  identity: (row) =>
+    `${weekOf(row.values.week)}|${String(row.values.awayTeam ?? "?")}@${String(row.values.homeTeam ?? "?")}`,
   rules: scheduleRules,
 };

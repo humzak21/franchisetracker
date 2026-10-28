@@ -64,10 +64,13 @@ export const byWeek = query({
   },
 });
 
-/** The weeks of a season that have league games, in calendar order, for the week picker. */
+/**
+ * The weeks of a season that have league games, in calendar order, for the week picker, and the
+ * week to open on: the latest with a score, else the first (a schedule loaded before kickoff).
+ */
 export const weeks = query({
   args: { seasonId: v.id("seasons") },
-  returns: v.array(vWeekKey),
+  returns: v.object({ weeks: v.array(vWeekKey), current: v.union(vWeekKey, v.null()) }),
   handler: async (ctx, { seasonId }) => {
     await requireOwner(ctx);
     const franchise = await activeFranchise(ctx);
@@ -78,6 +81,8 @@ export const weeks = query({
       .withIndex("by_seasonId_and_weekKey", (q) => q.eq("seasonId", seasonId))
       .take(MAX_SEASON_GAMES);
     const present = new Set<WeekKey>(games.map((g) => g.weekKey));
-    return WEEK_KEYS.filter((w) => present.has(w)).sort((a, b) => weekIndex(a) - weekIndex(b));
+    const scored = new Set<WeekKey>(games.filter((g) => g.homeScore !== undefined).map((g) => g.weekKey));
+    const ordered = WEEK_KEYS.filter((w) => present.has(w)).sort((a, b) => weekIndex(a) - weekIndex(b));
+    return { weeks: ordered, current: ordered.findLast((w) => scored.has(w)) ?? ordered[0] ?? null };
   },
 });

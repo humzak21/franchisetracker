@@ -1,12 +1,13 @@
 /** The dashboard's recent transactions and injuries (FEATURES.md 5.1): the user team's latest few. */
 import { v } from "convex/values";
 import { weekIndex, type WeekKey } from "../../shared/domain";
+import { timingOrder } from "../../shared/transactions/timing";
 import type { Doc, Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { activeFranchise, playersById, teamsById } from "../lib/franchise";
 import { toTeamRef, vTeamRef } from "../lib/refs";
-import { vPosition, vTransactionType, vWeekKey } from "../lib/validators";
+import { vPosition, vTransactionPhase, vTransactionType, vWeekKey } from "../lib/validators";
 
 /** Newest rows read per table; the league-wide log is filtered down to the user team. */
 const SCAN = 200;
@@ -29,6 +30,7 @@ export const recent = query({
       v.object({
         _id: v.id("transactions"),
         type: vTransactionType,
+        phase: v.optional(vTransactionPhase),
         weekKey: v.optional(vWeekKey),
         players: v.array(vName),
         direction: v.union(v.literal("in"), v.literal("out")),
@@ -66,7 +68,11 @@ export const recent = query({
         .order("desc")
         .take(SCAN),
     ]);
-    const moves = moveRows.filter(ours).sort(newest).slice(0, SHOWN);
+    // Moves order by the league year (free agency before the draft), not only by week.
+    const moves = moveRows
+      .filter(ours)
+      .sort((a, b) => timingOrder(b.phase, b.weekKey) - timingOrder(a.phase, a.weekKey))
+      .slice(0, SHOWN);
     const injuries = injuryRows.filter(ours).sort(newest).slice(0, SHOWN);
     const ids = [
       ...moves.flatMap((m) =>
@@ -90,6 +96,7 @@ export const recent = query({
         return {
           _id: m._id,
           type: m.type,
+          phase: m.phase,
           weekKey: m.weekKey,
           players: (m.playersIn.length > 0 ? m.playersIn : m.playersOut).map(name),
           direction: m.playersIn.length > 0 ? ("in" as const) : ("out" as const),

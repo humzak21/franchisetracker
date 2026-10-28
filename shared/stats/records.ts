@@ -1,13 +1,16 @@
 /**
- * Franchise records and all-time leaders (FEATURES.md 5.5), ranked from the user team's
- * log-derived season rows. One ranking serves both: the record is the top entry, the leaders
- * board is the top ten. Every number comes from game logs.
+ * Records books and all-time leaders (FEATURES.md 5.5). The franchise-era book ranks the user
+ * team's log-derived season rows: the record is the top entry and the next nineteen stand behind
+ * it. The team and all-time books (`recordBoards.ts`) rank the same way over more rows.
  */
 import { aggregateLines } from "./aggregate";
 import { RAW_STAT_KEYS, RAW_STATS, type RawStatKey, type StatLine } from "./registry";
 
 export const RECORD_SCOPES = ["game", "season", "career"] as const;
 export type RecordScope = (typeof RECORD_SCOPES)[number];
+
+export const isRecordScope = (value: string): value is RecordScope =>
+  (RECORD_SCOPES as readonly string[]).includes(value);
 
 export const RECORD_SCOPE_LABELS: Record<RecordScope, string> = {
   game: "Single game",
@@ -20,7 +23,8 @@ export const RECORD_STATS: readonly RawStatKey[] = RAW_STAT_KEYS.filter(
   (k) => RAW_STATS[k].better === "higher",
 );
 
-export const LEADERS_LIMIT = 10;
+/** Entries every records list shows. */
+export const RECORD_TOP = 20;
 
 /** One player's season with the team: what `seasonPlayerStats` stores, plus the season's year. */
 export type SeasonRow<P extends string = string, S extends string = string> = {
@@ -41,7 +45,7 @@ export type RankEntry<P extends string = string, S extends string = string> = {
 };
 
 /** A single game's value for a stat: the best game for summed stats, the season figure for "longest" stats. */
-function gameValue(row: SeasonRow, stat: RawStatKey): number | undefined {
+export function gameValue(row: SeasonRow, stat: RawStatKey): number | undefined {
   return RAW_STATS[stat].aggregation === "max" ? row.totals[stat] : row.bests[stat];
 }
 
@@ -53,7 +57,7 @@ export function rankStat<P extends string, S extends string>(
   rows: readonly SeasonRow<P, S>[],
   stat: RawStatKey,
   scope: RecordScope,
-  limit: number = LEADERS_LIMIT,
+  limit: number = RECORD_TOP,
 ): RankEntry<P, S>[] {
   let entries: RankEntry<P, S>[];
   if (scope === "career") {

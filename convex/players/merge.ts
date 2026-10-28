@@ -6,6 +6,7 @@
 import { mergeAliases } from "../../shared/players/identity";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
+import { booksBuilt, startRecordBuild } from "../stats/recordBuild";
 import { refreshRecords } from "../stats/refreshRecords";
 import { refreshPlayerStreaks } from "../stats/refreshStreaks";
 import { recomputeCareer, recomputePlayerSeason } from "../stats/recompute";
@@ -167,5 +168,7 @@ export async function mergePlayers(ctx: MutationCtx, source: Doc<"players">, tar
     await refreshPlayerStreaks(ctx, franchise, kept);
     // Records name holders by id; rebuilding them drops the deleted duplicate from the book.
     if (lastGame) await refreshRecords(ctx, franchise, lastGame);
+    // The team and all-time books name him by id too: a rare event, so they are built again.
+    if (await booksBuilt(ctx, franchise._id)) await startRecordBuild(ctx, franchise._id);
   }
 }

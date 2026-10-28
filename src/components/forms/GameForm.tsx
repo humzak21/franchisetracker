@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
 import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { errorMessage } from "@/lib/errors";
 import {
   opponentOptions,
@@ -186,13 +187,12 @@ export function GameForm({
       {withNotes && (
         <label className="block space-y-1.5">
           <span className={label}>Notes</span>
-          <textarea
+          <Textarea
             aria-label="Notes"
             rows={3}
             value={value.notes}
             placeholder="What happened, who showed up, what to fix."
             onChange={(e) => set("notes", e.target.value)}
-            className="w-full resize-y rounded-lg border border-input bg-surface px-3 py-2.5 text-[15px] leading-relaxed placeholder:text-subtle-foreground focus-visible:border-primary focus-visible:outline-none sm:text-sm"
           />
         </label>
       )}

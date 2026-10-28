@@ -1,5 +1,5 @@
 import type { Id } from "@convex/_generated/dataModel";
-import { Field } from "./Field";
+import { Field } from "@/components/forms/Field";
 import { PeopleList } from "./PeopleList";
 import { PersonPicker } from "./PersonPicker";
 import { PickList } from "./PickList";

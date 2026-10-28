@@ -4,6 +4,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import type { Position } from "@shared/domain";
 import type { ActionMenuItem } from "@/components/ui/ActionMenu";
 import { useFranchise } from "../franchise";
+import { prefillOf } from "./forms/moveForm";
 import { useMoves } from "./MovesProvider";
 
 export type MovePlayer = {
@@ -24,7 +25,7 @@ export function useMoveActions(): (player: MovePlayer) => ActionMenuItem[] {
   return useCallback(
     ({ playerId, name, position, teamId }: MovePlayer) => {
       if (!ready) return [];
-      const prefill = { person: { kind: "existing" as const, playerId, name, position }, teamId };
+      const prefill = prefillOf({ kind: "existing", playerId, name, position }, teamId);
       const items: ActionMenuItem[] = [
         {
           id: "trade",

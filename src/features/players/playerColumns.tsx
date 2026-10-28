@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
-import { Check, Ellipsis } from "lucide-react";
+import { Ellipsis } from "lucide-react";
 import type { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { positionOrder } from "@shared/players/format";
@@ -11,19 +11,20 @@ import type { TeamLike } from "@/components/team/TeamLogo";
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/misc";
-import { cn } from "@/lib/cn";
+import { SelectBox } from "@/components/ui/SelectBox";
 
 export type DirectoryRow = FunctionReturnType<typeof api.players.directory.byTeam>["rows"][number];
 
-type Selection = { selected: ReadonlySet<Id<"players">>; toggle: (id: Id<"players">) => void; full: boolean };
+type Pick = { has: (id: Id<"players">) => boolean; toggle: (id: Id<"players">) => void };
 
 /**
- * Players index columns: a compare toggle, the player linking to their page, sortable facts, then
- * a menu to record a transaction or injury for him (none until the sheets can open).
+ * Players index columns: a box to pick him (to compare, or for a batch move), the player linking
+ * to their page, sortable facts, then a menu to record a transaction or injury for him (none
+ * until the sheets can open).
  */
 export function playerColumns(
   team: TeamLike,
-  selection: Selection,
+  pick: Pick,
   actionsFor: (row: DirectoryRow) => ActionMenuItem[],
 ): DataColumn<DirectoryRow>[] {
   return [
@@ -34,26 +35,13 @@ export function playerColumns(
       searchable: true,
       minWidth: 220,
       cell: (r) => {
-        const on = selection.selected.has(r.playerId);
         return (
           <span className="flex min-w-0 items-center gap-2">
-            <button
-              type="button"
-              role="checkbox"
-              aria-checked={on}
-              aria-label={`Compare ${r.displayName}`}
-              disabled={!on && selection.full}
-              onClick={(e) => {
-                e.stopPropagation();
-                selection.toggle(r.playerId);
-              }}
-              className={cn(
-                "grid size-5 shrink-0 place-items-center rounded border transition-colors disabled:opacity-30 pointer-coarse:size-7",
-                on ? "border-primary bg-primary text-primary-foreground" : "border-border-strong",
-              )}
-            >
-              {on && <Check className="size-3.5" />}
-            </button>
+            <SelectBox
+              checked={pick.has(r.playerId)}
+              onChange={() => pick.toggle(r.playerId)}
+              label={`Pick ${r.displayName}`}
+            />
             <Link
               to="/players/$playerId"
               params={{ playerId: r.playerId }}

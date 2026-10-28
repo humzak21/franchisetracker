@@ -30,6 +30,7 @@ export const BACKUP_TABLES = [
   "careerPlayerStats",
   "reportedSeasonStats",
   "records",
+  "typedRecords",
   "streaks",
   "milestones",
   "awards",
@@ -61,6 +62,9 @@ export const NOT_BACKED_UP = {
   ingestionTokens: "secrets; generate a new token after a restore",
   errorReports: "about the app, not the franchise",
   backups: "the backups themselves",
+  recordBoards: "worked out from season rows; rebuilt from the Records screen after a restore",
+  recordPlacements: "worked out with the records boards",
+  recordBuilds: "the records rebuild job's progress",
 } as const;
 
 type Row = { _id: string } & Record<string, unknown>;

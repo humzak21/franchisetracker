@@ -5,6 +5,8 @@ import {
   vMilestoneKind,
   vPosition,
   vPositionGroup,
+  vBoardBook,
+  vRecordBook,
   vRecordScope,
   vStatMap,
   vStatSource,
@@ -56,6 +58,8 @@ export const statTables = {
     seasons: v.number(),
     firstYear: v.optional(v.number()),
     lastYear: v.optional(v.number()),
+    /** The team the player played the most games for; absent on rows built before it was kept. */
+    teamId: v.optional(v.id("teams")),
     ...aggregateFields,
   })
     .index("by_playerId", ["playerId"])
@@ -91,6 +95,86 @@ export const statTables = {
   })
     .index("by_franchiseId_and_split_and_scope_and_statKey", ["franchiseId", "split", "scope", "statKey"])
     .index("by_playerId", ["playerId"]),
+
+  /**
+   * The team and all-time records books (`shared/stats/recordBoards.ts`): the best entries of one
+   * list, merged as rows arrive and rebuilt by `stats/recordBuild`. Typed entries are kept apart.
+   */
+  recordBoards: defineTable({
+    franchiseId: v.id("franchises"),
+    book: vBoardBook,
+    split: vStatSplit,
+    scope: vRecordScope,
+    statKey: v.string(),
+    top: v.array(
+      v.object({
+        playerId: v.id("players"),
+        value: v.number(),
+        year: v.number(),
+        seasonId: v.optional(v.id("seasons")),
+        teamId: v.optional(v.id("teams")),
+        firstYear: v.optional(v.number()),
+      }),
+    ),
+  }).index("by_franchiseId_and_book_and_split_and_scope_and_statKey", [
+    "franchiseId",
+    "book",
+    "split",
+    "scope",
+    "statKey",
+  ]),
+
+  /** Record numbers typed in by hand (Bruce Smith, 200 sacks): the number, not the games behind it. */
+  typedRecords: defineTable({
+    franchiseId: v.id("franchises"),
+    book: vBoardBook,
+    split: vStatSplit,
+    scope: vRecordScope,
+    statKey: v.string(),
+    name: v.string(),
+    playerId: v.optional(v.id("players")),
+    teamId: v.optional(v.id("teams")),
+    year: v.optional(v.number()),
+    value: v.number(),
+  }).index("by_franchiseId_and_book_and_split_and_scope_and_statKey", [
+    "franchiseId",
+    "book",
+    "split",
+    "scope",
+    "statKey",
+  ]),
+
+  /** Where a player stands in every records list he makes (top 20), for his page. Rewritten with the list. */
+  recordPlacements: defineTable({
+    franchiseId: v.id("franchises"),
+    playerId: v.id("players"),
+    book: vRecordBook,
+    split: vStatSplit,
+    scope: vRecordScope,
+    statKey: v.string(),
+    rank: v.number(),
+    value: v.number(),
+    year: v.optional(v.number()),
+    firstYear: v.optional(v.number()),
+  })
+    .index("by_playerId", ["playerId"])
+    .index("by_franchiseId_and_book_and_split_and_scope_and_statKey", [
+      "franchiseId",
+      "book",
+      "split",
+      "scope",
+      "statKey",
+    ]),
+
+  /** The records rebuild job per franchise: which run is current and where it is. */
+  recordBuilds: defineTable({
+    franchiseId: v.id("franchises"),
+    run: v.number(),
+    status: v.union(v.literal("running"), v.literal("done")),
+    phase: v.string(),
+    startedAt: v.number(),
+    finishedAt: v.optional(v.number()),
+  }).index("by_franchiseId", ["franchiseId"]),
 
   /** Team and player streaks, current and longest, refreshed on every commit. */
   streaks: defineTable({

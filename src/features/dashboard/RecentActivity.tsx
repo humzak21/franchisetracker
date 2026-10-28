@@ -2,12 +2,11 @@ import { Link } from "@tanstack/react-router";
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Bandage } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { TRANSACTION_LABELS, weekLabel, type WeekKey } from "@shared/domain";
+import { TRANSACTION_LABELS } from "@shared/domain";
+import { timingLabel } from "@shared/transactions";
 import { PositionBadge } from "@/components/player/PositionBadge";
 import { Badge, Skeleton } from "@/components/ui/misc";
 import { useQuery } from "@/lib/convex/useQuery";
-
-const when = (weekKey: WeekKey | undefined) => (weekKey ? weekLabel(weekKey) : "Offseason");
 
 function Name({ player }: { player: { playerId?: Id<"players">; name: string; position?: string } }) {
   const label = (
@@ -56,7 +55,9 @@ export function RecentActivity({ seasonId }: { seasonId: Id<"seasons"> }) {
                   ))}
                   {m.counterpart && <span className="text-muted-foreground">with {m.counterpart.abbr}</span>}
                 </span>
-                <span className="num shrink-0 text-xs text-subtle-foreground">{when(m.weekKey)}</span>
+                <span className="num shrink-0 text-xs text-subtle-foreground">
+                  {timingLabel(m.phase, m.weekKey)}
+                </span>
               </li>
             );
           })}
@@ -71,7 +72,9 @@ export function RecentActivity({ seasonId }: { seasonId: Id<"seasons"> }) {
                 </span>
                 {injury.onIr && <Badge tone="loss">IR</Badge>}
               </span>
-              <span className="num shrink-0 text-xs text-subtle-foreground">{when(injury.weekKey)}</span>
+              <span className="num shrink-0 text-xs text-subtle-foreground">
+                {timingLabel(undefined, injury.weekKey)}
+              </span>
             </li>
           ))}
         </ul>

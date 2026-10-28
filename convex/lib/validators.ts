@@ -28,6 +28,8 @@ import {
   WEEK_KEYS,
 } from "../../shared/domain";
 import { RECONCILE_RESOLUTIONS } from "../../shared/ingestion/reconcile";
+import { BOARD_BOOKS, RECORD_BOOKS } from "../../shared/stats/recordBoards";
+import { STAT_CATEGORIES } from "../../shared/stats/registry";
 import { ESPN_LEAGUES } from "../../shared/players/espnMatch";
 
 /** `literals(["a", "b"])` → `v.union(v.literal("a"), v.literal("b"))`, typed as `"a" | "b"`. */
@@ -93,6 +95,9 @@ export const vUploadSource = literals(UPLOAD_SOURCES);
 export const vStatSource = literals(STAT_SOURCES);
 export const vStatSplit = literals(STAT_SPLITS);
 export const vRecordScope = literals(RECORD_SCOPES);
+export const vRecordBook = literals(RECORD_BOOKS);
+export const vBoardBook = literals(BOARD_BOOKS);
+export const vStatCategory = literals(STAT_CATEGORIES);
 export const vPromptStatus = literals(PROMPT_STATUSES);
 export const vStandingSource = literals(STANDING_SOURCES);
 export const vTransactionDirection = literals(TRANSACTION_DIRECTIONS);

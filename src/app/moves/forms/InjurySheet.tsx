@@ -7,7 +7,7 @@ import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import type { Injury } from "../types";
-import { Field } from "./Field";
+import { Field } from "@/components/forms/Field";
 import { NotesField } from "./NotesField";
 import { PeopleList } from "./PeopleList";
 import { PersonPicker } from "./PersonPicker";
@@ -44,10 +44,10 @@ export function InjurySheet({
   const [person, setPerson] = useState<Person | null>(
     p?.playerId
       ? { kind: "existing", playerId: p.playerId, name: p.name, position: p.position }
-      : (prefill?.person ?? null),
+      : (prefill?.players[0]?.person ?? null),
   );
   const [teamId, setTeamId] = useState<Id<"teams">>(
-    injury?.team?._id ?? prefill?.teamId ?? context.userTeamId,
+    injury?.team?._id ?? prefill?.players[0]?.teamId ?? context.userTeamId,
   );
   const [weekKey, setWeekKey] = useState<WeekKey | undefined>(injury?.weekKey);
   const [injuryType, setInjuryType] = useState(injury?.injuryType ?? "");

@@ -1,11 +1,13 @@
 /**
  * Rebuilds the records book from the user team's season rows and writes only what changed.
  * A record that changes hands to a bigger number in the committed game's season keeps the old
- * holder as `previous` and is reported back so a "record broken" milestone can be raised.
+ * holder as `previous` and is reported back so a "record broken" milestone can be raised. The lists
+ * that changed are reported too, for their placements (`stats/recordBuild`).
  */
 import { RECORD_SCOPES, RECORD_STATS, rankStat, type RankEntry, type RecordScope } from "../../shared/stats";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
+import type { ListKey } from "./boards";
 import { userSeasonRows, type Split } from "./load";
 
 /** Two splits, three scopes and every recordable stat, with headroom. */
@@ -39,7 +41,7 @@ export async function refreshRecords(
   ctx: MutationCtx,
   franchise: Doc<"franchises">,
   game: Doc<"games">,
-): Promise<BrokenRecord[]> {
+): Promise<{ broken: BrokenRecord[]; changed: ListKey[] }> {
   const rows = await userSeasonRows(ctx, franchise);
   const existing = await ctx.db
     .query("records")
@@ -47,6 +49,7 @@ export async function refreshRecords(
     .take(MAX_RECORDS);
   const byKey = new Map(existing.map((r) => [`${r.split}|${r.scope}|${r.statKey}`, r]));
   const broken: BrokenRecord[] = [];
+  const changed: ListKey[] = [];
 
   for (const split of ["regular", "postseason"] as const) {
     for (const scope of RECORD_SCOPES) {
@@ -55,10 +58,14 @@ export async function refreshRecords(
         const current = byKey.get(`${split}|${scope}|${stat}`);
         const holder = top[0];
         if (!holder) {
-          if (current) await ctx.db.delete("records", current._id);
+          if (current) {
+            await ctx.db.delete("records", current._id);
+            changed.push({ split, scope, statKey: stat });
+          }
           continue;
         }
         if (current && sameTop(current.top, top)) continue;
+        changed.push({ split, scope, statKey: stat });
 
         const samePlayerSeason =
           !!current && current.playerId === holder.playerId && current.seasonId === holder.seasonId;
@@ -117,5 +124,5 @@ export async function refreshRecords(
       }
     }
   }
-  return broken;
+  return { broken, changed };
 }

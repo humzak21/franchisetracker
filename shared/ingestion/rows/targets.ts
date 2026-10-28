@@ -12,6 +12,7 @@ import {
   yearlyAwardsSpec,
 } from "./peopleSpecs";
 import { leagueTeamStatsSpec } from "./leagueTeamSpec";
+import { recordsListSpec } from "./recordsSpec";
 import { leagueScheduleSpec } from "./scheduleSpec";
 import { leagueLeadersSpec, seasonPlayerStatsSpec, standingsSpec, teamSeasonStatsSpec } from "./statSpecs";
 import type { RowSpec } from "./types";
@@ -51,6 +52,16 @@ export const ROW_TARGETS = {
       "This is a Madden league leaders screen ranking players in one stat. Set `stat` to the stat being ranked and return one row per player with their rank, team and value.",
     spec: leagueLeadersSpec,
   }),
+  records_list: rows({
+    label: "Records list",
+    description: "Real NFL records from any source: player, team, season and number, top to bottom",
+    // Records belong to no season; the set is filed under one like any season screen and commits without it.
+    scope: "season",
+    multiImage: true,
+    instructions:
+      "This is a list of real NFL records from a website or book, not a Madden screen: players ranked in one stat. Set `book` (league for an NFL-wide list, team for one franchise's), `scope` (game, season or career, from the title), `split` (postseason only for a playoff list) and `stat`. Return one row per player with the rank, the player's name, the team (for a career, the team named, else the one he is best known with), the season (for a career, the last season) and the number.",
+    spec: recordsListSpec,
+  }),
   team_season_stats: rows({
     label: "Team season stats",
     description: "One team's season stats with league ranks (27.3 · T-3rd)",
@@ -86,11 +97,11 @@ export const ROW_TARGETS = {
   }),
   league_schedule: rows({
     label: "Schedule / scores",
-    description: "One week's games across the league, with final scores once played",
+    description: "A week's games across the league (or several weeks at once), with final scores once played",
     scope: "week",
     multiImage: true,
     instructions:
-      "This is the Madden league schedule screen for one week: a list of every game with its game time, matchup (away @ home, team nicknames) and result (away abbreviation and score first, then home score and abbreviation). Return one row per game; scores are null for a game not played yet. Set `week` from the header (SEASON WEEK 15 is w15).",
+      "This is the Madden league schedule screen for one week: a list of every game with its game time, matchup (away @ home, team nicknames) and result (away abbreviation and score first, then home score and abbreviation). Return one row per game; scores are null for a game not played yet. Set `week` from the header (SEASON WEEK 15 is w15). The screenshots may cover several weeks (the whole schedule at once): set each row's `week` from the header of the screen that game is on.",
     spec: leagueScheduleSpec,
   }),
   weekly_awards: rows({

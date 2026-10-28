@@ -91,10 +91,19 @@ test("big-game counts always show and season highs link to their game", async ({
 
 test("the records book, leaders and streaks", async ({ page }) => {
   await openView(page, "Records");
+  await page.getByRole("radio", { name: "Franchise era", exact: true }).click();
   await page.getByRole("radio", { name: "Single game" }).click();
-  const passing = page.getByRole("article").filter({ hasText: "Passing yards" });
+  const passing = page.getByRole("region", { name: "Passing yards records" });
   await expect(passing.getByText("342")).toBeVisible();
   await expect(passing.getByRole("link", { name: /W5 vs BUF/ })).toBeVisible();
+
+  // The all-time book counts real seasons too: careers run back into the imported years.
+  await page.getByRole("radio", { name: "All-time", exact: true }).click();
+  await page.getByRole("radio", { name: "Career", exact: true }).click();
+  const careers = page.getByRole("region", { name: "Passing yards records" });
+  await expect(careers.getByText("Drake Maye")).toBeVisible({ timeout: 20_000 });
+  // Other tests may commit later games, so only the start of the span is fixed.
+  await expect(careers.getByText(/2024–20\d\d/).first()).toBeVisible();
 
   await page.getByRole("radio", { name: "Leaders", exact: true }).click();
   await expect(

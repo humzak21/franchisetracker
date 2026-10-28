@@ -2,7 +2,7 @@ import { cloneElement, useId, type ReactElement } from "react";
 import { cn } from "@/lib/cn";
 
 /**
- * A labelled form control in the move sheets. The label points at the control by id rather than
+ * A labelled form control in a sheet. The label points at the control by id rather than
  * wrapping it: a label around a native select would read every option as part of its name.
  */
 export function Field({

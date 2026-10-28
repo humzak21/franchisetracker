@@ -20,12 +20,14 @@ import {
   commitStandings,
   commitTeamSeasonStats,
 } from "./commitSeasonRows";
+import { commitRecordsList } from "./commitRecordRows";
 import type { RowCommit, RowCommitResult, StoredRowsDraft } from "./rowCommit";
 import { commitLeagueSchedule } from "./commitSchedule";
 
 const COMMITS: Record<RowTargetKey, (ctx: MutationCtx, commit: RowCommit) => Promise<RowCommitResult>> = {
   season_player_stats: commitSeasonStats,
   league_leaders: commitLeagueLeaders,
+  records_list: commitRecordsList,
   team_season_stats: commitTeamSeasonStats,
   league_team_stats: commitLeagueTeamStats,
   standings: commitStandings,

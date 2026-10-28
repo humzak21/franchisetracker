@@ -8,7 +8,7 @@ import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { Select } from "@/components/ui/select";
 import type { Move } from "../types";
 import { ContractFields } from "./ContractFields";
-import { Field } from "./Field";
+import { Field } from "@/components/forms/Field";
 import { NotesField } from "./NotesField";
 import { PeopleList } from "./PeopleList";
 import { PersonPicker } from "./PersonPicker";
@@ -41,7 +41,9 @@ const WITH_CONTRACT: readonly TransactionType[] = [
 
 /**
  * A free agent signing (`kind` "sign") or any other one-player move: release, re-sign, waiver
- * claim, IR, activate, extension, restructure, retire. Saving also updates the roster.
+ * claim, IR, activate, extension, restructure, retire. Saving also updates the roster. Started
+ * from several players (a batch picked on the roster or the players list), it records the same
+ * move for each, one transaction per player.
  */
 export function MoveSheet({
   context,
@@ -64,12 +66,12 @@ export function MoveSheet({
   const [type, setType] = useState<TransactionType>(move?.type ?? (kind === "sign" ? "sign" : "release"));
   // A signing brings him to the user team; any other move acts on the team he plays for.
   const [teamId, setTeamId] = useState<Id<"teams">>(
-    move?.team?._id ?? (kind === "other" ? prefill?.teamId : undefined) ?? context.userTeamId,
+    move?.team?._id ?? (kind === "other" ? prefill?.players[0]?.teamId : undefined) ?? context.userTeamId,
   );
   const [from, setFrom] = useState<Id<"teams"> | undefined>(move?.counterpart?._id);
   const stored = move?.playersIn[0] ?? move?.playersOut[0];
-  const [person, setPerson] = useState<Person | null>(
-    stored ? fromMovePerson(stored) : (prefill?.person ?? null),
+  const [people, setPeople] = useState<Person[]>(
+    stored ? [fromMovePerson(stored)] : (prefill?.players.map((p) => p.person) ?? []),
   );
   const [contract, setContract] = useState(contractDraft(move?.contract));
   const [timing, setTiming] = useState<Timing>(() =>
@@ -79,30 +81,35 @@ export function MoveSheet({
   );
   const [notes, setNotes] = useState(move?.notes ?? "");
   const { error, saving, run, setError } = useSubmit(() => onOpenChange(false));
-  const hasContract = WITH_CONTRACT.includes(type);
+  // Terms belong to one player; a batch records the move without them.
+  const hasContract = WITH_CONTRACT.includes(type) && people.length <= 1;
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!person) return setError("Pick the player");
-    const players = [toPersonInput(person)];
+    if (people.length === 0) return setError("Pick the player");
     const incoming = MOVE_DIRECTION[type] === "in";
-    void run(() =>
-      save({
-        transactionId: move?._id,
-        seasonId: timing.seasonId,
-        type,
-        phase: timing.phase,
-        weekKey: timing.weekKey,
-        teamId,
-        counterpartTeamId: type === "waiver_claim" ? from : undefined,
-        playersIn: incoming ? players : [],
-        playersOut: incoming ? [] : players,
-        picksIn: [],
-        picksOut: [],
-        contract: hasContract ? contractInput(contract) : undefined,
-        notes,
-      }),
-    );
+    void run(async () => {
+      for (const person of people) {
+        const players = [toPersonInput(person)];
+        await save({
+          transactionId: move?._id,
+          seasonId: timing.seasonId,
+          type,
+          phase: timing.phase,
+          weekKey: timing.weekKey,
+          teamId,
+          counterpartTeamId: type === "waiver_claim" ? from : undefined,
+          playersIn: incoming ? players : [],
+          playersOut: incoming ? [] : players,
+          picksIn: [],
+          picksOut: [],
+          contract: hasContract ? contractInput(contract) : undefined,
+          notes,
+        });
+        // A batch that stops partway leaves only the players still to record.
+        setPeople((left) => left.filter((q) => q !== person));
+      }
+    });
   };
 
   const title = kind === "sign" ? "free agent signing" : "move";
@@ -140,10 +147,10 @@ export function MoveSheet({
         </div>
         <div className="space-y-2">
           <div className="text-[11px] font-semibold tracking-[0.08em] text-subtle-foreground uppercase">
-            Player
+            {people.length > 1 ? `${people.length} players` : "Player"}
           </div>
-          {person ? (
-            <PeopleList people={[person]} onRemove={() => setPerson(null)} />
+          {people.length > 0 ? (
+            <PeopleList people={people} onRemove={(p) => setPeople(people.filter((q) => q !== p))} />
           ) : (
             <PersonPicker
               key={teamId}
@@ -152,7 +159,7 @@ export function MoveSheet({
               teamId={teamId}
               exclude={new Set<string>()}
               modes={kind === "sign" ? ["search", "new"] : ["roster", "search", "new"]}
-              onPick={setPerson}
+              onPick={(p) => setPeople([p])}
             />
           )}
         </div>
@@ -162,7 +169,15 @@ export function MoveSheet({
         <SheetActions
           error={error}
           saving={saving}
-          saveLabel={move ? "Save" : kind === "sign" ? "Record signing" : "Record move"}
+          saveLabel={
+            move
+              ? "Save"
+              : people.length > 1
+                ? `Record ${people.length} ${kind === "sign" ? "signings" : "moves"}`
+                : kind === "sign"
+                  ? "Record signing"
+                  : "Record move"
+          }
           onDelete={move ? () => void run(() => remove({ transactionId: move._id })) : undefined}
         />
       </form>

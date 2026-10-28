@@ -288,7 +288,27 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 ---
 
-## Sprint 11 — League stats, fantasy points, more awards (S)
+## Sprint 11 — One league page, three records books (M)
+
+**Goal:** a season's standings, scores and bracket read as one page, standings and playoffs follow from the scores, and records reach back before the franchise and across the league.
+
+- League: standings (divisions or conference), scores and playoffs on one page; projected seeds, bye and wild card tints, z/y/x clinch marks; the bracket always filled, projected until week 18 is over. No point differential and no user-team highlight in the standings.
+- Division ranks, seeds and playoff results worked out from league scores. A season's league schedule loaded from nflverse, or several weeks of schedule screens in one set.
+- Records: team (real seasons included), franchise-era and all-time books, top 20 per list with player, number, team and year; typed numbers; every list a player makes on his page; streaks kept at their longest.
+- Shared `Textarea` and `Field` for the hand-built note fields and sheets; the dashboard's activity uses the league-year labels ("Free agency", "Week 7").
+
+**Done when:** a season with an imported schedule shows projected standings, clinches and a projected bracket from week 1, locks when week 18 is in, and the records books answer "who has the most career sacks" for the team and the league, on either device.
+
+**As built:**
+
+- `shared/league/tiebreakers.ts` picks teams one at a time like the NFL; `projection.ts` seeds the field, marks clinches (a team has clinched against everyone who cannot reach its record winning out while it loses out; ties count against it) and builds the board. `league/board:season` serves the page; every team of the league is listed from kickoff.
+- `refreshLeagueRecords` settles worked-out rows once the field is set and clears them while it is not; captured and imported rows keep their printed ranks. The user team's game record wins over a standings screen read before it.
+- `leagueGames/importSchedule:fromNflverse` loads matchups and kickoff times only, and skips weeks that already have games. Schedule rows carry an optional `week`, so one set may span weeks.
+- Records boards are rebuilt by `stats/recordBuild` (after the history import, from the Records screen, or `npx convex run stats/recordBuild:start`); until a franchise has built its books, games skip the board updates. Existing franchises press Build the books once. Boards and placements are not backed up; build again after a restore.
+
+---
+
+## Sprint 12 — League stats, fantasy points, more awards (M)
 
 **Goal:** the season awards can be argued from the numbers: the whole league's stats sit next to ours, every table scores fantasy points, and the awards Madden does not give are counted.
 

@@ -121,11 +121,11 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 ### 4.2 League
 
 - `teams`: abbreviation, city, name, conference, division, colors, logo storage id, ESPN id. Seeded with all 32. Relocation or rename supported via `aliases[]` with year ranges.
-- `standings`: per season per team: w, l, t, divisionRank, seed, playoffResult, pointsFor, pointsAgainst. Imported from screenshot or derived for the user team.
+- `standings`: per season per team: w, l, t, divisionRank, seed, playoffResult, pointsFor, pointsAgainst. Imported, captured from the standings screen, or worked out from league scores: once every team has played its regular season, worked-out rows get their division rank and seed (`shared/league/projection.ts`), and their playoff result as playoff scores arrive.
 - `leagueTeamStats`: per season per team, every raw number of Madden's league team stats screen (offense, defense, conversions, red zone, turnovers tabs), keyed by `shared/stats/leagueTeamRegistry.ts`. Each captured tab merges into the team's row; percentages, offensive and return yards, yards allowed, points scored and allowed per game, point and yard differentials and turnover margins are derived, never stored, as is every per-game figure.
 - `leagueLeaders`: per season, per stat key, ranked rows (rank, playerId or raw name, teamId, value). Top 20 per category.
 - `teamSeasonStats`: per season per team per stat key: value, rank, attempts, note, from the team stats season screen or its manual entry. Replaces the "27.3 - T-3rd" strings. For the user team a row overrides the value derived from the games (`seasons.teamTotals`) and is the only source of league ranks.
-- `leagueGames`: every game in the league for a week (away, home, scores when played, game time), from the Madden schedule screen or typed in. The user team's game also updates `games`. Every other team's standings record (W-L-T, points) is worked out from these scores plus the user team's games after any score changes; a captured standings record is only replaced when the scores cover at least as many games.
+- `leagueGames`: every game in the league for a week (away, home, scores when played, game time), from the Madden schedule screen (one week or several in one set), typed in, or a whole season's matchups loaded from the real NFL schedule (nflverse, never its scores) before kickoff. The user team's game also updates `games`. Every other team's standings record (W-L-T, points) is worked out from these scores plus the user team's games after any score changes; a captured standings record is only replaced when the scores cover at least as many games.
 
 ### 4.3 Players
 
@@ -143,8 +143,9 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 ### 4.5 Derived and cached
 
 - `seasonPlayerStats`: materialized per season per player per team totals, with games played, per-game averages and counts of threshold games (100-yard games, 300-yard games, 2- and 3-TD games, 5+ catch games, 2-sack and 2-INT games, perfect passer ratings), and the season high per stat with the game and week it came in (`bestGames`). Recomputed by a mutation after any stat line commit. Exists so tables and leaderboards are one indexed read.
-- `careerPlayerStats`: same shape, per player, all seasons.
-- `records`: franchise records per stat key per scope (single game, season, career), with holder, value, game or season reference, date set, previous holder. Recomputed incrementally.
+- `careerPlayerStats`: same shape, per player, all seasons, with the team he played the most games for.
+- `records`: franchise-era records per stat key per scope (single game, season, career), with holder, value, game or season reference, date set, previous holder, and the top 20 behind it. Recomputed incrementally.
+- `recordBoards`: the team and all-time books (`shared/stats/recordBoards.ts`), the best 25 entries per book, split, scope and stat; built once by `stats/recordBuild` and merged per game. `typedRecords`: numbers typed by hand into either book. `recordPlacements`: every list a player makes, for his page.
 - `milestones`: detected events (first 1000-yard season, career high, franchise record broken, streak reached) with week and acknowledgment flag. Feed the dashboard.
 
 ### 4.6 Awards, draft, transactions, Hall of Fame
@@ -217,8 +218,10 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 
 - Current roster for the selected season as one table per position group (quarterbacks, running backs, ... long snappers), one after another with jump links to each group: position, number, headshot, name, age, OVR, exp, college, acquisition, contract, dev trait, grade note. Each position family has its own color (the line, edges, linebackers and safeties share). Sortable, column visibility remembered.
 - Acquired reads as the draft slot ("Rd 1, Pick 1 · 2027") for a player the franchise's team drafted, unless his entry records a later way back (a trade, a free agent signing, a waiver claim); everyone else shows how the entry says he arrived.
+- The header counts the players on the roster (released and traded players left out).
 - Averages of OVR, age and experience for the team and each side (released and traded players left out).
 - Every column edits inline (Edit); "Add player" creates a player on a roster. Each row's actions menu moves him (team or status for a season, without logging a transaction) or records a trade, other move or injury for him (5.10).
+- Batch moves: a pick box after the actions on every row, select all, and a bar that stays pinned while anything is picked; Release records a release per picked player in one sheet (one timing, one note), Trade opens the trade builder with every pick on the user team's side.
 - Depth chart view by position with OVR badges.
 - Roster diff between two seasons: arrivals, departures, OVR change.
 - Team switcher: other teams' rosters are populated from box scores, awards, league leaders and draft imports, clearly labeled as partial.
@@ -229,12 +232,12 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Player page: hero with the player card (headshot or monogram) in team colors, position, number, age, height and weight, college, draft slot, acquisition story, contract, dev trait and abilities (per season, on the roster entry), notes; OVR progression chart across seasons and in-season checkpoints.
 - Career stats table by season with totals row, computed from game logs (real NFL seasons before the franchise are imported totals, marked), with the elite highlight rules applied per season. Postseason split toggle.
 - Game log for any season with per-game highlight markers.
-- Awards, records held, milestones, draft info, transactions involving the player, Hall of Fame status.
+- Awards, every records list he makes (rank in the team, franchise-era and all-time books; one that falls out of the top 20 goes), streaks at their longest (an ended streak stays), milestones, draft info, transactions involving the player, Hall of Fame status.
 - Compare: two to four players side by side on shared stat keys with a radar or bar chart.
 - Edit every player fact (names, position, birth year, college, size, draft, retired) and every season's roster entry inline, team included; the Move menu moves the player or records a trade, signing, other move or injury for him (5.10).
 - Identity tools: merge duplicates (suggested in Settings), rename with the old name kept as an alias, edit aliases, mark a player fictional, and apply a name corrected in review to every player still carrying the misread name.
 - Headshots: imported real players arrive with their ESPN id; anyone else is matched on ESPN by name (NFL first, then college football for created players in a real draft class, ranked by school and position) and confirmed by the user, from the player page or in bulk from the roster. Photos are cached in storage. Fictional players get a generated monogram card in team colors. Manual upload supported (later).
-- Players index: every player on a team's roster during the franchise (any team), filtered by position and sorted by OVR, age or seasons with the team, plus a name search across every player, real history included. Each row's actions menu records a trade, signing, other move or injury for him (5.10).
+- Players index: every player on a team's roster during the franchise (any team), filtered by position and sorted by OVR, age or seasons with the team, plus a name search across every player, real history included. Each row's actions menu records a trade, signing, other move or injury for him (5.10). Picked rows (select all included) compare (two to four), sign to the user team (players not on it now), release (players on it now; one move each) or go into one trade, each on his team's side.
 
 ### 5.5 Stats
 
@@ -246,14 +249,20 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Elite highlighting: configurable thresholds (defaults: 100+ catches, 1000 and 1500 yards, 10+ TDs, 5000+ passing yards, 40+ passing TDs, 70%+ completion, 10+ sacks, 5+ INTs, 100+ tackles). Two tiers of highlight.
 - League leaders: imported top 20 per category per season, with the user's players marked and a "where we rank" summary.
 - Team stats: all team categories per season with value, rank, trend across seasons, and league context, visualized as rank ribbons rather than strings. Values land from each game's team stats the way player season totals land from game logs: points per game from the scores, offense from the user side of each game's team stats, what the defense allowed (and its sacks and takeaways) from the opponent side, per-game figures averaged over the games that have them, regular season only. A value captured from the team stats season screen, or typed in through its manual entry, replaces the derived one; league ranks only come from captures. A note under the ribbons says how many stats came from games and how many were captured.
-- Franchise records book: single game, season, career, per stat, with holder, when, and the game link. Broken records surface on the dashboard the week they fall.
-- All-time leaders: career top 10 per stat within the franchise.
+- Records books, each by single game, season and career, top 20 per stat with player, number, team and year (a career's span):
+  - **Team**: every season with the user team, real seasons before the franchise included, so legacy players hold records.
+  - **Franchise era**: only what happened since the franchise began, with the game link and the previous holder. Broken records surface on the dashboard the week they fall.
+  - **All-time**: every team: real seasons from 1999 (nflverse), every captured game and Madden's league leaders screens.
+  - Typed numbers (Bruce Smith, 200 career sacks) join the team and all-time books, replacing the computed entry for the same player; only the number, never the games. A whole list (a records page from any website or book) comes in as screenshots or a CSV through the records list target, one typed record per row with player, team, season and number.
+- All-time leaders: career top 20 per stat within the franchise era.
 - Streaks: team (wins, home wins, division wins) and player (consecutive 100-yard games, games with a TD, games with a sack).
 
 ### 5.6 League
 
-- Standings per season by conference and division, imported from screenshot, with the user team highlighted (1999–2001 in that era's six divisions).
-- Scores: every game of a week across the league, from the schedule screen or typed in. Playoff seeds and bracket per season.
+- One season page with standings, then scores, then the playoffs; champions, the all-time table and rivals are their own views.
+- Standings by division or by conference (seed order), no point differential (1999–2001 in that era's six divisions). Bye seeds read green and wild cards orange, projected with NFL-style tiebreakers (head-to-head, division, common games, conference, strength of victory and schedule) until every team has played its regular season; seeds printed on a standings screen or imported win then. Clinch marks by arithmetic alone, never wrong and sometimes a week late: z a first-round bye, y the division, x a playoff spot (one mark, the highest).
+- Scores: every game of a week across the league, from the schedule screen (one week or several at once) or typed in; a season's whole schedule can be loaded from the real NFL schedule before kickoff (Madden's first season plays it). Opens on the latest week with a score.
+- Bracket: always filled, from the projected seeds (marked Projected) until the regular season is over, then the real field, decided game by game as playoff scores arrive.
 - Any team's history inside the franchise: record by season, playoff results, titles, their players we have seen, draft picks.
 - Cumulative league table across the franchise: wins, playoff record, division titles, conference titles, Super Bowls.
 - Rivals: the user team's head-to-head line against every opponent met (record, playoff record, point differential, streak, margins, last meeting); a team's page charts the margin of every meeting.
@@ -299,9 +308,9 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - **Extraction**: Convex action per upload. Chooses the prompt and JSON schema from the target registry, attaches recent corrections as few-shot examples, calls OpenRouter with a primary vision model and a fallback, validates the JSON (completions ≤ attempts, yards consistent with per-game lines, names resolved to roster), and stores a draft with per-field confidence and warnings. A box score's screenshots are sent a few per request (at most 3 and about 20 MB, under providers' image caps) and the answers merged before normalizing, so review sees one draft. A run can be stopped or restarted from the inbox or review at any time (a superseded run's answer is dropped), gives up with a clear error before Convex's 10-minute action limit, and a watchdog fails any run that never reports back, so a set is never stuck reading.
 - **Review**: side-by-side image and editable draft. Low-confidence and warned fields are highlighted. Player names resolve to roster chips with a picker for ambiguous matches. Assignments are remembered per franchise, season and team, including choices saved before commit. Numeric recommendations have an Apply button; doubtful values can be approved, and player suggestions assigned or changed directly from Check first. One keystroke to commit, reject, or re-run with a different model. Duplicate detection if the same game or week already has data.
 - **Commit**: writes canonical rows, recomputes the affected season and career aggregates, records, streaks and milestones, and stores any corrections.
-- **Targets (v1)**: full game log (the default: team and player stats screenshots in one upload, review and commit), game result and box score, and team game stats. Total yards is always passing plus rushing, excluding Madden's return-inclusive total. Team game stats are keyed by a team stat registry (`shared/stats/teamRegistry.ts`) the way player stats are keyed by the stat registry. **Targets (v2)**: season player stats per position group, league leaders top 20, team season stats, standings, weekly awards, yearly awards, draft results, roster page, transactions, injury report, player card.
+- **Targets (v1)**: full game log (the default: team and player stats screenshots in one upload, review and commit), game result and box score, and team game stats. Total yards is always passing plus rushing, excluding Madden's return-inclusive total. Team game stats are keyed by a team stat registry (`shared/stats/teamRegistry.ts`) the way player stats are keyed by the stat registry. **Targets (v2)**: season player stats per position group, league leaders top 20, records lists from any source (player, team, season, number), team season stats, standings, weekly awards, yearly awards, draft results, roster page, transactions, injury report, player card.
 - Every target has a scope: one game, one week or the season. A set extracts once it has the context its scope needs; capture paths infer the season and week when they are not picked.
-- Multi-image targets: a box score split across screenshots is grouped into one upload set and read together; a list (standings, leaders, a roster, the draft) is read a screenshot at a time and merged as the union of its rows. List rows are reviewed as cards and accepted one by one; only accepted rows commit.
+- Multi-image targets: a box score split across screenshots is grouped into one upload set and read together; a list (standings, leaders, a roster, the draft) is read a screenshot at a time and merged as the union of its rows. List rows are reviewed as cards and accepted one by one, or all at once with Select all (Deselect all clears them to pick a few); only accepted rows commit. Any list can also take its rows from a CSV file whose header names the columns (player, team, then the list's own fields by name or label, such as season or rank).
 - **Reconciliation**: season totals from a season stats screenshot are checked against the totals derived from game logs (never replacing them). Each difference is settled by accepting the log number or flagging a missing game, with the weeks that lack a box score listed. Where a difference is flagged as a missing game, the season stats screen and the player's career table show the screenshot's number instead, marked with a dot; the stored log totals, records, leaders and career aggregates keep the log number.
 - **Schedule / scores** target: the week's league schedule screen into `leagueGames`.
 - **Enter manually**: every target has a typed-in counterpart in the same review editors (from the Inbox, Awards, Draft and Stats), saved as you go and committed through the same path.
@@ -409,7 +418,7 @@ Dense football data has to be as readable on a phone as on a 27 inch display. Th
 - **Gestures**: swipe to change week or season where the header shows a sequence, pull to refresh is unnecessary (reactive data) and disabled to avoid accidental triggers, long press on a row for actions.
 - **Charts**: a phone variant per chart type with fewer ticks, larger touch tooltips and a legend that collapses into tappable chips.
 - **Review on phone**: two swipeable panes (image, draft), pinch to zoom on the image, field list ordered by confidence ascending, numeric keyboard for stat fields, player picker as a bottom sheet with roster search.
-- **Testing**: every screen is verified at 390 x 844 and 430 x 932 in both themes before a sprint closes, using the in-app browser's mobile preset, and the component gallery renders every primitive at phone width beside its desktop rendering.
+- **Testing**: every screen is verified at 390 x 844 in both themes before a sprint closes, using the in-app browser's mobile preset, and the component gallery renders every primitive at phone width beside its desktop rendering.
 
 ---
 

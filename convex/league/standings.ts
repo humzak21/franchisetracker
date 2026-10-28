@@ -6,6 +6,7 @@
 import { v } from "convex/values";
 import { seasonSummary } from "../../shared/games/summary";
 import { alignmentFor, STANDING_DIVISIONS } from "../../shared/league/alignment";
+import { gamesIn } from "../../shared/league/records";
 import { championsOf, leagueTable, type StandingRow } from "../../shared/league/standings";
 import type { Doc, Id } from "../_generated/dataModel";
 import { query, type QueryCtx } from "../_generated/server";
@@ -75,7 +76,7 @@ async function userRow(ctx: QueryCtx, season: Doc<"seasons">, team: Doc<"teams">
   };
 }
 
-async function seasonStandings(
+export async function seasonStandings(
   ctx: QueryCtx,
   franchise: Doc<"franchises">,
   season: Doc<"seasons">,
@@ -90,12 +91,18 @@ async function seasonStandings(
     return team ? [fromRow(row, team, season.year)] : [];
   });
   const userTeam = teams.get(franchise.userTeamId);
-  if (userTeam && !rows.some((r) => r.teamId === franchise.userTeamId)) {
+  const stored = out.find((r) => r.team._id === franchise.userTeamId);
+  if (userTeam && !stored) {
     const own = await userRow(ctx, season, userTeam);
     if (own) out.push(own);
   }
+  // The user team's games are the truth for its record; a standings screen read earlier lags them.
+  const record = season.userRecord;
+  if (stored && record && gamesIn(record) > gamesIn(stored)) Object.assign(stored, pick(record));
   return out;
 }
+
+const pick = ({ w, l, t }: { w: number; l: number; t: number }) => ({ w, l, t });
 
 const toShared = (s: Standing): StandingRow => ({ ...s, teamAbbr: s.team.abbr });
 
