@@ -121,10 +121,10 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 ### 4.2 League
 
 - `teams`: abbreviation, city, name, conference, division, colors, logo storage id, ESPN id. Seeded with all 32. Relocation or rename supported via `aliases[]` with year ranges.
-- `standings`: per season per team: w, l, t, divisionRank, seed, playoffResult, pointsFor, pointsAgainst. Imported from screenshot or derived for the user team.
+- `standings`: per season per team: w, l, t, divisionRank, seed, playoffResult, pointsFor, pointsAgainst. Imported, captured from the standings screen, or worked out from league scores: once every team has played its regular season, worked-out rows get their division rank and seed (`shared/league/projection.ts`), and their playoff result as playoff scores arrive.
 - `leagueLeaders`: per season, per stat key, ranked rows (rank, playerId or raw name, teamId, value). Top 20 per category.
 - `teamSeasonStats`: per season per team per stat key: value, rank, attempts, note. Replaces the "27.3 - T-3rd" strings.
-- `leagueGames`: every game in the league for a week (away, home, scores when played, game time), from the Madden schedule screen or typed in. The user team's game also updates `games`. Every other team's standings record (W-L-T, points) is worked out from these scores plus the user team's games after any score changes; a captured standings record is only replaced when the scores cover at least as many games.
+- `leagueGames`: every game in the league for a week (away, home, scores when played, game time), from the Madden schedule screen (one week or several in one set), typed in, or a whole season's matchups loaded from the real NFL schedule (nflverse, never its scores) before kickoff. The user team's game also updates `games`. Every other team's standings record (W-L-T, points) is worked out from these scores plus the user team's games after any score changes; a captured standings record is only replaced when the scores cover at least as many games.
 
 ### 4.3 Players
 
@@ -142,8 +142,9 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 ### 4.5 Derived and cached
 
 - `seasonPlayerStats`: materialized per season per player per team totals, with games played, per-game averages and counts of threshold games (100-yard games, 300-yard games, 2- and 3-TD games, 5+ catch games, 2-sack and 2-INT games, perfect passer ratings), and the season high per stat with the game and week it came in (`bestGames`). Recomputed by a mutation after any stat line commit. Exists so tables and leaderboards are one indexed read.
-- `careerPlayerStats`: same shape, per player, all seasons.
-- `records`: franchise records per stat key per scope (single game, season, career), with holder, value, game or season reference, date set, previous holder. Recomputed incrementally.
+- `careerPlayerStats`: same shape, per player, all seasons, with the team he played the most games for.
+- `records`: franchise-era records per stat key per scope (single game, season, career), with holder, value, game or season reference, date set, previous holder, and the top 20 behind it. Recomputed incrementally.
+- `recordBoards`: the team and all-time books (`shared/stats/recordBoards.ts`), the best 25 entries per book, split, scope and stat; built once by `stats/recordBuild` and merged per game. `typedRecords`: numbers typed by hand into either book. `recordPlacements`: every list a player makes, for his page.
 - `milestones`: detected events (first 1000-yard season, career high, franchise record broken, streak reached) with week and acknowledgment flag. Feed the dashboard.
 
 ### 4.6 Awards, draft, transactions, Hall of Fame
@@ -227,7 +228,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Player page: hero with the player card (headshot or monogram) in team colors, position, number, age, height and weight, college, draft slot, acquisition story, contract, dev trait and abilities (per season, on the roster entry), notes; OVR progression chart across seasons and in-season checkpoints.
 - Career stats table by season with totals row, computed from game logs (real NFL seasons before the franchise are imported totals, marked), with the elite highlight rules applied per season. Postseason split toggle.
 - Game log for any season with per-game highlight markers.
-- Awards, records held, milestones, draft info, transactions involving the player, Hall of Fame status.
+- Awards, every records list he makes (rank in the team, franchise-era and all-time books; one that falls out of the top 20 goes), streaks at their longest (an ended streak stays), milestones, draft info, transactions involving the player, Hall of Fame status.
 - Compare: two to four players side by side on shared stat keys with a radar or bar chart.
 - Edit every player fact (names, position, birth year, college, size, draft, retired) and every season's roster entry inline, team included; Move the player.
 - Identity tools: merge duplicates (suggested in Settings), rename with the old name kept as an alias, edit aliases, mark a player fictional, and apply a name corrected in review to every player still carrying the misread name.
@@ -241,14 +242,20 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Elite highlighting: configurable thresholds (defaults: 100+ catches, 1000 and 1500 yards, 10+ TDs, 5000+ passing yards, 40+ passing TDs, 70%+ completion, 10+ sacks, 5+ INTs, 100+ tackles). Two tiers of highlight.
 - League leaders: imported top 20 per category per season, with the user's players marked and a "where we rank" summary.
 - Team stats: all team categories per season with value, rank, trend across seasons, and league context, visualized as rank ribbons rather than strings.
-- Franchise records book: single game, season, career, per stat, with holder, when, and the game link. Broken records surface on the dashboard the week they fall.
-- All-time leaders: career top 10 per stat within the franchise.
+- Records books, each by single game, season and career, top 20 per stat with player, number, team and year (a career's span):
+  - **Team**: every season with the user team, real seasons before the franchise included, so legacy players hold records.
+  - **Franchise era**: only what happened since the franchise began, with the game link and the previous holder. Broken records surface on the dashboard the week they fall.
+  - **All-time**: every team: real seasons from 1999 (nflverse), every captured game and Madden's league leaders screens.
+  - Typed numbers (Bruce Smith, 200 career sacks) join the team and all-time books, replacing the computed entry for the same player; only the number, never the games.
+- All-time leaders: career top 20 per stat within the franchise era.
 - Streaks: team (wins, home wins, division wins) and player (consecutive 100-yard games, games with a TD, games with a sack).
 
 ### 5.6 League
 
-- Standings per season by conference and division, imported from screenshot, with the user team highlighted (1999–2001 in that era's six divisions).
-- Scores: every game of a week across the league, from the schedule screen or typed in. Playoff seeds and bracket per season.
+- One season page with standings, then scores, then the playoffs; champions, the all-time table and rivals are their own views.
+- Standings by division or by conference (seed order), no point differential (1999–2001 in that era's six divisions). Bye seeds read green and wild cards orange, projected with NFL-style tiebreakers (head-to-head, division, common games, conference, strength of victory and schedule) until every team has played its regular season; seeds printed on a standings screen or imported win then. Clinch marks by arithmetic alone, never wrong and sometimes a week late: z a first-round bye, y the division, x a playoff spot (one mark, the highest).
+- Scores: every game of a week across the league, from the schedule screen (one week or several at once) or typed in; a season's whole schedule can be loaded from the real NFL schedule before kickoff (Madden's first season plays it). Opens on the latest week with a score.
+- Bracket: always filled, from the projected seeds (marked Projected) until the regular season is over, then the real field, decided game by game as playoff scores arrive.
 - Any team's history inside the franchise: record by season, playoff results, titles, their players we have seen, draft picks.
 - Cumulative league table across the franchise: wins, playoff record, division titles, conference titles, Super Bowls.
 - Rivals: the user team's head-to-head line against every opponent met (record, playoff record, point differential, streak, margins, last meeting); a team's page charts the margin of every meeting.
