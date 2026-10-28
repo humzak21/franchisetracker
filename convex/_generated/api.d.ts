@@ -92,6 +92,7 @@ import type * as league_standings from "../league/standings.js";
 import type * as league_teamHistory from "../league/teamHistory.js";
 import type * as league_teamStats from "../league/teamStats.js";
 import type * as league_teams from "../league/teams.js";
+import type * as leagueGames_importSchedule from "../leagueGames/importSchedule.js";
 import type * as leagueGames_scores from "../leagueGames/scores.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_draftValidators from "../lib/draftValidators.js";
@@ -260,6 +261,7 @@ declare const fullApi: ApiFromModules<{
   "league/teamHistory": typeof league_teamHistory;
   "league/teamStats": typeof league_teamStats;
   "league/teams": typeof league_teams;
+  "leagueGames/importSchedule": typeof leagueGames_importSchedule;
   "leagueGames/scores": typeof leagueGames_scores;
   "lib/auth": typeof lib_auth;
   "lib/draftValidators": typeof lib_draftValidators;

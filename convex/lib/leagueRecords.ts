@@ -7,7 +7,7 @@
  */
 import { alignmentFor } from "../../shared/league/alignment";
 import { seasonBoard } from "../../shared/league/projection";
-import { recordsFromGames, shouldReplaceRecord, type ScoredGame } from "../../shared/league/records";
+import { gamesIn, recordsFromGames, shouldReplaceRecord, type ScoredGame } from "../../shared/league/records";
 import type { StandingRow } from "../../shared/league/standings";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
@@ -95,9 +95,11 @@ async function settleSeason(ctx: MutationCtx, season: Doc<"seasons">, franchise:
   });
   const userTeam = teams.get(franchise.userTeamId);
   const own = season.userRecord;
-  if (userTeam && own && !stored.some((r) => r.teamId === franchise.userTeamId)) {
-    rows.push(toRow(userTeam, own));
-  }
+  const ownRow = rows.find((r) => r.doc?.teamId === franchise.userTeamId);
+  if (userTeam && own && !ownRow) rows.push(toRow(userTeam, own));
+  // The user team's games are the truth for its record, as on the League page.
+  if (ownRow && own && gamesIn(own) > gamesIn(ownRow))
+    Object.assign(ownRow, { w: own.w, l: own.l, t: own.t });
   const { projection, results } = seasonBoard(season.year, rows, scores);
 
   for (const row of rows) {

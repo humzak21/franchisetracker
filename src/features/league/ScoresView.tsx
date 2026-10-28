@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/misc";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/cn";
 import { useQuery } from "@/lib/convex/useQuery";
+import { ImportScheduleButton } from "./ImportScheduleButton";
 
 type ScoreGame = FunctionReturnType<typeof api.leagueGames.scores.byWeek>[number];
 
@@ -71,11 +72,12 @@ function GameCard({ game }: { game: ScoreGame }) {
  * League scores (FEATURES.md 5.10): every game of a week across the league, from the schedule
  * screenshots or typed in, with a picker over the weeks that have games. The user's game leads.
  */
-export function ScoresView({ seasonId }: { seasonId: Id<"seasons"> }) {
-  const weeks = useQuery(api.leagueGames.scores.weeks, { seasonId });
+export function ScoresView({ seasonId, canImport }: { seasonId: Id<"seasons">; canImport: boolean }) {
+  const picker = useQuery(api.leagueGames.scores.weeks, { seasonId });
+  const weeks = picker?.weeks;
   const capture = useCapture();
   const [picked, setPicked] = useState<WeekKey | null>(null);
-  const week = picked && weeks?.includes(picked) ? picked : (weeks?.at(-1) ?? null);
+  const week = picked && weeks?.includes(picked) ? picked : (picker?.current ?? null);
   const games = useQuery(api.leagueGames.scores.byWeek, week ? { seasonId, weekKey: week } : "skip");
   const index = week && weeks ? weeks.indexOf(week) : -1;
   const step = (by: 1 | -1) => {
@@ -88,6 +90,7 @@ export function ScoresView({ seasonId }: { seasonId: Id<"seasons"> }) {
         <Camera /> Capture scores
       </Button>
       <ManualEntryLink target="league_schedule" seasonId={seasonId} label="Enter scores" />
+      {canImport && <ImportScheduleButton seasonId={seasonId} />}
     </div>
   );
 
@@ -96,8 +99,8 @@ export function ScoresView({ seasonId }: { seasonId: Id<"seasons"> }) {
     return (
       <EmptyState
         icon={CalendarRange}
-        title="No league scores yet"
-        description="Capture the league schedule screen week by week, or type the scores in."
+        title="No league schedule yet"
+        description="Load the real NFL schedule (Madden's first season plays it), capture the schedule screens (one week or every week at once), or type the scores in."
         action={add}
       />
     );
@@ -131,7 +134,8 @@ export function ScoresView({ seasonId }: { seasonId: Id<"seasons"> }) {
         >
           <ChevronRight />
         </Button>
-        <span className="ml-auto">
+        <span className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          {canImport && <ImportScheduleButton seasonId={seasonId} />}
           <ManualEntryLink target="league_schedule" seasonId={seasonId} label="Enter scores" />
         </span>
       </div>

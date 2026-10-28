@@ -1,6 +1,9 @@
 import { ListOrdered } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
+import { isPreFranchise } from "@shared/history/nflverse";
+import { useFranchise } from "@/app/franchise";
+import { useSeason } from "@/app/season";
 import { EmptyState } from "@/components/data/EmptyState";
 import { JumpLinks } from "@/components/layout/JumpLinks";
 import { Section } from "@/components/layout/Section";
@@ -31,6 +34,10 @@ const LINKS = [
 export function SeasonView({ seasonId }: { seasonId: Id<"seasons"> }) {
   const board = useQuery(api.league.board.season, { seasonId });
   const [mode, setMode] = useLocalStorage<StandingsMode>("ft.standings-mode", "divisions");
+  const startYear = useFranchise()?.franchise.startYear;
+  const { season } = useSeason();
+  // Real NFL seasons before the franchise come with their games already.
+  const canImport = !!season && startYear !== undefined && !isPreFranchise(season.year, startYear);
 
   const standings =
     board === undefined ? (
@@ -61,7 +68,7 @@ export function SeasonView({ seasonId }: { seasonId: Id<"seasons"> }) {
         {standings}
       </Section>
       <Section id="scores" title="Scores">
-        <ScoresView seasonId={seasonId} />
+        <ScoresView seasonId={seasonId} canImport={canImport} />
       </Section>
       <Section
         id="playoffs"
