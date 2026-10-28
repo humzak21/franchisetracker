@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 import { errorMessage } from "@/lib/errors";
+import { Textarea } from "@/components/ui/textarea";
 
 type Plaque = FunctionReturnType<typeof api.hof.entries.forPlayer>;
 
@@ -119,13 +120,12 @@ export function HallOfFameSheet({
         )}
         <label className="block space-y-1">
           <span className={label}>Blurb</span>
-          <textarea
+          <Textarea
             value={blurb}
             rows={4}
             maxLength={2000}
             placeholder="Why they belong on the wall."
             onChange={(e) => setBlurb(e.target.value)}
-            className="w-full resize-y rounded-lg border border-input bg-surface px-3 py-2.5 text-[15px] leading-relaxed placeholder:text-subtle-foreground focus-visible:border-primary focus-visible:outline-none sm:text-sm"
           />
         </label>
         {error && <p className="text-sm text-loss">{error}</p>}

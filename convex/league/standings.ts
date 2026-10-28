@@ -75,7 +75,7 @@ async function userRow(ctx: QueryCtx, season: Doc<"seasons">, team: Doc<"teams">
   };
 }
 
-async function seasonStandings(
+export async function seasonStandings(
   ctx: QueryCtx,
   franchise: Doc<"franchises">,
   season: Doc<"seasons">,

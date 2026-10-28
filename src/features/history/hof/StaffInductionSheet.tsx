@@ -7,6 +7,7 @@ import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { errorMessage } from "@/lib/errors";
+import { Textarea } from "@/components/ui/textarea";
 
 const digits = (s: string, max: number) => s.replace(/\D/g, "").slice(0, max);
 const num = (s: string) => (s === "" ? undefined : Number(s));
@@ -96,13 +97,7 @@ export function StaffInductionSheet({
           </Field>
         </div>
         <Field label="Blurb">
-          <textarea
-            value={blurb}
-            rows={4}
-            maxLength={2000}
-            onChange={(e) => setBlurb(e.target.value)}
-            className="w-full resize-y rounded-lg border border-input bg-surface px-3 py-2.5 text-[15px] leading-relaxed focus-visible:border-primary focus-visible:outline-none sm:text-sm"
-          />
+          <Textarea value={blurb} rows={4} maxLength={2000} onChange={(e) => setBlurb(e.target.value)} />
         </Field>
         {error && <p className="text-sm text-loss">{error}</p>}
         <div className="flex gap-2">

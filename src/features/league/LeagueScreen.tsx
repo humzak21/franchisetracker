@@ -6,18 +6,14 @@ import { Skeleton } from "@/components/ui/misc";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import { AllTimeView } from "./AllTimeView";
 import { ChampionsView } from "./ChampionsView";
-import { PlayoffsView } from "./PlayoffsView";
 import { RivalsView } from "./RivalsView";
-import { ScoresView } from "./ScoresView";
-import { StandingsView } from "./StandingsView";
+import { SeasonView } from "./SeasonView";
 import { useQuery } from "@/lib/convex/useQuery";
 
-type View = "standings" | "scores" | "playoffs" | "champions" | "table" | "rivals";
+type View = "season" | "champions" | "table" | "rivals";
 
 const VIEWS: { value: View; label: string }[] = [
-  { value: "standings", label: "Standings" },
-  { value: "scores", label: "Scores" },
-  { value: "playoffs", label: "Playoffs" },
+  { value: "season", label: "Season" },
   { value: "champions", label: "Champions" },
   { value: "table", label: "All-time" },
   { value: "rivals", label: "Rivals" },
@@ -29,15 +25,17 @@ const SCOPES = [
 ] as const;
 
 /**
- * League (FEATURES.md 5.6): a season's standings, every game's score week by week and the bracket, every season's champions ("who won
+ * League (FEATURES.md 5.6): a season's standings, scores and bracket on one page, every season's champions ("who won
  * the AFC in 2029"), the all-time table over the franchise or every season, and the franchise's
  * head-to-head line against every opponent.
  */
 export function LeagueScreen() {
   const { season } = useSeason();
-  const [view, setView] = useLocalStorage<View>("ft.league-view", "standings");
+  const [stored, setView] = useLocalStorage<View>("ft.league-view", "season");
+  // Standings, scores and playoffs were separate views before they shared the season page.
+  const view = VIEWS.some((v) => v.value === stored) ? stored : "season";
   const [scope, setScope] = useLocalStorage<"franchise" | "all">("ft.league-scope", "franchise");
-  const seasonal = view === "standings" || view === "scores" || view === "playoffs";
+  const seasonal = view === "season";
   const overview = useQuery(
     api.league.standings.overview,
     view === "champions" || view === "table" ? { includeHistory: scope === "all" } : "skip",
@@ -57,9 +55,7 @@ export function LeagueScreen() {
           )}
         </div>
         {seasonal && !season && <Skeleton className="h-80 rounded-xl" />}
-        {view === "standings" && season && <StandingsView seasonId={season._id} />}
-        {view === "scores" && season && <ScoresView seasonId={season._id} />}
-        {view === "playoffs" && season && <PlayoffsView seasonId={season._id} />}
+        {seasonal && season && <SeasonView seasonId={season._id} />}
         {view === "rivals" && <RivalsView />}
         {(view === "champions" || view === "table") &&
           (overview === undefined ? (

@@ -6,6 +6,7 @@ import { ModelPicker } from "@/components/forms/ModelPicker";
 import { StatComparison } from "@/components/data/StatComparison";
 import { ImageViewer } from "@/components/media/ImageViewer";
 import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { BUF, NE } from "./fixtures";
 import type { Specimen } from "./specimens";
 
@@ -149,5 +150,11 @@ export const INGESTION_SPECIMENS: Specimen[] = [
     name: "Select",
     note: "Native select styled like Input; 44 px on touch.",
     render: () => <SelectDemo />,
+  },
+  {
+    id: "textarea",
+    name: "Textarea",
+    note: "Multi-line text styled like Input: notes, blurbs and move notes. 16 px text on touch.",
+    render: () => <Textarea aria-label="Notes" placeholder="What happened, who showed up, what to fix." />,
   },
 ];

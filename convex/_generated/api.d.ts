@@ -83,6 +83,7 @@ import type * as ingestion_shortcutUploads from "../ingestion/shortcutUploads.js
 import type * as ingestion_tokens from "../ingestion/tokens.js";
 import type * as ingestion_uploads from "../ingestion/uploads.js";
 import type * as ingestion_usage from "../ingestion/usage.js";
+import type * as league_board from "../league/board.js";
 import type * as league_logos from "../league/logos.js";
 import type * as league_records from "../league/records.js";
 import type * as league_rivals from "../league/rivals.js";
@@ -105,6 +106,7 @@ import type * as lib_owner from "../lib/owner.js";
 import type * as lib_rateLimits from "../lib/rateLimits.js";
 import type * as lib_refs from "../lib/refs.js";
 import type * as lib_reports from "../lib/reports.js";
+import type * as lib_seasonScores from "../lib/seasonScores.js";
 import type * as lib_testOwner from "../lib/testOwner.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as ops_backupData from "../ops/backupData.js";
@@ -249,6 +251,7 @@ declare const fullApi: ApiFromModules<{
   "ingestion/tokens": typeof ingestion_tokens;
   "ingestion/uploads": typeof ingestion_uploads;
   "ingestion/usage": typeof ingestion_usage;
+  "league/board": typeof league_board;
   "league/logos": typeof league_logos;
   "league/records": typeof league_records;
   "league/rivals": typeof league_rivals;
@@ -271,6 +274,7 @@ declare const fullApi: ApiFromModules<{
   "lib/rateLimits": typeof lib_rateLimits;
   "lib/refs": typeof lib_refs;
   "lib/reports": typeof lib_reports;
+  "lib/seasonScores": typeof lib_seasonScores;
   "lib/testOwner": typeof lib_testOwner;
   "lib/validators": typeof lib_validators;
   "ops/backupData": typeof ops_backupData;

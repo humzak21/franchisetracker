@@ -1,6 +1,7 @@
 import { Check, LoaderCircle } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
+import { Textarea } from "@/components/ui/textarea";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -68,7 +69,7 @@ export function NotesEditor({
           {state === "error" && <span className="text-loss">Not saved. Try again.</span>}
         </span>
       </div>
-      <textarea
+      <Textarea
         id={id}
         value={draft}
         rows={rows}
@@ -79,7 +80,6 @@ export function NotesEditor({
           setState("idle");
         }}
         onBlur={() => void save()}
-        className="w-full resize-y rounded-lg border border-input bg-surface px-3 py-2.5 text-[15px] leading-relaxed text-foreground placeholder:text-subtle-foreground focus-visible:border-primary focus-visible:outline-none sm:text-sm"
       />
     </div>
   );
