@@ -1,5 +1,5 @@
 import { useMutation } from "convex/react";
-import { LoaderCircle, Plus, Trophy } from "lucide-react";
+import { Camera, LoaderCircle, Plus, Trophy } from "lucide-react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
 import {
@@ -15,9 +15,11 @@ import {
   type RecordScope,
   type StatCategory,
 } from "@shared/stats";
+import { useCapture } from "@/app/capture/CaptureProvider";
 import { useFranchise } from "@/app/franchise";
 import { EmptyState } from "@/components/data/EmptyState";
 import { Notice } from "@/components/data/Notice";
+import { ManualEntryLink } from "@/components/forms/ManualEntryLink";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
@@ -75,6 +77,7 @@ export function RecordsBook({ split }: { split: Split }) {
   const [sheet, setSheet] = useState<{ draft?: TypedDraft } | null>(null);
   const data = useQuery(api.stats.records.lists, { book, split, scope, category });
   const typedBook = book === "franchise" ? null : book;
+  const capture = useCapture();
 
   const edit = (statKey: string) => (e: RecordEntry) =>
     e.typedId &&
@@ -107,9 +110,15 @@ export function RecordsBook({ split }: { split: Split }) {
           options={RECORD_SCOPES.map((s) => ({ value: s, label: RECORD_SCOPE_LABELS[s] }))}
         />
         {typedBook && (
-          <Button size="sm" variant="outline" className="ml-auto" onClick={() => setSheet({})}>
-            <Plus /> Add a record
-          </Button>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => setSheet({})}>
+              <Plus /> Add a record
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => capture.open({ targetKey: "records_list" })}>
+              <Camera /> Capture a list
+            </Button>
+            <ManualEntryLink target="records_list" label="Type or import a list" />
+          </div>
         )}
       </div>
       <div data-swipe-ignore className="-mx-1 scrollbar-none overflow-x-auto px-1">

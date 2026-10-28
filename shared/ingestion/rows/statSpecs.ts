@@ -81,7 +81,8 @@ export const LEAGUE_LEADER_STATS = [
   "puntReturnYds",
 ] as const satisfies readonly StatKey[];
 
-const ranked = (draft: RowsDraft, key: string, better: "higher" | "lower"): DraftWarning[] => {
+/** A warning where a ranked list has a better number below a worse one. */
+export const ranked = (draft: RowsDraft, key: string, better: "higher" | "lower"): DraftWarning[] => {
   const accepted = draft.rows
     .filter((r) => r.accepted && typeof r.values.rank === "number" && typeof r.values[key] === "number")
     .sort((a, b) => (a.values.rank as number) - (b.values.rank as number));

@@ -24,7 +24,8 @@ const vFields = {
   value: v.number(),
 };
 
-function check(fields: { statKey: string; name: string; value: number; year?: number }) {
+/** Throws on a typed record the books cannot hold. */
+export function checkTypedRecord(fields: { statKey: string; name: string; value: number; year?: number }) {
   if (!(RECORD_STATS as readonly string[]).includes(fields.statKey))
     throw invalid("Pick a stat that keeps records");
   if (!fields.name.trim() || fields.name.length > 80) throw invalid("Enter the player's name");
@@ -50,7 +51,7 @@ export const save = mutation({
   handler: async (ctx, { typedId, ...fields }) => {
     await requireOwner(ctx);
     const franchise = await activeFranchise(ctx);
-    check(fields);
+    checkTypedRecord(fields);
     const row = { ...fields, name: fields.name.trim() };
     if (fields.playerId) {
       const player = must(await ctx.db.get("players", fields.playerId), "Player");

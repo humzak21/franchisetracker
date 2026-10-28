@@ -10,6 +10,7 @@ const LANDING = {
   team_game_stats: "/schedule",
   season_player_stats: "/stats/reconcile",
   league_leaders: "/stats",
+  records_list: "/stats",
   team_season_stats: "/stats",
   standings: "/league",
   league_schedule: "/league",
