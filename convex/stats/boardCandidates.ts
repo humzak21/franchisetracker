@@ -7,6 +7,7 @@ import {
   aggregateLines,
   careerCandidates,
   isStatKey,
+  keepBest,
   preferLogs,
   RECORD_STATS,
   seasonCandidates,
@@ -16,8 +17,17 @@ import {
   type StatRow,
 } from "../../shared/stats";
 import type { Doc, Id } from "../_generated/dataModel";
+import type { MutationCtx } from "../_generated/server";
 import type { BoardEntry, BoardUpdate } from "./boards";
 import type { Split } from "./load";
+import { recomputeCareer } from "./recompute";
+
+const SPLITS = ["regular", "postseason"] as const;
+/** One season of the whole league, both splits, with headroom. */
+const MAX_SEASON_ROWS = 8000;
+const MAX_LEADERS = 3000;
+/** A player's seasons with every team, playoffs included. */
+const MAX_PLAYER_ROWS = 80;
 
 type Row = StatRow<Id<"players">, Id<"seasons">, Id<"teams">>;
 
@@ -118,4 +128,100 @@ export function leaderUpdates(
     statKey,
     entries,
   }));
+}
+
+/** A player's career entries for both books, from a fresh career recompute. */
+export async function careerBoards(ctx: MutationCtx, franchise: Doc<"franchises">, player: Doc<"players">) {
+  const { rows, careers } = await recomputeCareer(ctx, player);
+  return SPLITS.flatMap((split) => {
+    const league = careers
+      .filter((c) => c.split === split)
+      .map((c) => ({
+        playerId: c.playerId,
+        totals: c.totals,
+        firstYear: c.firstYear ?? 0,
+        lastYear: c.lastYear ?? 0,
+        teamId: c.teamId,
+      }));
+    const team = teamCareer(rows, split, franchise.userTeamId);
+    return [...careerUpdates("league", split, league), ...careerUpdates("team", split, team ? [team] : [])];
+  });
+}
+
+/** A season's season and single-game entries for both books. */
+export async function seasonBoards(ctx: MutationCtx, franchise: Doc<"franchises">, season: Doc<"seasons">) {
+  const [rows, leaders] = await Promise.all([
+    ctx.db
+      .query("seasonPlayerStats")
+      .withIndex("by_seasonId_and_teamId", (q) => q.eq("seasonId", season._id))
+      .take(MAX_SEASON_ROWS),
+    ctx.db
+      .query("leagueLeaders")
+      .withIndex("by_seasonId_and_statKey_and_rank", (q) => q.eq("seasonId", season._id))
+      .take(MAX_LEADERS),
+  ]);
+  const dated = rows.map((r) => ({ ...r, year: season.year }));
+  const ours = dated.filter((r) => r.teamId === franchise.userTeamId);
+  const league = SPLITS.flatMap((split) => seasonUpdates("league", split, dated));
+  const fromLeaders = leaderUpdates(leaders, season);
+  return [
+    ...SPLITS.flatMap((split) => seasonUpdates("team", split, ours)),
+    // A leaders screen and the captured games can both know a season: the bigger number wins.
+    ...league.map((u) => {
+      const extra = fromLeaders.find(
+        (l) => l.split === u.split && l.scope === u.scope && l.statKey === u.statKey,
+      );
+      return extra ? { ...u, entries: keepBest([...u.entries, ...extra.entries]) } : u;
+    }),
+    ...fromLeaders.filter(
+      (l) => !league.some((u) => u.split === l.split && u.scope === l.scope && u.statKey === l.statKey),
+    ),
+  ];
+}
+
+export async function playerBoards(
+  ctx: MutationCtx,
+  franchise: Doc<"franchises">,
+  season: Doc<"seasons">,
+  years: ReadonlyMap<Id<"seasons">, number>,
+  playerId: Id<"players">,
+  split: Split,
+): Promise<BoardUpdate[]> {
+  const [rows, careers] = await Promise.all([
+    ctx.db
+      .query("seasonPlayerStats")
+      .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId))
+      .take(MAX_PLAYER_ROWS),
+    ctx.db
+      .query("careerPlayerStats")
+      .withIndex("by_playerId", (q) => q.eq("playerId", playerId))
+      .take(4),
+  ]);
+  const dated = rows.flatMap((r) => (years.has(r.seasonId) ? [{ ...r, year: years.get(r.seasonId)! }] : []));
+  const thisSeason = dated.filter((r) => r.seasonId === season._id);
+  const career = careers.find((c) => c.split === split);
+  const team = teamCareer(dated, split, franchise.userTeamId);
+  const books: [BoardBook, typeof thisSeason][] = [
+    ["league", thisSeason],
+    ["team", thisSeason.filter((r) => r.teamId === franchise.userTeamId)],
+  ];
+  return [
+    ...books.flatMap(([book, inSeason]) => seasonUpdates(book, split, inSeason)),
+    ...careerUpdates(
+      "league",
+      split,
+      career
+        ? [
+            {
+              playerId,
+              totals: career.totals,
+              firstYear: career.firstYear ?? season.year,
+              lastYear: career.lastYear ?? season.year,
+              teamId: career.teamId,
+            },
+          ]
+        : [],
+    ),
+    ...careerUpdates("team", split, team ? [team] : []),
+  ];
 }

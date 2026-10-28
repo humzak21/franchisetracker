@@ -8,26 +8,64 @@
  */
 import { v } from "convex/values";
 import { weekPhase } from "../../shared/domain";
-import { BOARD_BOOKS, keepBest, RECORD_SCOPES, RECORD_STATS, type BoardBook } from "../../shared/stats";
+import { RECORD_BOOKS, RECORD_SCOPES, RECORD_STATS, type RecordBook } from "../../shared/stats";
 import { internal } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
-import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+  type MutationCtx,
+  type QueryCtx,
+} from "../_generated/server";
 import { requireOwner } from "../lib/auth";
+import { vRecordBook, vRecordScope, vStatSplit } from "../lib/validators";
 import { activeFranchise } from "../lib/franchise";
-import { mergeBoards, writePlacements, type BoardUpdate } from "./boards";
-import { careerUpdates, leaderUpdates, seasonUpdates, teamCareer } from "./boardCandidates";
+import { mergeBoards, writePlacements, type BoardUpdate, type ListKey } from "./boards";
+import { careerBoards, playerBoards, seasonBoards } from "./boardCandidates";
 import { franchiseSeasons, type Split } from "./load";
-import { recomputeCareer } from "./recompute";
 
-const SPLITS = ["regular", "postseason"] as const;
 /** Players per step: each reads his season rows and rewrites his career. */
 const PLAYER_PAGE = 150;
-/** One season of the whole league, both splits, with headroom. */
-const MAX_SEASON_ROWS = 8000;
-const MAX_LEADERS = 3000;
+const SPLITS = ["regular", "postseason"] as const;
 const MAX_BOARDS = 1000;
-/** A player's seasons with every team, playoffs included. */
-const MAX_PLAYER_ROWS = 80;
+/** Lists whose placements one step rewrites: twenty-odd writes each, well inside a mutation's time. */
+const PLACEMENT_CHUNK = 24;
+/** Players one step of a game's board update re-enters. */
+const GAME_PLAYER_CHUNK = 12;
+
+type BookList = ListKey & { book: RecordBook };
+
+const vListKey = v.object({ split: vStatSplit, scope: vRecordScope, statKey: v.string() });
+const vBookList = v.object({ book: vRecordBook, ...vListKey.fields });
+
+/** Every list of every book, in a fixed order the build walks through in chunks. */
+const ALL_LISTS: BookList[] = RECORD_BOOKS.flatMap((book) =>
+  SPLITS.flatMap((split) =>
+    RECORD_SCOPES.flatMap((scope) => RECORD_STATS.map((statKey) => ({ book, split, scope, statKey }))),
+  ),
+);
+
+/** Rewrites placements for some lists, a chunk per step. */
+export const placements = internalMutation({
+  args: { franchiseId: v.id("franchises"), lists: v.array(vBookList) },
+  returns: v.null(),
+  handler: async (ctx, { franchiseId, lists }) => {
+    const franchise = await ctx.db.get("franchises", franchiseId);
+    if (!franchise) return null;
+    for (const { book, ...key } of lists.slice(0, PLACEMENT_CHUNK))
+      await writePlacements(ctx, franchise, book, key);
+    const rest = lists.slice(PLACEMENT_CHUNK);
+    if (rest.length > 0)
+      await ctx.scheduler.runAfter(0, internal.stats.recordBuild.placements, { franchiseId, lists: rest });
+    return null;
+  },
+});
+
+const uniqueLists = (lists: readonly BookList[]) => [
+  ...new Map(lists.map((l) => [`${l.book}|${l.split}|${l.scope}|${l.statKey}`, l])).values(),
+];
 
 async function jobFor(ctx: QueryCtx, franchiseId: Id<"franchises">) {
   return await ctx.db
@@ -119,12 +157,9 @@ export const step = internalMutation({
         await next("seasons", { index: (args.index ?? 0) + 1 });
       }
     } else {
-      // One book and split per step: every scope and stat of it.
-      const books = (["franchise", ...BOARD_BOOKS] as const).flatMap((book) =>
-        SPLITS.map((split) => ({ book, split })),
-      );
-      const at = books[args.index ?? 0];
-      if (!at) {
+      const offset = args.index ?? 0;
+      const chunk = ALL_LISTS.slice(offset, offset + PLACEMENT_CHUNK);
+      if (chunk.length === 0) {
         await ctx.db.patch("recordBuilds", job._id, {
           status: "done",
           phase: "done",
@@ -132,72 +167,27 @@ export const step = internalMutation({
         });
         return null;
       }
-      for (const scope of RECORD_SCOPES)
-        for (const statKey of RECORD_STATS)
-          await writePlacements(ctx, franchise, at.book, { split: at.split, scope, statKey });
-      await next("placements", { index: (args.index ?? 0) + 1 });
+      for (const { book, ...key } of chunk) await writePlacements(ctx, franchise, book, key);
+      await next("placements", { index: offset + PLACEMENT_CHUNK });
     }
     return null;
   },
 });
-
-/** A player's career entries for both books, from a fresh career recompute. */
-async function careerBoards(ctx: MutationCtx, franchise: Doc<"franchises">, player: Doc<"players">) {
-  const { rows, careers } = await recomputeCareer(ctx, player);
-  return SPLITS.flatMap((split) => {
-    const league = careers
-      .filter((c) => c.split === split)
-      .map((c) => ({
-        playerId: c.playerId,
-        totals: c.totals,
-        firstYear: c.firstYear ?? 0,
-        lastYear: c.lastYear ?? 0,
-        teamId: c.teamId,
-      }));
-    const team = teamCareer(rows, split, franchise.userTeamId);
-    return [...careerUpdates("league", split, league), ...careerUpdates("team", split, team ? [team] : [])];
-  });
-}
-
-/** A season's season and single-game entries for both books. */
-async function seasonBoards(ctx: MutationCtx, franchise: Doc<"franchises">, season: Doc<"seasons">) {
-  const [rows, leaders] = await Promise.all([
-    ctx.db
-      .query("seasonPlayerStats")
-      .withIndex("by_seasonId_and_teamId", (q) => q.eq("seasonId", season._id))
-      .take(MAX_SEASON_ROWS),
-    ctx.db
-      .query("leagueLeaders")
-      .withIndex("by_seasonId_and_statKey_and_rank", (q) => q.eq("seasonId", season._id))
-      .take(MAX_LEADERS),
-  ]);
-  const dated = rows.map((r) => ({ ...r, year: season.year }));
-  const ours = dated.filter((r) => r.teamId === franchise.userTeamId);
-  const league = SPLITS.flatMap((split) => seasonUpdates("league", split, dated));
-  const fromLeaders = leaderUpdates(leaders, season);
-  return [
-    ...SPLITS.flatMap((split) => seasonUpdates("team", split, ours)),
-    // A leaders screen and the captured games can both know a season: the bigger number wins.
-    ...league.map((u) => {
-      const extra = fromLeaders.find(
-        (l) => l.split === u.split && l.scope === u.scope && l.statKey === u.statKey,
-      );
-      return extra ? { ...u, entries: keepBest([...u.entries, ...extra.entries]) } : u;
-    }),
-    ...fromLeaders.filter(
-      (l) => !league.some((u) => u.split === l.split && u.scope === l.scope && u.statKey === l.statKey),
-    ),
-  ];
-}
 
 /**
  * After a game: the books' entries for its players, from their freshly recomputed rows. Each
  * player's season, single game and career are re-entered, so a correction lands too.
  */
 export const afterGame = internalMutation({
-  args: { gameId: v.id("games") },
+  args: {
+    gameId: v.id("games"),
+    /** Franchise-era lists the game changed, for their placements. */
+    franchiseLists: v.optional(v.array(vListKey)),
+    /** Players still to re-enter; absent on the first step, which reads them from the box score. */
+    playerIds: v.optional(v.array(v.id("players"))),
+  },
   returns: v.null(),
-  handler: async (ctx, { gameId }) => {
+  handler: async (ctx, { gameId, franchiseLists = [], playerIds }) => {
     const game = await ctx.db.get("games", gameId);
     if (!game) return null;
     const phase = weekPhase(game.weekKey);
@@ -208,66 +198,38 @@ export const afterGame = internalMutation({
       ctx.db.get("seasons", game.seasonId),
     ]);
     if (!franchise || !season) return null;
-    const lines = await ctx.db
-      .query("gameStatLines")
-      .withIndex("by_gameId_and_playerId", (q) => q.eq("gameId", gameId))
-      .take(200);
+    const players = playerIds ?? [
+      ...new Set(
+        (
+          await ctx.db
+            .query("gameStatLines")
+            .withIndex("by_gameId_and_playerId", (q) => q.eq("gameId", gameId))
+            .take(200)
+        ).map((l) => l.playerId),
+      ),
+    ];
+    const years = new Map((await franchiseSeasons(ctx, franchise._id)).map((s) => [s._id, s.year]));
     const updates: BoardUpdate[] = [];
-    for (const playerId of new Set(lines.map((l) => l.playerId))) {
-      updates.push(...(await playerBoards(ctx, franchise, season, playerId, split)));
+    for (const playerId of players.slice(0, GAME_PLAYER_CHUNK)) {
+      updates.push(...(await playerBoards(ctx, franchise, season, years, playerId, split)));
     }
     const changed = await mergeBoards(ctx, franchise._id, updates);
-    for (const { book, ...key } of changed) await writePlacements(ctx, franchise, book, key);
+    const lists = uniqueLists([
+      ...franchiseLists.map((key) => ({ book: "franchise" as const, ...key })),
+      ...changed,
+    ]);
+    if (lists.length > 0) {
+      await ctx.scheduler.runAfter(0, internal.stats.recordBuild.placements, {
+        franchiseId: franchise._id,
+        lists,
+      });
+    }
+    const rest = players.slice(GAME_PLAYER_CHUNK);
+    if (rest.length > 0)
+      await ctx.scheduler.runAfter(0, internal.stats.recordBuild.afterGame, { gameId, playerIds: rest });
     return null;
   },
 });
-
-async function playerBoards(
-  ctx: MutationCtx,
-  franchise: Doc<"franchises">,
-  season: Doc<"seasons">,
-  playerId: Id<"players">,
-  split: Split,
-): Promise<BoardUpdate[]> {
-  const [rows, careers] = await Promise.all([
-    ctx.db
-      .query("seasonPlayerStats")
-      .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId))
-      .take(MAX_PLAYER_ROWS),
-    ctx.db
-      .query("careerPlayerStats")
-      .withIndex("by_playerId", (q) => q.eq("playerId", playerId))
-      .take(4),
-  ]);
-  const years = new Map((await franchiseSeasons(ctx, franchise._id)).map((s) => [s._id, s.year]));
-  const dated = rows.flatMap((r) => (years.has(r.seasonId) ? [{ ...r, year: years.get(r.seasonId)! }] : []));
-  const thisSeason = dated.filter((r) => r.seasonId === season._id);
-  const career = careers.find((c) => c.split === split);
-  const team = teamCareer(dated, split, franchise.userTeamId);
-  const books: [BoardBook, typeof thisSeason][] = [
-    ["league", thisSeason],
-    ["team", thisSeason.filter((r) => r.teamId === franchise.userTeamId)],
-  ];
-  return [
-    ...books.flatMap(([book, inSeason]) => seasonUpdates(book, split, inSeason)),
-    ...careerUpdates(
-      "league",
-      split,
-      career
-        ? [
-            {
-              playerId,
-              totals: career.totals,
-              firstYear: career.firstYear ?? season.year,
-              lastYear: career.lastYear ?? season.year,
-              teamId: career.teamId,
-            },
-          ]
-        : [],
-    ),
-    ...careerUpdates("team", split, team ? [team] : []),
-  ];
-}
 
 /** Rebuilds the records books for the active franchise (the Records screen's button). */
 export const rebuild = mutation({
@@ -290,23 +252,32 @@ export const start = internalMutation({
   },
 });
 
+const vStatus = v.union(
+  v.null(),
+  v.object({
+    status: v.union(v.literal("running"), v.literal("done")),
+    phase: v.string(),
+    finishedAt: v.optional(v.number()),
+  }),
+);
+
+async function buildStatus(ctx: QueryCtx) {
+  const job = await jobFor(ctx, (await activeFranchise(ctx))._id);
+  return job ? { status: job.status, phase: job.phase, finishedAt: job.finishedAt } : null;
+}
+
 export const status = query({
   args: {},
-  returns: v.union(
-    v.null(),
-    v.object({
-      status: v.union(v.literal("running"), v.literal("done")),
-      phase: v.string(),
-      finishedAt: v.optional(v.number()),
-    }),
-  ),
+  returns: vStatus,
   handler: async (ctx) => {
     await requireOwner(ctx);
-    const franchise = await activeFranchise(ctx);
-    const job = await ctx.db
-      .query("recordBuilds")
-      .withIndex("by_franchiseId", (q) => q.eq("franchiseId", franchise._id))
-      .unique();
-    return job ? { status: job.status, phase: job.phase, finishedAt: job.finishedAt } : null;
+    return await buildStatus(ctx);
   },
+});
+
+/** The same for setup scripts: the e2e backend waits on it before tests start. */
+export const statusForSetup = internalQuery({
+  args: {},
+  returns: vStatus,
+  handler: buildStatus,
 });

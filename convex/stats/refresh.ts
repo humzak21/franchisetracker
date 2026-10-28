@@ -104,10 +104,13 @@ export async function refreshAfterGame(
 
   const desired: NewMilestone[] = [];
   for (const player of players) desired.push(...(await playerMilestones(ctx, franchise, game, player)));
-  const broken = await refreshRecords(ctx, franchise, game);
-  // The team and all-time books read the same rows; their own step keeps this one small.
+  const { broken, changed } = await refreshRecords(ctx, franchise, game);
+  // The team and all-time books and every list's placements have their own steps, keeping this one small.
   if (await booksBuilt(ctx, franchise._id)) {
-    await ctx.scheduler.runAfter(0, internal.stats.recordBuild.afterGame, { gameId });
+    await ctx.scheduler.runAfter(0, internal.stats.recordBuild.afterGame, {
+      gameId,
+      franchiseLists: changed,
+    });
   }
   const byId = new Map<Id<"players">, Doc<"players">>(players.map((p) => [p._id, p]));
   for (const record of broken)

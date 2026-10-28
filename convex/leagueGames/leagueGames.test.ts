@@ -138,6 +138,7 @@ async function playRegularSeason(t: Awaited<ReturnType<typeof setup>>["t"], seas
     }
   });
   await t.mutation(internal.league.records.refreshAll, {});
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
 }
 
 describe("season board", () => {
@@ -187,6 +188,7 @@ describe("season board", () => {
       });
     });
     await t.mutation(internal.league.records.refreshAll, {});
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
     const after = (await owner.query(api.league.board.season, { seasonId }))!;
     expect(after.bracket.find((g) => g.round === "wc" && g.home.abbr === wc.home.abbr)?.winner).toBe(
       wc.away.abbr,

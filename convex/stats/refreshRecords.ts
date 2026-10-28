@@ -1,13 +1,13 @@
 /**
  * Rebuilds the records book from the user team's season rows and writes only what changed.
  * A record that changes hands to a bigger number in the committed game's season keeps the old
- * holder as `previous` and is reported back so a "record broken" milestone can be raised.
+ * holder as `previous` and is reported back so a "record broken" milestone can be raised. The lists
+ * that changed are reported too, for their placements (`stats/recordBuild`).
  */
 import { RECORD_SCOPES, RECORD_STATS, rankStat, type RankEntry, type RecordScope } from "../../shared/stats";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
-import { writePlacements, type ListKey } from "./boards";
-import { booksBuilt } from "./recordBuild";
+import type { ListKey } from "./boards";
 import { userSeasonRows, type Split } from "./load";
 
 /** Two splits, three scopes and every recordable stat, with headroom. */
@@ -41,7 +41,7 @@ export async function refreshRecords(
   ctx: MutationCtx,
   franchise: Doc<"franchises">,
   game: Doc<"games">,
-): Promise<BrokenRecord[]> {
+): Promise<{ broken: BrokenRecord[]; changed: ListKey[] }> {
   const rows = await userSeasonRows(ctx, franchise);
   const existing = await ctx.db
     .query("records")
@@ -124,8 +124,5 @@ export async function refreshRecords(
       }
     }
   }
-  if (await booksBuilt(ctx, franchise._id)) {
-    for (const key of changed) await writePlacements(ctx, franchise, "franchise", key);
-  }
-  return broken;
+  return { broken, changed };
 }

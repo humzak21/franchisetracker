@@ -12,6 +12,7 @@ import { refreshSeasonRecord } from "../ingestion/commitGame";
 import { must } from "../lib/errors";
 import schema from "../schema";
 import { recomputeCareer, recomputePlayerSeason } from "../stats/recompute";
+import { booksBuilt } from "../stats/recordBuild";
 import { refreshRecords } from "../stats/refreshRecords";
 import { refreshPlayerStreaks, refreshTeamStreaks } from "../stats/refreshStreaks";
 
@@ -81,7 +82,13 @@ export const afterDelete = internalMutation({
       if (player) await refreshPlayerStreaks(ctx, franchise, player);
     }
     // Lowering a record never counts as breaking one, so nothing is reported back here.
-    await refreshRecords(ctx, franchise, game);
+    const { changed } = await refreshRecords(ctx, franchise, game);
+    if (changed.length > 0 && (await booksBuilt(ctx, franchise._id))) {
+      await ctx.scheduler.runAfter(0, internal.stats.recordBuild.placements, {
+        franchiseId: franchise._id,
+        lists: changed.map((key) => ({ book: "franchise" as const, ...key })),
+      });
+    }
     await refreshTeamStreaks(ctx, franchise);
     return null;
   },

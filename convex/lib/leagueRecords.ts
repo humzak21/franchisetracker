@@ -9,6 +9,7 @@ import { alignmentFor } from "../../shared/league/alignment";
 import { seasonBoard } from "../../shared/league/projection";
 import { gamesIn, recordsFromGames, shouldReplaceRecord, type ScoredGame } from "../../shared/league/records";
 import type { StandingRow } from "../../shared/league/standings";
+import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { must } from "./errors";
@@ -67,7 +68,8 @@ export async function refreshLeagueRecords(ctx: MutationCtx, seasonId: Id<"seaso
   for (const row of rows) {
     if (row.source === "derived" && !records.has(row.teamId)) await ctx.db.delete("standings", row._id);
   }
-  await settleSeason(ctx, season, franchise);
+  // Its own step: a box score commit already runs close to the time a mutation may take.
+  await ctx.scheduler.runAfter(0, internal.league.records.settle, { seasonId });
 }
 
 /**
@@ -75,7 +77,9 @@ export async function refreshLeagueRecords(ctx: MutationCtx, seasonId: Id<"seaso
  * again while it is not. Captured and imported rows keep what their screen printed, and the
  * user team's season only gains a rank or seed it did not have.
  */
-async function settleSeason(ctx: MutationCtx, season: Doc<"seasons">, franchise: Doc<"franchises">) {
+export async function settleSeason(ctx: MutationCtx, seasonId: Id<"seasons">) {
+  const season = must(await ctx.db.get("seasons", seasonId), "Season");
+  const franchise = must(await ctx.db.get("franchises", season.franchiseId), "Franchise");
   const teams = await teamsById(ctx);
   const [stored, scores] = await Promise.all([
     ctx.db
