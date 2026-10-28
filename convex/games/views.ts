@@ -2,39 +2,52 @@
 import { weekPoints } from "../../shared/games/insights";
 import { resultOf, userScore } from "../../shared/games/summary";
 import type { Doc, Id } from "../_generated/dataModel";
+import type { QueryCtx } from "../_generated/server";
+import { playersById } from "../lib/franchise";
+import { headshotUrls } from "../lib/refs";
 
 export type StarView = {
   playerId: Id<"players"> | null;
   name: string;
   position: string | null;
+  headshotUrl: string | null;
   caption: string | null;
   /** The side the star played for, when known (picked from a box score line or the roster). */
   teamId: Id<"teams"> | null;
 };
 
-export function starViews(game: Doc<"games">, players: Map<Id<"players">, Doc<"players">>): StarView[] {
+/** Star players and their photo URLs (see `headshotUrls`), resolved once per query. */
+export type StarPlayers = {
+  players: Map<Id<"players">, Doc<"players">>;
+  headshots: Map<Id<"players">, string | null>;
+};
+
+export function starViews(game: Doc<"games">, { players, headshots }: StarPlayers): StarView[] {
   return (game.stars ?? []).map((star) => {
     const player = star.playerId ? players.get(star.playerId) : undefined;
     return {
       playerId: player?._id ?? null,
       name: player?.displayName ?? star.rawName ?? "Unknown player",
       position: player?.position ?? null,
+      headshotUrl: (player && headshots.get(player._id)) ?? null,
       caption: star.caption ?? null,
       teamId: star.teamId ?? null,
     };
   });
 }
 
-export function starPlayerIds(games: readonly Doc<"games">[]): Id<"players">[] {
+function starPlayerIds(games: readonly Doc<"games">[]): Id<"players">[] {
   return games.flatMap((g) => (g.stars ?? []).flatMap((s) => (s.playerId ? [s.playerId] : [])));
 }
 
+/** The players picked as stars in these games, with their photos. */
+export async function loadStarPlayers(ctx: QueryCtx, games: readonly Doc<"games">[]): Promise<StarPlayers> {
+  const players = await playersById(ctx, starPlayerIds(games));
+  return { players, headshots: await headshotUrls(ctx, players.values()) };
+}
+
 /** A schedule row: the game from the user team's side with its opponent resolved. */
-export function gameRow(
-  game: Doc<"games">,
-  teams: Map<Id<"teams">, Doc<"teams">>,
-  players: Map<Id<"players">, Doc<"players">>,
-) {
+export function gameRow(game: Doc<"games">, teams: Map<Id<"teams">, Doc<"teams">>, stars: StarPlayers) {
   const score = userScore(game);
   return {
     _id: game._id,
@@ -50,7 +63,7 @@ export function gameRow(
     playoffRound: game.playoffRound ?? null,
     dateLabel: game.dateLabel ?? null,
     notes: game.notes ?? null,
-    stars: starViews(game, players),
+    stars: starViews(game, stars),
   };
 }
 

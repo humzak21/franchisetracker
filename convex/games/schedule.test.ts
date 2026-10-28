@@ -52,6 +52,24 @@ describe("games/schedule", () => {
     expect((await t.run((ctx) => ctx.db.get("games", gameId)))!.notes).toBeUndefined();
   });
 
+  test("quarter scores save when they add up to the final, and clear", async () => {
+    const { owner, seasonId } = await setup();
+    const { games } = await owner.query(api.games.schedule.bySeason, { seasonId });
+    // Week 1: the user (home) beat LV 31-17.
+    const gameId = games[0]!._id;
+    const lineScore = { home: [7, 10, 7, 7], away: [3, 7, 0, 7] };
+    await expect(
+      owner.mutation(api.games.schedule.setLineScore, {
+        gameId,
+        lineScore: { ...lineScore, home: [7, 10, 7, 0] },
+      }),
+    ).rejects.toThrow(/home quarters add up to 24/);
+    await owner.mutation(api.games.schedule.setLineScore, { gameId, lineScore });
+    expect((await owner.query(api.games.schedule.get, { gameId }))?.header.lineScore).toEqual(lineScore);
+    await owner.mutation(api.games.schedule.setLineScore, { gameId, lineScore: null });
+    expect((await owner.query(api.games.schedule.get, { gameId }))?.header.lineScore).toBeNull();
+  });
+
   test("signed-out callers are refused", async () => {
     const { t, seasonId } = await setup();
     await expect(t.query(api.games.schedule.bySeason, { seasonId })).rejects.toThrow(/Sign in required/);

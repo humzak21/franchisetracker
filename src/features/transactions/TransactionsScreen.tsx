@@ -1,7 +1,8 @@
 import { Wallet } from "lucide-react";
 import { api } from "@convex/_generated/api";
-import { isPreFranchise } from "@shared/history/nflverse";
-import { useFranchise } from "@/app/franchise";
+import { editingMove } from "@/app/moves/forms/moveForm";
+import { useMoves } from "@/app/moves/MovesProvider";
+import type { Move } from "@/app/moves/types";
 import { useSeason } from "@/app/season";
 import { EmptyState } from "@/components/data/EmptyState";
 import { Page } from "@/components/layout/Page";
@@ -13,10 +14,6 @@ import { InjuriesView } from "./InjuriesView";
 import { MoveActions } from "./MoveActions";
 import { MovesFeed } from "./MovesFeed";
 import { TradesView } from "./TradesView";
-import { MoveEditor } from "./forms/MoveEditor";
-import { editingMove } from "./forms/moveForm";
-import { useEditor } from "./forms/useEditor";
-import type { Move } from "./types";
 import { useQuery } from "@/lib/convex/useQuery";
 
 type View = "moves" | "trades" | "injuries" | "cap";
@@ -26,29 +23,15 @@ type View = "moves" | "trades" | "injuries" | "cap";
  * the cap view, with sheets to record, edit and delete trades, signings, other moves and injuries.
  */
 export function TransactionsScreen() {
-  const { season, seasons } = useSeason();
-  const active = useFranchise();
+  const { season } = useSeason();
   const [view, setView] = useLocalStorage<View>("ft.transactions-view", "moves");
   const moves = useQuery(api.transactions.transactions.bySeason, season ? { seasonId: season._id } : "skip");
   const injuries = useQuery(
     api.transactions.transactions.injuries,
     season ? { seasonId: season._id } : "skip",
   );
-  const teams = useQuery(api.league.teams.list, {});
-  const editor = useEditor();
-  const startYear = active?.franchise.startYear;
-  const real = season && startYear !== undefined ? isPreFranchise(season.year, startYear) : false;
-  const context =
-    season && active && teams
-      ? {
-          teams,
-          // Moves are recorded in franchise seasons; the shown season stays choosable for edits.
-          seasons: seasons.filter((s) => s.year >= active.franchise.startYear || s._id === season._id),
-          seasonId: season._id,
-          userTeamId: active.franchise.userTeamId,
-        }
-      : null;
-  const editMove = (move: Move) => editor.openEditor(editingMove(move));
+  const editor = useMoves();
+  const editMove = (move: Move) => editor.open(editingMove(move));
 
   return (
     <Page title="Transactions" eyebrow={season ? `${season.year} season` : undefined} season>
@@ -65,8 +48,8 @@ export function TransactionsScreen() {
               { value: "cap", label: "Cap" },
             ]}
           />
-          {context && !real && view !== "cap" && (
-            <MoveActions injuries={view === "injuries"} onOpen={editor.openEditor} />
+          {editor.ready && !editor.historical && view !== "cap" && (
+            <MoveActions injuries={view === "injuries"} onOpen={editor.open} />
           )}
         </div>
         {!season || moves === undefined || injuries === undefined ? (
@@ -76,11 +59,8 @@ export function TransactionsScreen() {
         ) : view === "trades" ? (
           <TradesView moves={moves} onEdit={editMove} />
         ) : view === "injuries" ? (
-          <InjuriesView
-            injuries={injuries}
-            onEdit={(injury) => editor.openEditor({ kind: "injury", injury })}
-          />
-        ) : real ? (
+          <InjuriesView injuries={injuries} onEdit={(injury) => editor.open({ kind: "injury", injury })} />
+        ) : editor.historical ? (
           <EmptyState
             icon={Wallet}
             title="No cap for real seasons"
@@ -90,15 +70,6 @@ export function TransactionsScreen() {
           <CapView seasonId={season._id} />
         )}
       </div>
-      {context && (
-        <MoveEditor
-          editing={editor.editing}
-          session={editor.session}
-          open={editor.open}
-          onOpenChange={editor.onOpenChange}
-          context={context}
-        />
-      )}
     </Page>
   );
 }

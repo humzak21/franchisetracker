@@ -7,7 +7,7 @@ import { RankTrend } from "@/components/data/RankTrend";
 import { Skeleton } from "@/components/ui/misc";
 import { useQuery } from "@/lib/convex/useQuery";
 
-/** The team's league rank in key categories this season, and how each moved since the last. */
+/** The team's key season stats, with its league rank where captured and how it moved since the last. */
 export function RankPulse({ year }: { year: number }) {
   const trends = useQuery(api.league.teamStats.trends, {});
   if (trends === undefined) return <Skeleton className="h-48 rounded-xl" />;
@@ -16,8 +16,8 @@ export function RankPulse({ year }: { year: number }) {
     return (
       <EmptyState
         icon={BarChart3}
-        title="No team ranks yet"
-        description="Capture the team stats screen to rank the team across the league."
+        title="No team stats yet"
+        description="Import each game's team stats to add up the season, and capture the team stats screen for league ranks."
       />
     );
   }

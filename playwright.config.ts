@@ -14,6 +14,9 @@ export default defineConfig({
   forbidOnly: CI,
   retries: CI ? 1 : 0,
   workers: CI ? 2 : undefined,
+  // CI runners have 2 vCPUs for the backend, the server and two browsers: a screen's first data
+  // can take longer than the 5 s default there. Only failing waits get slower.
+  expect: { timeout: CI ? 10_000 : 5_000 },
   reporter: CI ? [["github"], ["html", { open: "never" }]] : [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: `http://localhost:${E2E_PORT}`,
@@ -21,6 +24,9 @@ export default defineConfig({
     screenshot: "only-on-failure",
     // The PWA service worker only caches the build; it has nothing to do with what these test.
     serviceWorkers: "block",
+    // The app turns its motion off (150-250 ms eases) under reduced motion, so a click no longer
+    // waits for a sheet or section to stop moving: on CI WebKit that wait was a second a click.
+    reducedMotion: "reduce",
   },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },

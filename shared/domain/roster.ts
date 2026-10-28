@@ -23,10 +23,12 @@ export const ROSTER_STATUS_LABELS: Record<RosterStatus, string> = {
   traded: "Traded away",
 };
 
-export const DEV_TRAITS = ["normal", "star", "superstar", "xfactor"] as const;
+/** Madden hides a rookie's trait until it is revealed in his first season; "hidden" records that. */
+export const DEV_TRAITS = ["hidden", "normal", "star", "superstar", "xfactor"] as const;
 export type DevTrait = (typeof DEV_TRAITS)[number];
 
 export const DEV_TRAIT_LABELS: Record<DevTrait, string> = {
+  hidden: "Hidden",
   normal: "Normal",
   star: "Star",
   superstar: "Superstar",

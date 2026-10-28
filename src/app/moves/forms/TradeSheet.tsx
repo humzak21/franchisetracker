@@ -9,10 +9,12 @@ import { TimingFields } from "./TimingFields";
 import { TradeSideFields } from "./TradeSideFields";
 import {
   defaultPhase,
+  newTradeSides,
   personKey,
   timingOf,
   tradeArgs,
   tradeSides,
+  type Prefill,
   type Timing,
   type TradeSide,
 } from "./moveForm";
@@ -26,12 +28,14 @@ import { useSubmit } from "./useSubmit";
 export function TradeSheet({
   context,
   move,
+  prefill,
   open,
   onOpenChange,
 }: {
   context: SheetContext;
   /** The trade to edit; a new one otherwise. */
   move?: Move;
+  prefill?: Prefill;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -43,12 +47,7 @@ export function TradeSheet({
       ? timingOf(move, context.seasonId)
       : { seasonId: context.seasonId, ...defaultPhase(current?.status ?? "upcoming") },
   );
-  const [initialA, initialB] = move
-    ? tradeSides(move)
-    : [
-        { teamId: context.userTeamId, players: [], picks: [] },
-        { players: [], picks: [] },
-      ];
+  const [initialA, initialB] = move ? tradeSides(move) : newTradeSides(context.userTeamId, prefill);
   const [a, setA] = useState<TradeSide>(initialA);
   const [b, setB] = useState<TradeSide>(initialB);
   const [notes, setNotes] = useState(move?.notes ?? "");

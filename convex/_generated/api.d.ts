@@ -164,6 +164,7 @@ import type * as stats_refreshRecords from "../stats/refreshRecords.js";
 import type * as stats_refreshStreaks from "../stats/refreshStreaks.js";
 import type * as stats_season from "../stats/season.js";
 import type * as stats_streaks from "../stats/streaks.js";
+import type * as stats_teamTotals from "../stats/teamTotals.js";
 import type * as stats_typedRecords from "../stats/typedRecords.js";
 import type * as transactions_forms from "../transactions/forms.js";
 import type * as transactions_injuries from "../transactions/injuries.js";
@@ -337,6 +338,7 @@ declare const fullApi: ApiFromModules<{
   "stats/refreshStreaks": typeof stats_refreshStreaks;
   "stats/season": typeof stats_season;
   "stats/streaks": typeof stats_streaks;
+  "stats/teamTotals": typeof stats_teamTotals;
   "stats/typedRecords": typeof stats_typedRecords;
   "transactions/forms": typeof transactions_forms;
   "transactions/injuries": typeof transactions_injuries;

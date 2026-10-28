@@ -6,6 +6,7 @@ import { mutation, query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { invalid, must } from "../lib/errors";
 import { playersById } from "../lib/franchise";
+import { headshotUrls } from "../lib/refs";
 import { vPosition } from "../lib/validators";
 import { ownGame } from "./access";
 
@@ -24,6 +25,7 @@ export const candidates = query({
       playerId: v.id("players"),
       name: v.string(),
       position: vPosition,
+      headshotUrl: v.union(v.string(), v.null()),
       teamId: v.id("teams"),
       inGame: v.boolean(),
     }),
@@ -57,9 +59,19 @@ export const candidates = query({
       ctx,
       picks.map((p) => p.playerId),
     );
+    const headshots = await headshotUrls(ctx, players.values());
     const out = picks.flatMap((pick) => {
       const player = players.get(pick.playerId);
-      return player ? [{ ...pick, name: player.displayName, position: player.position }] : [];
+      return player
+        ? [
+            {
+              ...pick,
+              name: player.displayName,
+              position: player.position,
+              headshotUrl: headshots.get(player._id) ?? null,
+            },
+          ]
+        : [];
     });
     const rosterOnly = out.filter((p) => !p.inGame).sort((a, b) => a.name.localeCompare(b.name));
     return [...out.filter((p) => p.inGame), ...rosterOnly];

@@ -13,6 +13,7 @@ import {
   type StatLine,
   type ThresholdOverrides,
 } from "@shared/stats";
+import { MISSING_GAME_NOTE } from "@shared/ingestion/reconcile";
 import { statColumn, type DataColumn } from "@/components/data/DataTable";
 import { StatCell } from "@/components/data/StatCell";
 import type { PlayerPage } from "./types";
@@ -25,6 +26,8 @@ export type CareerRow = {
   line: StatLine;
   /** Imported real-NFL totals from before the franchise, not derived from captured games. */
   imported: boolean;
+  /** Stats showing the season screen's number (see `withMissingGames`). */
+  overridden: readonly string[];
 };
 
 /** One row per season (log-derived totals win over imported ones) for the regular season or playoffs. */
@@ -42,6 +45,7 @@ export function careerRows(
     games: s.stats.gamesPlayed,
     line: s.stats.totals as StatLine,
     imported: s.stats.source === "import",
+    overridden: s.overridden,
   }));
 }
 
@@ -53,6 +57,7 @@ export function totalsRow(rows: readonly CareerRow[]): CareerRow {
     games: rows.reduce((n, r) => n + r.games, 0),
     line: aggregateLines(rows.map((r) => r.line)),
     imported: false,
+    overridden: [],
   };
 }
 
@@ -127,7 +132,13 @@ export function careerColumns(
     return {
       ...statColumn<CareerRow>(key, value, { group: STAT_CATEGORY_LABELS[STAT_REGISTRY[key].category] }),
       cell: (r: CareerRow) => (
-        <StatCell stat={key} value={value(r)} highlight={r.year !== null} thresholds={thresholds} />
+        <StatCell
+          stat={key}
+          value={value(r)}
+          highlight={r.year !== null}
+          thresholds={thresholds}
+          note={r.overridden.includes(key) ? MISSING_GAME_NOTE : undefined}
+        />
       ),
     };
   });

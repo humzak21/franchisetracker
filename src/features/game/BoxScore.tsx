@@ -1,6 +1,6 @@
 import { useMutation } from "convex/react";
 import { ImageUp, ListPlus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import {
@@ -19,6 +19,7 @@ import { TeamChip } from "@/components/team/TeamChip";
 import { Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import { useQuery } from "@/lib/convex/useQuery";
+import { useRevealOnChange } from "@/lib/hooks/useRevealOnChange";
 import { BoxLinesSheet } from "./BoxLinesSheet";
 import { boxColumns, boxRows, totalsRow, type BoxTeam } from "./boxScoreColumns";
 
@@ -35,6 +36,9 @@ export function BoxScore({ gameId, onImport }: BoxScoreProps) {
   const [side, setSide] = useState<string>("both");
   const [picked, setPicked] = useState<StatCategory | null>(null);
   const [linesOpen, setLinesOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  // Categories differ a lot in length (receiving vs passing): keep the whole table on screen.
+  useRevealOnChange(box, `${picked}:${side}`);
 
   const categories = useMemo(() => {
     const rows = (data?.teams ?? []).flatMap((t) => t.lines.map((l) => ({ line: l.stats as StatLine })));
@@ -84,7 +88,7 @@ export function BoxScore({ gameId, onImport }: BoxScoreProps) {
   const allLines = data.teams.flatMap((t) => t.lines.map((l) => ({ line: l.stats as StatLine })));
   const stats = statsWithData([category], allLines, { singleGame: true });
   return (
-    <div className="space-y-3">
+    <div ref={box} className="scroll-mt-20 scroll-mb-24 space-y-3 sm:scroll-mb-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div data-swipe-ignore className="-mx-1 max-w-full scrollbar-none overflow-x-auto px-1">
           <Segmented

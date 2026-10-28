@@ -2,6 +2,7 @@ import { BarChart3 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { ThresholdOverrides } from "@shared/stats";
 import { useFranchise } from "@/app/franchise";
+import { MISSING_GAME_NOTE } from "@shared/ingestion/reconcile";
 import { DataTable } from "@/components/data/DataTable";
 import { EmptyState } from "@/components/data/EmptyState";
 import { Segmented } from "@/components/ui/segmented";
@@ -63,6 +64,11 @@ export function CareerStatsTable({ page }: { page: PlayerPage }) {
         totals={totals}
         caption="Career stats"
       />
+      {rows.some((r) => r.overridden.length > 0) && (
+        <p className="text-xs text-muted-foreground">
+          <span className="text-primary">•</span> {MISSING_GAME_NOTE}.
+        </p>
+      )}
     </div>
   );
 }

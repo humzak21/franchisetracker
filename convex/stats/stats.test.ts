@@ -49,6 +49,58 @@ describe("season stats", () => {
   });
 });
 
+describe("season screen numbers for missing games", () => {
+  test("show where a difference was settled as a missing game, on the stats screen and player page", async () => {
+    const { t, owner, seasonId } = await setup();
+    const rows = await owner.query(api.stats.season.bySplit, { seasonId, split: "regular" });
+    const maye = rows.find((r) => r.name === "Drake Maye")!;
+    await t.run(async (ctx) => {
+      const season = (await ctx.db.get("seasons", seasonId))!;
+      const franchise = (await ctx.db.get("franchises", season.franchiseId))!;
+      await ctx.db.insert("reportedSeasonStats", {
+        franchiseId: franchise._id,
+        seasonId,
+        playerId: maye.playerId,
+        teamId: franchise.userTeamId,
+        gamesPlayed: 6,
+        stats: { passYds: 1690, passTd: 12 },
+        resolved: { passYds: "missing", passTd: "logs", gamesPlayed: "missing" },
+      });
+    });
+
+    const after = await owner.query(api.stats.season.bySplit, { seasonId, split: "regular" });
+    expect(after.find((r) => r.name === "Drake Maye")).toMatchObject({
+      gamesPlayed: 6,
+      totals: { passYds: 1690, passTd: 11 },
+    });
+    expect(after.find((r) => r.name === "Drake Maye")!.overridden.toSorted()).toEqual([
+      "gamesPlayed",
+      "passYds",
+    ]);
+    const playoffs = await owner.query(api.stats.season.bySplit, { seasonId, split: "postseason" });
+    expect(playoffs.every((r) => r.overridden.length === 0)).toBe(true);
+
+    const page = await owner.query(api.players.player.get, { playerId: maye.playerId });
+    const regular = page.seasons.find((s) => s.stats.seasonId === seasonId && s.stats.split === "regular")!;
+    expect(regular.stats).toMatchObject({ gamesPlayed: 6, totals: { passYds: 1690, passTd: 11 } });
+    expect(regular.overridden.toSorted()).toEqual(["gamesPlayed", "passYds"]);
+
+    // Display only: the stored log totals the reconcile screen compares against are untouched.
+    const stored = await t.run((ctx) =>
+      ctx.db
+        .query("seasonPlayerStats")
+        .withIndex("by_playerId_and_seasonId", (q) =>
+          q.eq("playerId", maye.playerId).eq("seasonId", seasonId),
+        )
+        .take(5),
+    );
+    expect(stored.find((r) => r.split === "regular")).toMatchObject({
+      gamesPlayed: 5,
+      totals: { passYds: 1403 },
+    });
+  });
+});
+
 /** One list of the franchise-era book. */
 async function franchiseList(
   owner: Awaited<ReturnType<typeof setup>>["owner"],

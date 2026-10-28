@@ -1,18 +1,22 @@
+import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 
-test.describe("component gallery", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto("/dev/components");
-    // Each specimen renders four times (two themes, two widths) as it is scrolled to: slow on CI WebKit.
-    await expect(page.getByRole("heading", { level: 1, name: "Component gallery" })).toBeVisible({
-      timeout: 20_000,
-    });
+/**
+ * One specimen on its own (`?only=`), mounted at once. The full page mounts specimens as they
+ * scroll into view, four frames each; on CI WebKit the neighbours mounting moved controls under
+ * clicks and timed tests out.
+ */
+async function openSpecimen(page: Page, id: string) {
+  await page.goto(`/dev/components?only=${id}`);
+  await expect(page.getByRole("heading", { level: 1, name: "Component gallery" })).toBeVisible({
+    timeout: 20_000,
   });
+  return page.locator(`#${id}`);
+}
 
+test.describe("component gallery", () => {
   test("DataTable switches to phone mode inside the phone frame", async ({ page }) => {
-    const section = page.locator("#datatable");
-    // Specimens mount when scrolled to.
-    await section.scrollIntoViewIfNeeded();
+    const section = await openSpecimen(page, "datatable");
     const phoneFrame = section.locator("figure").filter({ hasText: /Phone · 390px · dark/ });
     const desktopFrame = section.locator("figure").filter({ hasText: /Desktop · 960px · dark/ });
 
@@ -28,8 +32,7 @@ test.describe("component gallery", () => {
   });
 
   test("a long DataTable renders only the rows in view", async ({ page }) => {
-    const section = page.locator("#datatable-long");
-    await section.scrollIntoViewIfNeeded();
+    const section = await openSpecimen(page, "datatable-long");
     const frame = section.locator("figure").first();
     const scroller = frame.locator("[data-swipe-ignore] [data-swipe-ignore]").first();
     await expect(frame.getByRole("row", { name: /^Row 1\b/ })).toBeVisible();
@@ -42,9 +45,7 @@ test.describe("component gallery", () => {
   });
 
   test("TeamPicker selects one team at a time", async ({ page }) => {
-    // Specimens mount when scrolled to.
-    await page.locator("#teampicker").scrollIntoViewIfNeeded();
-    const frame = page.locator("#teampicker figure").first();
+    const frame = (await openSpecimen(page, "teampicker")).locator("figure").first();
     const lions = frame.getByRole("radio", { name: "Detroit Lions" });
     await lions.click();
     await expect(lions).toHaveAttribute("aria-checked", "true");
@@ -52,11 +53,21 @@ test.describe("component gallery", () => {
   });
 
   test("every specimen renders in both themes", async ({ page }) => {
+    await page.goto("/dev/components");
+    // The whole gallery: each specimen mounts as it is scrolled to; the first ones are in view.
+    await expect(page.getByRole("heading", { level: 1, name: "Component gallery" })).toBeVisible({
+      timeout: 20_000,
+    });
     const sections = page.locator("section[id]");
     expect(await sections.count()).toBeGreaterThanOrEqual(12);
     for (const theme of ["dark", "light"]) {
       await expect(page.getByText(`Phone · 390px · ${theme}`).first()).toBeVisible();
       await expect(page.getByText(`Desktop · 960px · ${theme}`).first()).toBeAttached();
     }
+  });
+
+  test("a specimen link opens just that specimen", async ({ page }) => {
+    await openSpecimen(page, "teampicker");
+    await expect(page.locator("section[id]")).toHaveCount(1);
   });
 });

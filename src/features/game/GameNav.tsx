@@ -17,8 +17,9 @@ export function GameNav({
   swipeArea: RefObject<HTMLDivElement | null>;
 }) {
   const navigate = useNavigate();
+  // Replace, not push: stepping through games shouldn't stack up, so Back leaves the game screen.
   const go = (id: Id<"games"> | null | undefined) =>
-    id && void navigate({ to: "/games/$gameId", params: { gameId: id } });
+    id && void navigate({ to: "/games/$gameId", params: { gameId: id }, replace: true });
   useShortcut("game-prev", {
     key: "[",
     label: "Previous game",

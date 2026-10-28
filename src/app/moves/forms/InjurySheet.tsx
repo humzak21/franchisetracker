@@ -13,7 +13,7 @@ import { PeopleList } from "./PeopleList";
 import { PersonPicker } from "./PersonPicker";
 import { SheetActions } from "./SheetActions";
 import { TeamSelect } from "./TeamSelect";
-import { parseWhole, toPersonInput, type Person } from "./moveForm";
+import { parseWhole, toPersonInput, type Person, type Prefill } from "./moveForm";
 import type { SheetContext } from "./types";
 import { useSubmit } from "./useSubmit";
 
@@ -28,11 +28,13 @@ const toWeek = (value: string) => (value === NONE ? undefined : (value as WeekKe
 export function InjurySheet({
   context,
   injury,
+  prefill,
   open,
   onOpenChange,
 }: {
   context: SheetContext;
   injury?: Injury;
+  prefill?: Prefill;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -40,9 +42,13 @@ export function InjurySheet({
   const remove = useMutation(api.transactions.injuries.remove);
   const p = injury?.player;
   const [person, setPerson] = useState<Person | null>(
-    p?.playerId ? { kind: "existing", playerId: p.playerId, name: p.name, position: p.position } : null,
+    p?.playerId
+      ? { kind: "existing", playerId: p.playerId, name: p.name, position: p.position }
+      : (prefill?.person ?? null),
   );
-  const [teamId, setTeamId] = useState<Id<"teams">>(injury?.team?._id ?? context.userTeamId);
+  const [teamId, setTeamId] = useState<Id<"teams">>(
+    injury?.team?._id ?? prefill?.teamId ?? context.userTeamId,
+  );
   const [weekKey, setWeekKey] = useState<WeekKey | undefined>(injury?.weekKey);
   const [injuryType, setInjuryType] = useState(injury?.injuryType ?? "");
   const [lengthLabel, setLengthLabel] = useState(injury?.lengthLabel ?? "");

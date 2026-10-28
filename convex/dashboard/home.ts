@@ -8,9 +8,9 @@ import { seasonSummary, sortByWeek, userScore } from "../../shared/games/summary
 import type { Doc, Id } from "../_generated/dataModel";
 import { query, type QueryCtx } from "../_generated/server";
 import { vGameRow, vSeasonSummary, vWeekPoint, vWlt } from "../games/validators";
-import { gameRow, starPlayerIds, weekPointRows } from "../games/views";
+import { gameRow, loadStarPlayers, weekPointRows } from "../games/views";
 import { requireOwner } from "../lib/auth";
-import { activeFranchise, playersById, teamsById } from "../lib/franchise";
+import { activeFranchise, teamsById } from "../lib/franchise";
 import { franchiseSeasonList, seasonGames } from "../lib/reports";
 import { vGameResult, vWeekKey } from "../lib/validators";
 
@@ -73,7 +73,7 @@ export const season = query({
     const next = games.slice(lastIndex + 1).find((g) => g.status === "scheduled" && g.opponentTeamId);
     const [teams, players, standing] = await Promise.all([
       teamsById(ctx),
-      playersById(ctx, starPlayerIds(last ? [last] : [])),
+      loadStarPlayers(ctx, last ? [last] : []),
       ctx.db
         .query("standings")
         .withIndex("by_seasonId_and_teamId", (q) =>

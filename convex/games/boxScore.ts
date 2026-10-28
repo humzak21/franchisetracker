@@ -5,6 +5,7 @@ import { query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { must } from "../lib/errors";
 import { activeFranchise, playersById } from "../lib/franchise";
+import { headshotUrls } from "../lib/refs";
 import { vPosition, vStatMap } from "../lib/validators";
 import schema from "../schema";
 
@@ -15,6 +16,7 @@ const vBoxLine = v.object({
   name: v.string(),
   position: v.union(vPosition, v.null()),
   jersey: v.union(v.number(), v.null()),
+  headshotUrl: v.union(v.string(), v.null()),
   stats: vStatMap,
 });
 
@@ -55,6 +57,7 @@ export const get = query({
           ctx,
           lines.map((l) => l.playerId),
         );
+        const headshots = await headshotUrls(ctx, players.values());
         const jerseys = new Map<Id<"players">, number>();
         for (const line of lines) {
           const entries = await ctx.db
@@ -74,6 +77,7 @@ export const get = query({
             name: players.get(line.playerId)?.displayName ?? "Unknown player",
             position: line.position ?? players.get(line.playerId)?.position ?? null,
             jersey: jerseys.get(line.playerId) ?? null,
+            headshotUrl: headshots.get(line.playerId) ?? null,
             stats: line.stats,
           })),
           stats: teamStats ? offensiveYards(teamStats.stats) : null,

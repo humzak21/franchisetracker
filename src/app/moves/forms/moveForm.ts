@@ -82,8 +82,13 @@ export function contractInput(draft: ContractDraft): Contract | undefined {
   return Object.keys(contract).length ? contract : undefined;
 }
 
-/** Which sheet is open, and the move or injury it edits (none for a new one). */
-export type Editing = { kind: "trade" | "sign" | "other"; move?: Move } | { kind: "injury"; injury?: Injury };
+/** A new move or injury started from a player (a roster row, the player page): him, and his team then. */
+export type Prefill = { person: Person; teamId?: Id<"teams"> };
+
+/** Which sheet is open, and the move or injury it edits (none for a new one, maybe started from a player). */
+export type Editing =
+  | { kind: "trade" | "sign" | "other"; move?: Move; prefill?: Prefill }
+  | { kind: "injury"; injury?: Injury; prefill?: Prefill };
 
 /** The sheet that edits a stored move: the trade builder, the signing form, or the other-move form. */
 export const editingMove = (move: Move): Editing => ({
@@ -117,6 +122,19 @@ export function tradeSides(move: Move): [TradeSide, TradeSide] {
       picks: move.picksIn.map((p) => pickDraft(p, b)),
     },
   ];
+}
+
+/**
+ * A new trade's two sides. Team A is the user team; a player started from goes on the side of
+ * the team he plays for (Team B when that is another team or unknown), so trading him away and
+ * trading for him both start with him in place.
+ */
+export function newTradeSides(userTeamId: Id<"teams">, prefill?: Prefill): [TradeSide, TradeSide] {
+  const a: TradeSide = { teamId: userTeamId, players: [], picks: [] };
+  const b: TradeSide = { players: [], picks: [] };
+  if (!prefill) return [a, b];
+  if (prefill.teamId === userTeamId) return [{ ...a, players: [prefill.person] }, b];
+  return [a, { teamId: prefill.teamId, players: [prefill.person], picks: [] }];
 }
 
 /** The save arguments for a trade between the two sides, from the first side's view. */

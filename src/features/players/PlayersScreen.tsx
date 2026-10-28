@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { POSITION_GROUPS, positionGroupOf, type PositionGroup } from "@shared/domain";
-import { useFranchise } from "@/app/franchise";
+import { currentSeason, useFranchise } from "@/app/franchise";
+import { useMoveActions } from "@/app/moves/useMoveActions";
 import { DataTable } from "@/components/data/DataTable";
 import { EmptyState } from "@/components/data/EmptyState";
 import { FilterBar, type FilterOption } from "@/components/data/FilterBar";
@@ -44,7 +45,17 @@ export function PlayersScreen() {
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id].slice(0, MAX_COMPARE),
     );
   const selection = { selected: new Set(selected), toggle, full: selected.length >= MAX_COMPARE };
-  const columns = playerColumns(data?.team ?? LOADING_TEAM, selection);
+  const moveActions = useMoveActions();
+  const currentYear = active ? currentSeason(active.seasons)?.year : undefined;
+  const columns = playerColumns(data?.team ?? LOADING_TEAM, selection, (r) =>
+    moveActions({
+      playerId: r.playerId,
+      name: r.displayName,
+      position: r.position,
+      // Only someone on this roster now is known to be on this team; anyone else may have moved on.
+      teamId: data && r.latestYear === currentYear ? data.team._id : undefined,
+    }),
+  );
   const groupOptions: FilterOption<GroupFilter>[] = [
     { value: "all", label: "All", count: all.length },
     ...POSITION_GROUPS.filter((g) => all.some((r) => positionGroupOf(r.position) === g)).map((g) => ({

@@ -93,7 +93,12 @@ export function StarCandidates({ candidates, picked, onAdd, user, opponent }: St
               >
                 <PlayerChip
                   size="sm"
-                  player={{ displayName: c.name, position: c.position, team: teamOf(c.teamId) }}
+                  player={{
+                    displayName: c.name,
+                    position: c.position,
+                    headshotUrl: c.headshotUrl,
+                    team: teamOf(c.teamId),
+                  }}
                   className="flex-1"
                 />
                 <span className="shrink-0 text-xs text-subtle-foreground">
