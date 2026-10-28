@@ -2,6 +2,7 @@
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { MAX_IMAGE_BYTES, TOO_LARGE } from "../../shared/ingestion/limits";
 import { api, internal } from "../_generated/api";
 import { SAMPLE_START_YEAR } from "../dev/fixtures";
 import { asOwner } from "../lib/testOwner";
@@ -48,6 +49,17 @@ describe("shortcut endpoint", () => {
     const week = (target: string) => sets.find((s) => s.targetKey === target)?.weekKey ?? null;
     // The sample season's latest result is week 6.
     expect([week("game_box_score"), week("weekly_awards"), week("standings")]).toEqual(["w7", "w6", null]);
+  });
+
+  test("refuses a full-size image before storing anything", async () => {
+    const { t, owner, upload } = await setup();
+    const body = form({ target: "game_box_score" });
+    body.append("image", new Blob([new Uint8Array(MAX_IMAGE_BYTES + 1)], { type: "image/png" }), "big.png");
+    const response = await upload(body);
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({ error: TOO_LARGE });
+    expect(await owner.query(api.ingestion.inbox.list, {})).toEqual([]);
+    expect(await t.run((ctx) => ctx.db.system.query("_storage").take(1))).toEqual([]);
   });
 
   test("refuses a missing or revoked token and accepts a valid one", async () => {

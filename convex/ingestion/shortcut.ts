@@ -11,6 +11,7 @@
 import { ConvexError, v } from "convex/values";
 import { WEEK_KEYS, isWeekKey, weekLabel } from "../../shared/domain";
 import { lastPlayedWeek, nextWeek } from "../../shared/games/summary";
+import { MAX_IMAGE_BYTES, TOO_LARGE } from "../../shared/ingestion/limits";
 import { INGESTION_TARGETS, TARGET_KEYS, isTargetKey } from "../../shared/ingestion/targets";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -144,6 +145,8 @@ export const upload = httpAction(async (ctx, request) => {
   if (typeof batch === "string") return json({ error: batch }, 400);
   const notImage = files.find((file) => !file.type.startsWith("image/"));
   if (notImage) return json({ error: `${notImage.name || "A file"} is not an image` }, 400);
+  // Refused before storing: the Shortcut's Resize Image and Convert Image steps are missing.
+  if (files.some((file) => file.size > MAX_IMAGE_BYTES)) return json({ error: TOO_LARGE }, 413);
 
   const storageIds: Id<"_storage">[] = [];
   for (const file of files) storageIds.push(await ctx.storage.store(file));

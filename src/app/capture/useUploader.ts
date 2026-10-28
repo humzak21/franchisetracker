@@ -1,8 +1,10 @@
 import { useMutation } from "convex/react";
+import { ConvexError } from "convex/values";
 import { useCallback } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import type { WeekKey } from "@shared/domain";
+import { MAX_IMAGE_BYTES, TOO_LARGE } from "@shared/ingestion/limits";
 import type { TargetKey } from "@shared/ingestion/targets";
 import { blobQueue } from "@/lib/blobQueue";
 import { prepareImage } from "@/lib/image";
@@ -61,6 +63,8 @@ export function useUploader() {
     async (files: Blob[], context: UploadContext): Promise<UploadOutcome> => {
       const prepared = await Promise.all(files.map(prepareImage));
       const blobs = prepared.map((p) => p.blob);
+      // Refused here rather than by the server, which cannot delete a file it has already stored.
+      if (blobs.some((b) => b.size > MAX_IMAGE_BYTES)) throw new ConvexError({ message: TOO_LARGE });
       const sizes = prepared.every((p) => p.width && p.height)
         ? prepared.map((p) => ({ width: p.width ?? 0, height: p.height ?? 0 }))
         : undefined;

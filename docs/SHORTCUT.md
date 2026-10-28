@@ -49,16 +49,24 @@ actions in order. Text in `code` is typed exactly; `[Token]` is the token from s
 8. **Count** → Items in **Shortcut Input**. Rename the result to `Batch Size`.
 9. **Get Random Number** between `100000000` and `999999999`. Rename the result to `Batch`.
 10. **Repeat with Each** → **Shortcut Input**, and inside it:
-    **Get Contents of URL** → `<site>/shortcut/upload`
-    - Method: POST. Headers: `Authorization` = `Bearer ` + `Token`.
-    - Request Body: **Form**. Add fields:
-      - `image` (File) = **Repeat Item**
-      - `target` (Text) = `Target`
-      - `week` (Text) = `Week`
-      - `batch` (Text) = `Batch`
-      - `batchSize` (Text) = `Batch Size`
+    1. **Resize Image** → **Repeat Item**, by **Longest Edge**, `2048`.
+    2. **Convert Image** → the **Resized Image** to **JPEG**, Compression Quality `85%`, Preserve
+       Metadata off.
+    3. **Get Contents of URL** → `<site>/shortcut/upload`
+       - Method: POST. Headers: `Authorization` = `Bearer ` + `Token`.
+       - Request Body: **Form**. Add fields:
+         - `image` (File) = **Converted Image**
+         - `target` (Text) = `Target`
+         - `week` (Text) = `Week`
+         - `batch` (Text) = `Batch`
+         - `batchSize` (Text) = `Batch Size`
 11. After **End Repeat**, **Show Notification** → `Sent to FranchiseTracker` (each response is
     `{ "ok": true, "images": 1 }`).
+
+Steps 10.1 and 10.2 matter: the endpoint refuses images over 2 MB. A phone screenshot is a
+PNG of several megabytes, and Convex counts every byte again each time the model or the app reads
+it (data egress, 1 GB a month on the free plan). Resized and converted it is a few hundred KB, and
+the model reads it just as well, since it scales anything bigger down to about this size anyway.
 
 A box score spread across several screens is sent in one go: select all of them in Photos, then
 share. A form field in Shortcuts holds only the first of several photos, so step 10 sends one
@@ -96,5 +104,6 @@ like a password and revoke the token in Settings if it leaks.
 | `400 Attach between 1 and 20 images` | No photos reached the request, or more than 20. |
 | `400 Send batch … with batchSize …` | `batch` is empty or not letters, digits, `-` or `_`, or `batchSize` is not 1 to 20; check steps 8 and 9. |
 | `400 The batch holds N screenshots` | More photos arrived under one `batch` than its `batchSize`. |
+| `413 Only images up to 2 MB can be imported` | A photo skipped the resize and conversion; check steps 10.1 and 10.2 and that the form's `image` is **Converted Image**. |
 | `400 This batch was already read` | A request reused a batch that is complete; each share needs a new random `Batch`. |
 | Set shows **Failed** in the inbox | The backend could not read the screenshots; open it to see why and retry. Extraction needs `OPENROUTER_API_KEY` on the deployment. |
