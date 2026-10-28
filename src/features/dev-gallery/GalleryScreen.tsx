@@ -63,12 +63,16 @@ function SpecimenBlock({
   specimen,
   themes,
   team,
+  eager = false,
 }: {
   specimen: Specimen;
   themes: ("dark" | "light")[];
   team: (typeof NFL_TEAMS)[number];
+  /** Mount right away instead of on scroll: the only specimen on the page. */
+  eager?: boolean;
 }) {
-  const { ref, near: shown } = useNearViewport<HTMLElement>();
+  const { ref, near } = useNearViewport<HTMLElement>();
+  const shown = eager || near;
   return (
     <section ref={ref} id={specimen.id} className="scroll-mt-24 border-t border-border pt-6">
       <h2 className="font-display text-2xl font-bold tracking-wide uppercase">{specimen.name}</h2>
@@ -94,14 +98,18 @@ function SpecimenBlock({
 /**
  * /dev/components: every primitive at phone and desktop width, in either or both themes, under
  * any team's colors. Components switch layout on their own width, so the phone frame is honest.
+ * `?only=<id>` shows one specimen, mounted at once: a link to share, and what e2e tests open so
+ * neighbours mounting as they scroll by never move the control under a click.
  */
-export function GalleryScreen() {
+export function GalleryScreen({ only }: { only?: string }) {
   const { resolved } = useTheme();
   const [choice, setChoice] = useLocalStorage<ThemeChoice>("ft.gallery.theme", "both");
   const [teamAbbr, setTeamAbbr] = useLocalStorage("ft.gallery.team", "NE");
   const team = NFL_TEAMS.find((t) => t.abbr === teamAbbr) ?? NFL_TEAMS[0]!;
   const themes: ("dark" | "light")[] =
     choice === "both" ? ["dark", "light"] : [choice === "app" ? resolved : choice];
+  const focused = only ? SPECIMENS.filter((sp) => sp.id === only) : [];
+  const shown = focused.length > 0 ? focused : SPECIMENS;
 
   return (
     <Page title="Component gallery" eyebrow="Developer">
@@ -140,7 +148,8 @@ export function GalleryScreen() {
           {SPECIMENS.map((sp) => (
             <a
               key={sp.id}
-              href={`#${sp.id}`}
+              // From one specimen, back to the whole gallery at that section.
+              href={focused.length > 0 ? `/dev/components#${sp.id}` : `#${sp.id}`}
               className="shrink-0 rounded-full border border-border px-3 py-1 text-xs whitespace-nowrap text-muted-foreground hover:text-foreground"
             >
               {sp.name}
@@ -149,8 +158,8 @@ export function GalleryScreen() {
         </nav>
       </div>
       <div className="space-y-10">
-        {SPECIMENS.map((sp) => (
-          <SpecimenBlock key={sp.id} specimen={sp} themes={themes} team={team} />
+        {shown.map((sp) => (
+          <SpecimenBlock key={sp.id} specimen={sp} themes={themes} team={team} eager={focused.length > 0} />
         ))}
       </div>
     </Page>
