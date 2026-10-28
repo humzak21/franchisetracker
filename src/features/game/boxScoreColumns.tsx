@@ -24,6 +24,7 @@ export type BoxRow = {
   name: string;
   position: string | null;
   jersey: number | null;
+  headshotUrl: string | null;
   line: StatLine;
 };
 
@@ -37,6 +38,7 @@ export function boxRows(team: BoxTeam, stats: readonly StatKey[]): BoxRow[] {
       name: l.name,
       position: l.position,
       jersey: l.jersey,
+      headshotUrl: l.headshotUrl,
       line: l.stats as StatLine,
     }))
     .filter((r) => stats.some((k) => STAT_REGISTRY[k].kind === "raw" && (statValue(k, r.line) ?? 0) !== 0))
@@ -50,6 +52,7 @@ export function totalsRow(rows: readonly BoxRow[]): BoxRow {
     name: "Team",
     position: null,
     jersey: null,
+    headshotUrl: null,
     line: aggregateLines(rows.map((r) => r.line)),
   };
 }
@@ -67,7 +70,13 @@ export function boxColumns(stats: readonly StatKey[], team: TeamLike): DataColum
       const chip = (
         <PlayerChip
           size="sm"
-          player={{ displayName: r.name, position: r.position ?? "", jersey: r.jersey, team }}
+          player={{
+            displayName: r.name,
+            position: r.position ?? "",
+            jersey: r.jersey,
+            headshotUrl: r.headshotUrl,
+            team,
+          }}
           showPosition={r.position !== null}
         />
       );

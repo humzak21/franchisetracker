@@ -5,12 +5,16 @@ import { vGameResult, vGameStatus, vPlayoffRound, vRecord, vWeekKey } from "../l
 
 const nullable = <T extends Parameters<typeof v.union>[0]>(validator: T) => v.union(validator, v.null());
 
+/** Points per period, overtime appended (see `games.lineScore`). */
+export const vLineScore = v.object({ home: v.array(v.number()), away: v.array(v.number()) });
+
 export const vWlt = v.object({ w: v.number(), l: v.number(), t: v.number() });
 
 export const vStarView = v.object({
   playerId: nullable(v.id("players")),
   name: v.string(),
   position: nullable(v.string()),
+  headshotUrl: nullable(v.string()),
   caption: nullable(v.string()),
   teamId: nullable(v.id("teams")),
 });

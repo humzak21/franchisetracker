@@ -2,8 +2,15 @@ import { describe, expect, it } from "vitest";
 import { draftFromStars, matching, starsInput } from "./starDraft";
 
 const stars = [
-  { playerId: "p1", name: "Drake Maye", position: "QB", caption: "3 TD", teamId: "t1" },
-  { playerId: null, name: "Opponent standout", position: null, caption: null, teamId: null },
+  { playerId: "p1", name: "Drake Maye", position: "QB", headshotUrl: null, caption: "3 TD", teamId: "t1" },
+  {
+    playerId: null,
+    name: "Opponent standout",
+    position: null,
+    headshotUrl: null,
+    caption: null,
+    teamId: null,
+  },
 ];
 
 describe("starDraft", () => {

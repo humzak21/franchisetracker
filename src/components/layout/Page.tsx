@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useCanGoBack, useRouter } from "@tanstack/react-router";
 import { ChevronLeft, Search } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ type PageProps = {
   title: string;
   /** Small line above the title, e.g. "2027 season". */
   eyebrow?: ReactNode;
-  /** Back target for drill-down pages. */
+  /** Back for drill-down pages: returns to the previous screen, or `to` when the page was opened directly. */
   back?: { to: string; label: string };
   /** Show the season switcher in the header. */
   season?: boolean;
@@ -18,6 +18,27 @@ type PageProps = {
   children: ReactNode;
   className?: string;
 };
+
+/** Goes back in history when the app has somewhere to go back to; a deep link falls back to `to`. */
+function BackButton({ to, label }: { to: string; label: string }) {
+  const router = useRouter();
+  const canGoBack = useCanGoBack();
+  return (
+    <Button asChild variant="ghost" size="icon-sm" className="-ml-2">
+      <Link
+        to={to}
+        aria-label={canGoBack ? "Back" : `Back to ${label}`}
+        onClick={(e) => {
+          if (!canGoBack || e.metaKey || e.ctrlKey || e.shiftKey) return;
+          e.preventDefault();
+          router.history.back();
+        }}
+      >
+        <ChevronLeft className="size-5!" />
+      </Link>
+    </Button>
+  );
+}
 
 /**
  * Every screen is a Page. The header is the top bar: sticky, with back navigation, the season
@@ -29,13 +50,7 @@ export function Page({ title, eyebrow, back, season = false, actions, children, 
     <div className="@container flex min-h-full flex-col">
       <header className="pt-safe sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
         <div className="mx-auto flex h-14 w-full max-w-[1600px] items-center gap-2 px-4 @tablet:h-16 @tablet:px-6">
-          {back && (
-            <Button asChild variant="ghost" size="icon-sm" className="-ml-2">
-              <Link to={back.to} aria-label={`Back to ${back.label}`}>
-                <ChevronLeft className="size-5!" />
-              </Link>
-            </Button>
-          )}
+          {back && <BackButton {...back} />}
           <div className="min-w-0 flex-1">
             {eyebrow && (
               <div className="truncate text-[11px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">

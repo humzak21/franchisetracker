@@ -7,13 +7,23 @@ import {
   sortByWeek,
   userScore,
 } from "../../shared/games/summary";
+import { lineScoreError } from "../../shared/games/lineScore";
 import type { Id } from "../_generated/dataModel";
 import { mutation, query, type QueryCtx } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
-import { must } from "../lib/errors";
-import { activeFranchise, playersById, teamsById } from "../lib/franchise";
-import { vGameRow, vHeadToHeadGame, vSeasonSummary, vStarView, vWeekPoint, vWlt } from "./validators";
-import { gameRow, starPlayerIds, starViews, weekPointRows } from "./views";
+import { invalid, must } from "../lib/errors";
+import { ownGame } from "./access";
+import { activeFranchise, teamsById } from "../lib/franchise";
+import {
+  vGameRow,
+  vLineScore,
+  vHeadToHeadGame,
+  vSeasonSummary,
+  vStarView,
+  vWeekPoint,
+  vWlt,
+} from "./validators";
+import { gameRow, loadStarPlayers, starViews, weekPointRows } from "./views";
 import schema from "../schema";
 
 /** Preseason, 18 weeks, four playoff rounds, Pro Bowl: well under this. */
@@ -37,7 +47,7 @@ export const bySeason = query({
   handler: async (ctx, { seasonId }) => {
     await requireOwner(ctx);
     const games = await seasonGames(ctx, seasonId);
-    const [teams, players] = await Promise.all([teamsById(ctx), playersById(ctx, starPlayerIds(games))]);
+    const [teams, players] = await Promise.all([teamsById(ctx), loadStarPlayers(ctx, games)]);
     return {
       games: games.map((game) => gameRow(game, teams, players)),
       summary: seasonSummary(games),
@@ -60,6 +70,7 @@ export const get = query({
         stadium: v.union(v.string(), v.null()),
         weather: v.union(v.string(), v.null()),
         neutralSite: v.boolean(),
+        lineScore: v.union(vLineScore, v.null()),
       }),
       stars: v.array(vStarView),
       userRecordBefore: vWlt,
@@ -77,7 +88,7 @@ export const get = query({
     const season = must(await ctx.db.get("seasons", game.seasonId), "Season");
     const games = await seasonGames(ctx, game.seasonId);
     const index = games.findIndex((g) => g._id === game._id);
-    const [teams, players] = await Promise.all([teamsById(ctx), playersById(ctx, starPlayerIds([game]))]);
+    const [teams, players] = await Promise.all([teamsById(ctx), loadStarPlayers(ctx, [game])]);
 
     const meetings = game.opponentTeamId
       ? await ctx.db
@@ -102,6 +113,7 @@ export const get = query({
         stadium: game.stadium ?? null,
         weather: game.weather ?? null,
         neutralSite: game.neutralSite ?? false,
+        lineScore: game.lineScore ?? null,
       },
       stars: starViews(game, players),
       userRecordBefore: recordBefore(games, game.weekKey),
@@ -131,6 +143,25 @@ export const updateNotes = mutation({
     must(await ctx.db.get("games", gameId), "Game");
     const trimmed = notes.trim();
     await ctx.db.patch("games", gameId, { notes: trimmed === "" ? undefined : trimmed });
+    return null;
+  },
+});
+
+/** Saves hand-typed quarter scores (null clears them); they have to add up to the final score. */
+export const setLineScore = mutation({
+  args: { gameId: v.id("games"), lineScore: v.union(vLineScore, v.null()) },
+  returns: v.null(),
+  handler: async (ctx, { gameId, lineScore }) => {
+    await requireOwner(ctx);
+    const { game } = await ownGame(ctx, gameId);
+    if (lineScore) {
+      const error = lineScoreError(lineScore, {
+        home: game.homeScore ?? null,
+        away: game.awayScore ?? null,
+      });
+      if (error) throw invalid(error);
+    }
+    await ctx.db.patch("games", gameId, { lineScore: lineScore ?? undefined });
     return null;
   },
 });

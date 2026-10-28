@@ -39,7 +39,7 @@ test("player notes save on blur", async ({ page }) => {
   await expect(page.getByText("Saved")).toBeVisible();
 });
 
-test("Edit opens the player's facts and Move opens the move sheet", async ({ page }) => {
+test("Edit opens the player's facts and Move opens the move and transaction sheets", async ({ page }) => {
   await openDiggs(page);
   await page.getByRole("button", { name: "Edit", exact: true }).first().click();
   const sheet = page.getByRole("dialog", { name: "Edit player" });
@@ -47,8 +47,17 @@ test("Edit opens the player's facts and Move opens the move sheet", async ({ pag
   await sheet.getByRole("button", { name: "Cancel" }).click();
   await expect(sheet).toHaveCount(0);
   await page.getByRole("button", { name: "Move", exact: true }).click();
+  await page.getByRole("button", { name: "Move team or status" }).click();
   await expect(page.getByRole("dialog", { name: "Move Stefon Diggs" })).toBeVisible();
   await page.getByRole("button", { name: "Cancel" }).click();
+
+  // A trade started here already has him on his team's side.
+  await page.getByRole("button", { name: "Move", exact: true }).click();
+  await page.getByRole("button", { name: "Record trade" }).click();
+  const trade = page.getByRole("dialog", { name: "Record a trade" });
+  await expect(trade.getByRole("group", { name: "Team A" })).toContainText("Stefon Diggs");
+  await page.keyboard.press("Escape");
+  await expect(trade).toBeHidden();
 });
 
 test("roster history edits inline", async ({ page }) => {
@@ -61,10 +70,19 @@ test("roster history edits inline", async ({ page }) => {
   await expectNoHorizontalOverflow(page);
 });
 
-test("back link returns to the players index", async ({ page }) => {
+test("back returns to the screen the player was opened from", async ({ page }) => {
   await openDiggs(page);
-  await page.getByRole("link", { name: "Back to Players" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Players" })).toBeVisible();
+  await page.getByRole("link", { name: "Back", exact: true }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Roster" })).toBeVisible();
+});
+
+test("back on a directly opened player page goes to the players index", async ({ page }) => {
+  await openDiggs(page);
+  // A new tab has no app history behind it, like opening a shared link.
+  const fresh = await page.context().newPage();
+  await fresh.goto(page.url());
+  await fresh.getByRole("link", { name: "Back to Players" }).click();
+  await expect(fresh.getByRole("heading", { level: 1, name: "Players" })).toBeVisible();
 });
 
 test("real NFL seasons come before the franchise ones, marked, with a game log after", async ({ page }) => {
