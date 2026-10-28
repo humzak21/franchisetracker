@@ -108,3 +108,22 @@ test("a player row links to the player page", async ({ page }) => {
   await expect(page).toHaveURL(/\/players\/[^/]+$/);
   await expect(page.getByRole("heading", { level: 1, name: "Stefon Diggs" })).toBeVisible();
 });
+
+test("a released player leaves the roster", async ({ page }) => {
+  await openRoster(page);
+  const name = `E2E Released ${Date.now()}`;
+  await page.getByRole("button", { name: "Add player" }).click();
+  const add = page.getByRole("dialog", { name: "Add player" });
+  await add.getByPlaceholder("First Last").fill(name);
+  await add.getByLabel("Position").selectOption("K");
+  await add.getByRole("button", { name: "Add player" }).click();
+  const kickers = page.getByRole("table", { name: `${SAMPLE_YEAR} kickers` });
+  await expect(kickers.getByText(name)).toBeVisible();
+
+  await openActions(kickers, name);
+  await page.getByRole("button", { name: "Move team or status" }).click();
+  const move = page.getByRole("dialog", { name: `Move ${name}` });
+  await move.getByLabel("Status").selectOption("released");
+  await move.getByRole("button", { name: "Move", exact: true }).click();
+  await expect(page.getByText(name)).toHaveCount(0);
+});

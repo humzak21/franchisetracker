@@ -41,7 +41,12 @@ export function RosterScreen() {
   const onEdit = useRosterEdit();
   const year = season?.year ?? 0;
 
-  const all = useMemo(() => [...(data?.entries ?? [])].sort(byDepthOrder), [data]);
+  // Released and traded-away players have left the team: their moves and seasons stay on their
+  // own pages and in Transactions, not on the roster.
+  const all = useMemo(
+    () => (data?.entries ?? []).filter((r) => onRoster(r.entry.status)).sort(byDepthOrder),
+    [data],
+  );
   const groups = useMemo(
     () =>
       POSITION_GROUPS.map((group) => ({
@@ -125,8 +130,7 @@ export function RosterScreen() {
     [team, year, userTeamId, moveActions, has, toggle],
   );
   const empty = data !== undefined && all.length === 0;
-  // Released and traded-away players stay listed for the season but are no longer on the roster.
-  const count = all.filter((r) => onRoster(r.entry.status)).length;
+  const count = all.length;
   const startYear = active?.franchise.startYear;
   const preFranchise =
     season !== undefined && startYear !== undefined && isPreFranchise(season.year, startYear);
