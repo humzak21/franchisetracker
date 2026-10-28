@@ -10,6 +10,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { must } from "../lib/errors";
 import { literals } from "../lib/validators";
+import { startRecordBuild } from "../stats/recordBuild";
 
 /** A running job older than this is assumed dead (its action timed out) and may be restarted. */
 export const STALE_IMPORT_MS = 30 * 60_000;
@@ -189,7 +190,9 @@ export const advance = internalMutation({
       lastYear: lastYear ?? job.lastYear,
       ...(done ? { status: "done" as const, finishedAt: Date.now() } : {}),
     });
-    if (!done) {
+    // Real seasons feed the team and all-time records books.
+    if (done) await startRecordBuild(ctx, franchiseId);
+    else {
       await ctx.scheduler.runAfter(0, internal.history.nflverseImport.runStep, {
         franchiseId,
         run,

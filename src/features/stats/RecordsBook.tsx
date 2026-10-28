@@ -1,117 +1,162 @@
-import { Link } from "@tanstack/react-router";
-import type { FunctionReturnType } from "convex/server";
-import { Trophy } from "lucide-react";
+import { useMutation } from "convex/react";
+import { LoaderCircle, Plus, Trophy } from "lucide-react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
-import { weekLabel } from "@shared/domain";
 import {
-  formatStat,
-  isStatKey,
+  RECORD_BOOK_LABELS,
+  RECORD_BOOKS,
   RECORD_SCOPE_LABELS,
   RECORD_SCOPES,
+  RECORD_STATS,
   STAT_CATEGORIES,
   STAT_CATEGORY_LABELS,
   STAT_REGISTRY,
+  type RecordBook,
   type RecordScope,
+  type StatCategory,
 } from "@shared/stats";
+import { useFranchise } from "@/app/franchise";
 import { EmptyState } from "@/components/data/EmptyState";
-import { Section } from "@/components/layout/Section";
+import { Notice } from "@/components/data/Notice";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
-import { byRegistryOrder, type Split } from "./split";
 import { useQuery } from "@/lib/convex/useQuery";
+import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
+import { RecordList, type RecordEntry } from "./RecordList";
+import { byRegistryOrder, type Split } from "./split";
+import { TypedRecordSheet, type TypedDraft } from "./TypedRecordSheet";
 
-type RecordView = FunctionReturnType<typeof api.stats.records.book>[number];
+const CATEGORIES = STAT_CATEGORIES.filter((c) => RECORD_STATS.some((s) => STAT_REGISTRY[s].category === c));
 
-const value = (r: RecordView) => (isStatKey(r.statKey) ? formatStat(r.statKey, r.value) : String(r.value));
-
-function When({ record }: { record: RecordView }) {
-  if (record.game) {
-    return (
-      <Link to="/games/$gameId" params={{ gameId: record.game._id }} className="hover:underline">
-        {record.year} · {weekLabel(record.game.weekKey)}
-        {record.game.opponentAbbr ? ` vs ${record.game.opponentAbbr}` : ""}
-      </Link>
-    );
-  }
-  return <>{record.scope === "career" ? `Through ${record.year}` : record.year}</>;
+function BookNote({ book, startYear }: { book: RecordBook; startYear?: number }) {
+  const team = useFranchise()?.userTeam.name ?? "team";
+  const text = {
+    team: `Every season with the ${team}, real NFL seasons from 1999 included, plus numbers you add.`,
+    franchise: `Only what happened since the franchise began${startYear ? ` in ${startYear}` : ""}.`,
+    league:
+      "Every team: real NFL seasons from 1999, everything captured since, and numbers you add for anyone earlier.",
+  }[book];
+  return <Notice icon={Trophy}>{text}</Notice>;
 }
 
-function RecordCard({ record }: { record: RecordView }) {
-  const label = isStatKey(record.statKey) ? STAT_REGISTRY[record.statKey].label : record.statKey;
+/** Offers the first build of the team and all-time books, and says while one runs. */
+function BuildStatus() {
+  const status = useQuery(api.stats.recordBuild.status, {});
+  const rebuild = useMutation(api.stats.recordBuild.rebuild);
+  if (status === undefined || status?.status === "done") return null;
+  if (status?.status === "running") {
+    return (
+      <Notice icon={LoaderCircle}>
+        Building the records books from every season; lists fill in as it goes.
+      </Notice>
+    );
+  }
   return (
-    <article className="rounded-xl border border-border bg-surface p-4">
-      <div className="flex items-start justify-between gap-3">
-        <h4 className="text-sm text-muted-foreground">{label}</h4>
-        <span className="num font-display text-3xl leading-none font-bold text-primary">{value(record)}</span>
-      </div>
-      <div className="mt-2 text-sm">
-        {record.holder ? (
-          <Link
-            to="/players/$playerId"
-            params={{ playerId: record.holder.playerId }}
-            className="font-medium hover:underline"
-          >
-            {record.holder.name}
-          </Link>
-        ) : (
-          <span className="font-medium">Unknown</span>
-        )}
-        <span className="text-muted-foreground">
-          {" "}
-          · <When record={record} />
-        </span>
-      </div>
-      {record.previous && (
-        <p className="mt-1 text-xs text-subtle-foreground">
-          Broke {record.previous.name}&rsquo;s{" "}
-          {isStatKey(record.statKey)
-            ? formatStat(record.statKey, record.previous.value)
-            : record.previous.value}
-          {record.previous.year ? ` (${record.previous.year})` : ""}
-        </p>
-      )}
-    </article>
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-border-strong px-3.5 py-2.5 text-sm text-muted-foreground">
+      <span className="flex-1">
+        The team and all-time books are built once from every season, then kept up after each game.
+      </span>
+      <Button size="sm" variant="primary" onClick={() => void rebuild({})}>
+        Build the books
+      </Button>
+    </div>
   );
 }
 
-/** The franchise records book (FEATURES.md 5.5): single game, season and career, as cards by category. */
+/**
+ * The records books (FEATURES.md 5.5): the team's (real seasons included), the franchise era's
+ * and the all-time league's, each by single game, season and career, top twenty per stat.
+ */
 export function RecordsBook({ split }: { split: Split }) {
+  const [book, setBook] = useLocalStorage<RecordBook>("ft.records-book", "team");
   const [scope, setScope] = useState<RecordScope>("game");
-  const records = useQuery(api.stats.records.book, { split, scope });
+  const [category, setCategory] = useState<StatCategory>("passing");
+  const [sheet, setSheet] = useState<{ draft?: TypedDraft } | null>(null);
+  const data = useQuery(api.stats.records.lists, { book, split, scope, category });
+  const typedBook = book === "franchise" ? null : book;
+
+  const edit = (statKey: string) => (e: RecordEntry) =>
+    e.typedId &&
+    setSheet({
+      draft: {
+        typedId: e.typedId,
+        statKey,
+        name: e.name,
+        playerId: e.player?.playerId,
+        teamAbbr: e.team?.abbr,
+        year: e.year ?? undefined,
+        value: e.value,
+      },
+    });
 
   return (
-    <div className="space-y-5">
-      <Segmented
-        aria-label="Scope"
-        value={scope}
-        onChange={setScope}
-        options={RECORD_SCOPES.map((s) => ({ value: s, label: RECORD_SCOPE_LABELS[s] }))}
-      />
-      {records === undefined ? (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <Segmented
+          aria-label="Book"
+          value={book}
+          onChange={setBook}
+          options={RECORD_BOOKS.map((b) => ({ value: b, label: RECORD_BOOK_LABELS[b] }))}
+        />
+        <Segmented
+          size="sm"
+          aria-label="Scope"
+          value={scope}
+          onChange={setScope}
+          options={RECORD_SCOPES.map((s) => ({ value: s, label: RECORD_SCOPE_LABELS[s] }))}
+        />
+        {typedBook && (
+          <Button size="sm" variant="outline" className="ml-auto" onClick={() => setSheet({})}>
+            <Plus /> Add a record
+          </Button>
+        )}
+      </div>
+      <div data-swipe-ignore className="-mx-1 scrollbar-none overflow-x-auto px-1">
+        <Segmented
+          size="sm"
+          aria-label="Category"
+          value={category}
+          onChange={setCategory}
+          options={CATEGORIES.map((c) => ({ value: c, label: STAT_CATEGORY_LABELS[c] }))}
+        />
+      </div>
+      <BookNote book={book} startYear={data?.startYear} />
+      {typedBook && <BuildStatus />}
+      {data === undefined ? (
         <Skeleton className="h-64 rounded-xl" />
-      ) : records.length === 0 ? (
+      ) : data.lists.length === 0 ? (
         <EmptyState
           icon={Trophy}
-          title="No records yet"
-          description="Records are set by the box scores you commit; the first game writes the first page of the book."
+          title="No records here yet"
+          description="Records come from committed box scores and real seasons; add a number by hand for anything earlier."
         />
       ) : (
-        STAT_CATEGORIES.map((category) => {
-          const inCategory = records
-            .filter((r) => isStatKey(r.statKey) && STAT_REGISTRY[r.statKey].category === category)
-            .sort(byRegistryOrder);
-          if (inCategory.length === 0) return null;
-          return (
-            <Section key={category} title={STAT_CATEGORY_LABELS[category]}>
-              <div className="@container grid gap-3 @lg:grid-cols-2 @4xl:grid-cols-3">
-                {inCategory.map((r) => (
-                  <RecordCard key={r._id} record={r} />
-                ))}
-              </div>
-            </Section>
-          );
-        })
+        <div className="@container grid gap-3 @lg:grid-cols-2 @4xl:grid-cols-3">
+          {[...data.lists].sort(byRegistryOrder).map((list) => (
+            <RecordList
+              key={list.statKey}
+              list={list}
+              onEditTyped={typedBook ? edit(list.statKey) : undefined}
+            />
+          ))}
+        </div>
+      )}
+      {typedBook && sheet && (
+        <TypedRecordSheet
+          key={sheet.draft?.typedId ?? "new"}
+          book={typedBook}
+          split={split}
+          scope={scope}
+          statKey={
+            sheet.draft?.statKey ??
+            RECORD_STATS.find((s) => STAT_REGISTRY[s].category === category) ??
+            "passYds"
+          }
+          draft={sheet.draft}
+          open
+          onOpenChange={(open) => !open && setSheet(null)}
+        />
       )}
     </div>
   );

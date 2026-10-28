@@ -69,7 +69,10 @@ describe("league schedule", () => {
     const scores = await owner.query(api.leagueGames.scores.byWeek, { seasonId, weekKey: "w1" });
     expect(scores[0]).toMatchObject({ isUser: true, home: { abbr: "NE" }, homeScore: 31, awayScore: 17 });
     expect(scores.find((g) => g.away.abbr === "SF")).toMatchObject({ home: { abbr: "LAC" }, awayScore: 23 });
-    expect(await owner.query(api.leagueGames.scores.weeks, { seasonId })).toEqual(["w1"]);
+    expect(await owner.query(api.leagueGames.scores.weeks, { seasonId })).toEqual({
+      weeks: ["w1"],
+      current: "w1",
+    });
 
     const { games } = await owner.query(api.games.schedule.bySeason, { seasonId });
     const userGame = games.find((g) => g.weekKey === "w1")!;

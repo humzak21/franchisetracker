@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import {
   formatStat,
   isStatKey,
+  RECORD_BOOK_LABELS,
   RECORD_SCOPE_LABELS,
   STAT_REGISTRY,
   STREAK_LABELS,
@@ -10,36 +12,55 @@ import {
 } from "@shared/stats";
 import { FactChip } from "@/components/data/FactChip";
 import { Section } from "@/components/layout/Section";
+import { Button } from "@/components/ui/button";
 import { useQuery } from "@/lib/convex/useQuery";
 
-/** Franchise records the player holds and their streaks; hidden until there is one of either. */
+/** Placements shown before "Show all": a star quarterback makes dozens of lists. */
+const SHOWN = 12;
+
+/**
+ * Every records list the player makes (top twenty of the team, franchise-era and all-time books)
+ * and his streaks, each at its longest so a run that ended stays on his page. Hidden until there
+ * is one of either.
+ */
 export function PlayerHighlights({ playerId }: { playerId: Id<"players"> }) {
-  const records = useQuery(api.stats.records.forPlayer, { playerId });
+  const placements = useQuery(api.stats.records.forPlayer, { playerId });
   const streaks = useQuery(api.stats.streaks.forPlayer, { playerId });
-  if (!records || !streaks || (records.length === 0 && streaks.length === 0)) return null;
+  const [all, setAll] = useState(false);
+  if (!placements || !streaks || (placements.length === 0 && streaks.length === 0)) return null;
+  const shown = all ? placements : placements.slice(0, SHOWN);
 
   return (
     <Section title="Records and streaks">
       <div className="flex flex-wrap gap-2">
-        {records.map((r) => (
-          <FactChip
-            key={r._id}
-            active
-            value={isStatKey(r.statKey) ? formatStat(r.statKey, r.value) : r.value}
-            label={isStatKey(r.statKey) ? STAT_REGISTRY[r.statKey].label : r.statKey}
-            detail={`Franchise record · ${RECORD_SCOPE_LABELS[r.scope].toLowerCase()}${r.split === "postseason" ? ", playoffs" : ""}${r.year ? ` · ${r.year}` : ""}`}
-          />
-        ))}
+        {shown.map((p) => {
+          const stat = isStatKey(p.statKey) ? STAT_REGISTRY[p.statKey].label : p.statKey;
+          const span = p.firstYear !== null && p.firstYear !== p.year ? `${p.firstYear}–${p.year}` : p.year;
+          return (
+            <FactChip
+              key={p._id}
+              active={p.rank === 1}
+              value={isStatKey(p.statKey) ? formatStat(p.statKey, p.value) : p.value}
+              label={`${p.rank === 1 ? "Record" : `#${p.rank}`} · ${stat}`}
+              detail={`${RECORD_BOOK_LABELS[p.book]} · ${RECORD_SCOPE_LABELS[p.scope].toLowerCase()}${p.split === "postseason" ? ", playoffs" : ""}${span ? ` · ${span}` : ""}`}
+            />
+          );
+        })}
         {streaks.map((s) => (
           <FactChip
             key={s.key}
             active={s.current >= 2}
-            value={s.current}
-            label={STREAK_LABELS[s.key as StreakKey] ?? s.key}
-            detail={`Longest ${s.longest}`}
+            value={s.longest}
+            label={`Longest: ${STREAK_LABELS[s.key as StreakKey] ?? s.key}`}
+            detail={s.current >= 2 ? `Running now: ${s.current}` : "Ended"}
           />
         ))}
       </div>
+      {placements.length > SHOWN && (
+        <Button size="sm" variant="ghost" className="mt-2" onClick={() => setAll(!all)}>
+          {all ? "Show fewer" : `Show all ${placements.length} records`}
+        </Button>
+      )}
     </Section>
   );
 }

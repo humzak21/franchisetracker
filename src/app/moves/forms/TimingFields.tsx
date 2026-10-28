@@ -8,7 +8,7 @@ import {
 } from "@shared/domain";
 import { weeksForPhase } from "@shared/transactions";
 import { Select } from "@/components/ui/select";
-import { Field } from "./Field";
+import { Field } from "@/components/forms/Field";
 import type { Timing } from "./moveForm";
 
 const PHASE_OPTIONS = TRANSACTION_PHASES.map((p) => ({ value: p, label: TRANSACTION_PHASE_LABELS[p] }));

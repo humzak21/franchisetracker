@@ -19,6 +19,23 @@ const env = {
 };
 const run = (cmd, args) => execFileSync(cmd, args, { stdio: "inherit", env });
 
+/**
+ * Waits for the records build the seed started: the records tests read its books, and a build
+ * still running when the first tests start competes with them for the backend.
+ */
+async function waitForRecordBuild() {
+  const deadline = Date.now() + 180_000;
+  while (Date.now() < deadline) {
+    const out = execFileSync("npx", ["convex", "run", "stats/recordBuild:statusForSetup"], {
+      env,
+      encoding: "utf8",
+    });
+    if (/"status":\s*"done"/.test(out)) return;
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  throw new Error("The records build did not finish within three minutes");
+}
+
 const listening = (port) =>
   new Promise((resolve) => {
     const socket = createConnection({ port, host: "127.0.0.1" });
@@ -57,6 +74,8 @@ if (await listening(BACKEND_PORT)) {
 run("node", ["scripts/local-auth-env.mjs"]);
 run("npx", ["convex", "run", "league/seed:seedTeams"]);
 run("npx", ["convex", "run", "dev/fixtures:seedFixtures"]);
+run("npx", ["convex", "run", "stats/recordBuild:start"]);
+await waitForRecordBuild();
 
 createServer((socket) => socket.end()).listen(READY_PORT, "127.0.0.1", () => {
   console.log(`E2E backend ready (readiness port ${READY_PORT}).`);

@@ -69,11 +69,11 @@ export const ROW_TARGETS = {
   }),
   league_schedule: rows({
     label: "Schedule / scores",
-    description: "One week's games across the league, with final scores once played",
+    description: "A week's games across the league (or several weeks at once), with final scores once played",
     scope: "week",
     multiImage: true,
     instructions:
-      "This is the Madden league schedule screen for one week: a list of every game with its game time, matchup (away @ home, team nicknames) and result (away abbreviation and score first, then home score and abbreviation). Return one row per game; scores are null for a game not played yet. Set `week` from the header (SEASON WEEK 15 is w15).",
+      "This is the Madden league schedule screen for one week: a list of every game with its game time, matchup (away @ home, team nicknames) and result (away abbreviation and score first, then home score and abbreviation). Return one row per game; scores are null for a game not played yet. Set `week` from the header (SEASON WEEK 15 is w15). The screenshots may cover several weeks (the whole schedule at once): set each row's `week` from the header of the screen that game is on.",
     spec: leagueScheduleSpec,
   }),
   weekly_awards: rows({

@@ -7,7 +7,7 @@ import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import type { Injury } from "../types";
-import { Field } from "./Field";
+import { Field } from "@/components/forms/Field";
 import { NotesField } from "./NotesField";
 import { PeopleList } from "./PeopleList";
 import { PersonPicker } from "./PersonPicker";

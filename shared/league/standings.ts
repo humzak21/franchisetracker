@@ -56,6 +56,14 @@ const ROUNDS_WON: Record<PlayoffResult, number> = {
 };
 
 export type BracketTeam = { teamAbbr: string; seed: number };
+/** A scored playoff game: decides its bracket game even while the teams' runs are still going. */
+export type PlayoffScore = {
+  round: PlayoffRound;
+  home: string;
+  away: string;
+  homeScore: number;
+  awayScore: number;
+};
 export type BracketGame = {
   round: PlayoffRound;
   conference: Conference | null;
@@ -75,15 +83,27 @@ function outsideIn<T>(list: readonly T[]): [T, T][] {
 /**
  * The playoff bracket from seeds and results: wild card (the top seeds rest), the divisional
  * round re-seeded (the top seed plays the lowest left), the conference games and the Super Bowl.
- * Games whose result is not known yet have no winner.
+ * A scored playoff game between the pair decides it; otherwise where each run ended does. Games
+ * whose result is not known yet have no winner.
  */
-export function buildBracket(rows: readonly StandingRow[]): BracketGame[] {
+export function buildBracket(
+  rows: readonly StandingRow[],
+  scores: readonly PlayoffScore[] = [],
+): BracketGame[] {
   const games: BracketGame[] = [];
   const level = (r: StandingRow) => (r.playoffResult ? ROUNDS_WON[r.playoffResult] : -1);
+  const scored = (round: PlayoffRound, a: StandingRow, b: StandingRow) => {
+    const pair = [a.teamAbbr, b.teamAbbr];
+    const game = scores.find((g) => g.round === round && pair.includes(g.home) && pair.includes(g.away));
+    if (!game || game.homeScore === game.awayScore) return null;
+    const won = game.homeScore > game.awayScore ? game.home : game.away;
+    return won === a.teamAbbr ? a : b;
+  };
   const play = (round: PlayoffRound, conference: Conference | null, a: StandingRow, b: StandingRow) => {
     const index = PLAYOFF_ROUNDS.indexOf(round);
     const [home, away] = (a.seed ?? 9) <= (b.seed ?? 9) || conference === null ? [a, b] : [b, a];
-    const winner = level(home) > index ? home : level(away) > index ? away : null;
+    const winner =
+      scored(round, home, away) ?? (level(home) > index ? home : level(away) > index ? away : null);
     games.push({
       round,
       conference,
@@ -115,6 +135,28 @@ export function buildBracket(rows: readonly StandingRow[]): BracketGame[] {
   const [afc, nfc] = champions;
   if (afc && nfc) play("sb", null, afc, nfc);
   return games;
+}
+
+const LOSS_IN: Record<PlayoffRound, PlayoffResult> = {
+  wc: "wc_loss",
+  div: "div_loss",
+  conf: "conf_loss",
+  sb: "sb_loss",
+};
+
+/**
+ * Where each seeded team's run ended, read off a bracket: the round it lost in, or the title.
+ * Teams still playing are left out; so is everyone without a seed (the caller knows if the field is set).
+ */
+export function playoffResultsOf(bracket: readonly BracketGame[]): Map<string, PlayoffResult> {
+  const out = new Map<string, PlayoffResult>();
+  for (const g of bracket) {
+    if (g.winner === null) continue;
+    const loser = g.winner === g.home.teamAbbr ? g.away.teamAbbr : g.home.teamAbbr;
+    out.set(loser, LOSS_IN[g.round]);
+    if (g.round === "sb") out.set(g.winner, "champion");
+  }
+  return out;
 }
 
 export type Champions = { afc: string | null; nfc: string | null; superBowl: string | null };
