@@ -72,8 +72,32 @@ export async function recomputePlayerSeason(
   }
 }
 
+type DatedRow = Doc<"seasonPlayerStats"> & { year: number; teamKey: Id<"teams"> };
+
+/** What a career recompute read and wrote, for callers that rank careers too (`stats/recordBuild`). */
+export type CareerRecompute = { rows: DatedRow[]; careers: Doc<"careerPlayerStats">[] };
+
+/** The team a player played the most games for, the later one on a tie. */
+function mainTeam(rows: readonly DatedRow[]): Id<"teams"> | undefined {
+  const games = new Map<Id<"teams">, { games: number; year: number }>();
+  for (const r of rows) {
+    const t = games.get(r.teamId) ?? { games: 0, year: 0 };
+    games.set(r.teamId, { games: t.games + r.gamesPlayed, year: Math.max(t.year, r.year) });
+  }
+  let best: [Id<"teams">, { games: number; year: number }] | undefined;
+  for (const entry of games) {
+    if (
+      !best ||
+      entry[1].games > best[1].games ||
+      (entry[1].games === best[1].games && entry[1].year > best[1].year)
+    )
+      best = entry;
+  }
+  return best?.[0];
+}
+
 /** Career rows per split from season rows, preferring log-derived seasons over imported ones. */
-export async function recomputeCareer(ctx: MutationCtx, player: Doc<"players">): Promise<void> {
+export async function recomputeCareer(ctx: MutationCtx, player: Doc<"players">): Promise<CareerRecompute> {
   const seasonRows = await ctx.db
     .query("seasonPlayerStats")
     .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", player._id))
@@ -89,12 +113,12 @@ export async function recomputeCareer(ctx: MutationCtx, player: Doc<"players">):
     .take(4);
   for (const row of existing) await ctx.db.delete("careerPlayerStats", row._id);
 
+  const dated: DatedRow[] = seasonRows
+    .filter((r) => years.has(r.seasonId))
+    .map((r) => ({ ...r, year: years.get(r.seasonId) ?? 0, teamKey: r.teamId }));
+  const careers: Doc<"careerPlayerStats">[] = [];
   for (const split of ["regular", "postseason"] as const) {
-    const rows = preferLogs(
-      seasonRows
-        .filter((r) => r.split === split && years.has(r.seasonId))
-        .map((r) => ({ ...r, year: years.get(r.seasonId) ?? 0, teamKey: r.teamId })),
-    );
+    const rows = preferLogs(dated.filter((r) => r.split === split));
     if (rows.length === 0) continue;
     const yearsPlayed = rows.map((r) => r.year);
     const summary = summarizeSeasons(
@@ -105,16 +129,21 @@ export async function recomputeCareer(ctx: MutationCtx, player: Doc<"players">):
         bests: r.bests ?? {},
       })),
     );
-    await ctx.db.insert("careerPlayerStats", {
+    const teamId = mainTeam(rows);
+    const id = await ctx.db.insert("careerPlayerStats", {
       franchiseId: player.franchiseId,
       playerId: player._id,
       seasons: new Set(yearsPlayed).size,
       firstYear: Math.min(...yearsPlayed),
       lastYear: Math.max(...yearsPlayed),
+      ...(teamId ? { teamId } : {}),
       split,
       position: player.position,
       positionGroup: positionGroupOf(player.position),
       ...summary,
     });
+    const career = await ctx.db.get("careerPlayerStats", id);
+    if (career) careers.push(career);
   }
+  return { rows: dated, careers };
 }

@@ -49,21 +49,35 @@ describe("season stats", () => {
   });
 });
 
+/** One list of the franchise-era book. */
+async function franchiseList(
+  owner: Awaited<ReturnType<typeof setup>>["owner"],
+  scope: "game" | "season" | "career",
+  category: "passing" | "receiving",
+  statKey: string,
+) {
+  const { lists } = await owner.query(api.stats.records.lists, {
+    book: "franchise",
+    split: "regular",
+    scope,
+    category,
+  });
+  return lists.find((l) => l.statKey === statKey)!;
+}
+
 describe("records and leaders", () => {
   test("single game, season and career records with the game they were set in", async () => {
     const { owner } = await setup();
-    const game = await owner.query(api.stats.records.book, { split: "regular", scope: "game" });
-    const passYds = game.find((r) => r.statKey === "passYds")!;
-    expect(passYds).toMatchObject({
+    const passYds = await franchiseList(owner, "game", "passing", "passYds");
+    expect(passYds).toMatchObject({ game: { weekKey: "w5", opponentAbbr: "BUF" } });
+    expect(passYds.entries[0]).toMatchObject({
+      rank: 1,
       value: 342,
-      holder: { name: "Drake Maye" },
-      game: { weekKey: "w5", opponentAbbr: "BUF" },
+      name: "Drake Maye",
+      team: { abbr: "NE" },
     });
-    const season = await owner.query(api.stats.records.book, { split: "regular", scope: "season" });
-    expect(season.find((r) => r.statKey === "recYds")).toMatchObject({
-      value: 531,
-      holder: { name: "Stefon Diggs" },
-    });
+    const recYds = await franchiseList(owner, "season", "receiving", "recYds");
+    expect(recYds.entries[0]).toMatchObject({ value: 531, name: "Stefon Diggs", year: 2026 });
     const leaders = await owner.query(api.stats.records.leaders, { split: "regular" });
     expect(leaders.find((r) => r.statKey === "recYds")!.top.map((e) => [e.player.name, e.value])).toEqual([
       ["Stefon Diggs", 531],
@@ -91,13 +105,9 @@ describe("records and leaders", () => {
     await owner.mutation(api.ingestion.review.commit, { setKey: setKey!, draft });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
 
-    const game = await owner.query(api.stats.records.book, { split: "regular", scope: "game" });
-    expect(game.find((r) => r.statKey === "recYds")).toMatchObject({
-      value: 200,
-      holder: { name: "Stefon Diggs" },
-      game: { weekKey: "w7" },
-      previous: { name: "Stefon Diggs", value: 148 },
-    });
+    const recYds = await franchiseList(owner, "game", "receiving", "recYds");
+    expect(recYds).toMatchObject({ game: { weekKey: "w7" }, previous: { name: "Stefon Diggs", value: 148 } });
+    expect(recYds.entries[0]).toMatchObject({ value: 200, name: "Stefon Diggs" });
     const feed = await owner.query(api.stats.milestones.feed, {});
     const record = feed.find((m) => m.kind === "franchise_record" && m.title.includes("receiving yards"));
     expect(record?.title).toBe("Stefon Diggs: franchise record, single game receiving yards (200)");
@@ -151,9 +161,14 @@ describe("thresholds", () => {
   test("strangers are refused", async () => {
     const { t } = await setup();
     const stranger = await asStranger(t);
-    await expect(stranger.query(api.stats.records.book, { split: "regular", scope: "game" })).rejects.toThrow(
-      /Not the owner/,
-    );
+    await expect(
+      stranger.query(api.stats.records.lists, {
+        book: "team",
+        split: "regular",
+        scope: "game",
+        category: "passing",
+      }),
+    ).rejects.toThrow(/Not the owner/);
     await expect(stranger.mutation(api.franchise.settings.setThresholds, { overrides: {} })).rejects.toThrow(
       /Not the owner/,
     );

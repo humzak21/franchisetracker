@@ -57,6 +57,7 @@ if (await listening(BACKEND_PORT)) {
 run("node", ["scripts/local-auth-env.mjs"]);
 run("npx", ["convex", "run", "league/seed:seedTeams"]);
 run("npx", ["convex", "run", "dev/fixtures:seedFixtures"]);
+run("npx", ["convex", "run", "stats/recordBuild:start"]);
 
 createServer((socket) => socket.end()).listen(READY_PORT, "127.0.0.1", () => {
   console.log(`E2E backend ready (readiness port ${READY_PORT}).`);

@@ -1,4 +1,4 @@
-import { Field } from "./Field";
+import { Field } from "@/components/forms/Field";
 import { Textarea } from "@/components/ui/textarea";
 
 /** The optional note on a move or an injury. */

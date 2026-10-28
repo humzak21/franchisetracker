@@ -22,6 +22,8 @@ export default defineConfig({
           include: ["convex/**/*.test.ts"],
           environment: "edge-runtime",
           server: { deps: { inline: ["convex-test"] } },
+          // A history import ends with a records build: a second or two alone, more when every file runs at once.
+          testTimeout: 30_000,
         },
       },
     ],

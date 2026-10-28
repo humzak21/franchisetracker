@@ -1,8 +1,9 @@
 import { useMutation } from "convex/react";
 import { Trash2 } from "lucide-react";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState, type FormEvent } from "react";
 import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
+import { Field } from "@/components/forms/Field";
 import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,17 +12,6 @@ import { Textarea } from "@/components/ui/textarea";
 
 const digits = (s: string, max: number) => s.replace(/\D/g, "").slice(0, max);
 const num = (s: string) => (s === "" ? undefined : Number(s));
-
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <label className="block min-w-0 space-y-1">
-      <span className="text-[11px] font-semibold tracking-[0.08em] text-subtle-foreground uppercase">
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
 
 /** Inducts a coach or staff member, or edits one (`entry` given). Players are inducted from their page. */
 export function StaffInductionSheet({

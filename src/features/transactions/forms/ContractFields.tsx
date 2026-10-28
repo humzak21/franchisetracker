@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input";
-import { Field } from "./Field";
+import { Field } from "@/components/forms/Field";
 import type { ContractDraft } from "./moveForm";
 
 const FIELDS: { key: keyof ContractDraft; label: string; placeholder: string }[] = [

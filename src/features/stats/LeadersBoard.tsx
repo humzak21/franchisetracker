@@ -17,7 +17,7 @@ import { cn } from "@/lib/cn";
 import { byRegistryOrder, type Split } from "./split";
 import { useQuery } from "@/lib/convex/useQuery";
 
-/** All-time leaders (FEATURES.md 5.5): the franchise's career top ten per stat, as ranked lists. */
+/** All-time leaders (FEATURES.md 5.5): the franchise era's career top twenty per stat, as ranked lists. */
 export function LeadersBoard({ split }: { split: Split }) {
   const leaders = useQuery(api.stats.records.leaders, { split });
   const [picked, setPicked] = useState<StatCategory>("passing");

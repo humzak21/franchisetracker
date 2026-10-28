@@ -16,8 +16,10 @@ import {
   type ThresholdOverrides,
 } from "../../shared/stats";
 import type { Doc, Id } from "../_generated/dataModel";
+import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import { must } from "../lib/errors";
+import { booksBuilt } from "./recordBuild";
 import { refreshRecords, type BrokenRecord } from "./refreshRecords";
 import { refreshPlayerStreaks, refreshTeamStreaks } from "./refreshStreaks";
 
@@ -103,6 +105,10 @@ export async function refreshAfterGame(
   const desired: NewMilestone[] = [];
   for (const player of players) desired.push(...(await playerMilestones(ctx, franchise, game, player)));
   const broken = await refreshRecords(ctx, franchise, game);
+  // The team and all-time books read the same rows; their own step keeps this one small.
+  if (await booksBuilt(ctx, franchise._id)) {
+    await ctx.scheduler.runAfter(0, internal.stats.recordBuild.afterGame, { gameId });
+  }
   const byId = new Map<Id<"players">, Doc<"players">>(players.map((p) => [p._id, p]));
   for (const record of broken)
     desired.push(

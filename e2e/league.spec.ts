@@ -44,16 +44,36 @@ test("the league answers who won the AFC, and rebuilds the bracket", async ({ pa
   await expect(year.getByRole("link", { name: /New England Patriots/ })).toBeVisible();
   await expect(year.getByRole("link", { name: /Seattle Seahawks/ })).toHaveCount(2);
 
+  // Standings, scores and the bracket share one page; a finished season's bracket is the real one.
   await openWithSeason(page, "/league", "league", 2025);
-  await page.getByRole("radio", { name: "Playoffs", exact: true }).click();
+  await page.getByRole("radio", { name: "Season", exact: true }).click();
   await expect(page.getByRole("region", { name: "Wild Card" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Super Bowl" })).toBeVisible();
+  await expect(page.getByText("Projected")).toHaveCount(0);
+  await expect(
+    page
+      .getByRole("region", { name: "AFC East" })
+      .getByTitle(/^Clinched/)
+      .first(),
+  ).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
-  await page.getByRole("radio", { name: "Standings", exact: true }).click();
+  await page.getByRole("radio", { name: "Conference", exact: true }).click();
+  await expect(page.getByRole("region", { name: "AFC", exact: true }).getByRole("listitem")).toHaveCount(16);
+  await page.getByRole("radio", { name: "Divisions", exact: true }).click();
   await page.getByRole("region", { name: "AFC East" }).getByRole("link", { name: /Bills/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Buffalo Bills" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Head to head" })).toBeVisible();
+});
+
+test("a season being played projects the bracket and offers the real schedule", async ({ page }) => {
+  await openWithSeason(page, "/league", "league", 2026);
+  await page.getByRole("radio", { name: "Season", exact: true }).click();
+  await expect(page.getByRole("region", { name: "AFC East" }).getByRole("listitem")).toHaveCount(4);
+  await expect(page.getByText("Projected")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Wild Card" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Load NFL schedule" })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
 });
 
 test("weekly awards, and a team award given and taken back", async ({ page }, info) => {
