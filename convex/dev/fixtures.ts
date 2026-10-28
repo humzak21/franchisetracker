@@ -15,8 +15,10 @@ import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import { createFranchise } from "../franchise/create";
 import { must } from "../lib/errors";
+import { seasonGames } from "../lib/reports";
 import { refreshAfterGame } from "../stats/refresh";
 import { recomputeCareer, recomputePlayerSeason } from "../stats/recompute";
+import { teamSeasonTotals } from "../stats/teamTotals";
 import { seedSampleDashboard } from "./fixtureDashboard";
 import { seedSampleHistory } from "./fixtureHistory";
 import { seedSampleLeague } from "./fixtureLeague";
@@ -270,7 +272,10 @@ export const seedFixtures = internalMutation({
       await recomputeCareer(ctx, player);
     }
     for (const gameId of gameIds) await refreshAfterGame(ctx, gameId, [...playerIds.values()]);
-    await ctx.db.patch("seasons", season._id, { userRecord: { w, l, t: 0, divisionRank: 1 } });
+    await ctx.db.patch("seasons", season._id, {
+      userRecord: { w, l, t: 0, divisionRank: 1 },
+      teamTotals: await teamSeasonTotals(ctx, season, await seasonGames(ctx, season._id)),
+    });
     await seedSampleLeague(ctx, franchiseId, season._id, SAMPLE_START_YEAR, playerIds);
     await seedSampleDashboard(ctx, franchise, season);
     return { seeded: true };

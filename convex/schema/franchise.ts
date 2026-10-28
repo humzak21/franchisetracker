@@ -1,6 +1,13 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
-import { vNeedPriority, vPlayoffResult, vPosition, vPromptStatus, vSeasonStatus } from "../lib/validators";
+import {
+  vNeedPriority,
+  vPlayoffResult,
+  vPosition,
+  vPromptStatus,
+  vSeasonStatus,
+  vStatMap,
+} from "../lib/validators";
 
 const vPrompt = v.object({
   status: vPromptStatus,
@@ -58,6 +65,11 @@ export const franchiseTables = {
         playoffResult: v.optional(vPlayoffResult),
       }),
     ),
+    /**
+     * User-team season team stats derived from its regular-season games (`TEAM_SEASON_STATS`
+     * keys), refreshed with `userRecord`. Captured `teamSeasonStats` rows override them.
+     */
+    teamTotals: v.optional(v.object({ games: v.number(), statGames: v.number(), stats: vStatMap })),
     coaching: v.optional(
       v.object({
         headCoach: v.optional(v.string()),
