@@ -30,7 +30,8 @@ export function SelectBox({
         onChange(checked !== true);
       }}
       className={cn(
-        "grid size-5 shrink-0 place-items-center rounded border transition-colors disabled:opacity-30 pointer-coarse:size-7",
+        // A 44 px hit area on touch screens, inside a table or not (a select-all box sits outside one).
+        "grid size-5 shrink-0 place-items-center rounded border transition-colors disabled:opacity-30 pointer-coarse:touch-target pointer-coarse:size-7",
         checked ? "border-primary bg-primary text-primary-foreground" : "border-border-strong",
         className,
       )}
