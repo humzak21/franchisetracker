@@ -8,10 +8,12 @@ import { RankTrend } from "@/components/data/RankTrend";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { useQuery } from "@/lib/convex/useQuery";
+import { sourceNote } from "./teamSourceNote";
 
 /**
- * Team stats (FEATURES.md 5.5): the season's league rank in every team stat as rank ribbons,
- * with each stat's rank in every other captured season beside it.
+ * Team stats (FEATURES.md 5.5): the season's value in every team stat, derived from the games'
+ * team stats unless the season screen was captured, as rank ribbons where a league rank is known,
+ * with each stat in every other season beside it.
  */
 export function TeamRanks() {
   const { season } = useSeason();
@@ -23,7 +25,7 @@ export function TeamRanks() {
       <EmptyState
         icon={BarChart3}
         title={`No team stats for ${season.year}`}
-        description="Capture the team stats screen; each stat's value and league rank lands here and on Home."
+        description="Import each game's team stats and the season figures add up here; capture the season team stats screen for league ranks."
         action={
           <Button asChild variant="primary" size="sm">
             <Link to="/inbox">Capture team stats</Link>
@@ -32,9 +34,11 @@ export function TeamRanks() {
       />
     );
   }
+  const note = sourceNote(trends, season.year, season.teamTotals?.games ?? 0);
   return (
-    <div className="rounded-xl border border-border bg-surface p-4 @tablet:p-5">
+    <div className="space-y-3 rounded-xl border border-border bg-surface p-4 @tablet:p-5">
       <RankTrend rows={rows} year={season.year} />
+      {note && <p className="border-t border-border pt-3 text-xs text-subtle-foreground">{note}</p>}
     </div>
   );
 }

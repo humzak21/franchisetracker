@@ -20,7 +20,7 @@ export function JumpLinks({ links, className }: { links: readonly JumpLink[]; cl
         <a
           key={link.id}
           href={`#${link.id}`}
-          className="flex h-8 shrink-0 items-center rounded-full border border-border px-3 text-xs font-medium whitespace-nowrap text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground pointer-coarse:h-11"
+          className="flex h-8 shrink-0 items-center justify-center rounded-full border border-border px-3 text-xs font-medium whitespace-nowrap text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground pointer-coarse:h-11 pointer-coarse:min-w-11"
         >
           {link.label}
         </a>

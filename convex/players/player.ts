@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { withMissingGames } from "../../shared/ingestion/reconcile";
 import { applyPlayerPatch } from "../../shared/players/playerPatch";
 import { mutation, query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
@@ -14,7 +15,7 @@ const MAX_ROWS = 160;
 
 /**
  * A player with roster history and season stat rows, both oldest season first. Seasons before
- * `startYear` are imported real history.
+ * `startYear` are imported real history. Season rows are display copies: see `withMissingGames`.
  */
 export const get = query({
   args: { playerId: v.id("players") },
@@ -24,7 +25,15 @@ export const get = query({
     draftTeamAbbr: v.union(v.string(), v.null()),
     startYear: v.number(),
     history: v.array(v.object({ year: v.number(), team: vTeamRef, entry: schema.doc("rosterEntries") })),
-    seasons: v.array(v.object({ year: v.number(), team: vTeamRef, stats: schema.doc("seasonPlayerStats") })),
+    seasons: v.array(
+      v.object({
+        year: v.number(),
+        team: vTeamRef,
+        stats: schema.doc("seasonPlayerStats"),
+        /** Stats showing the season screen's number because a game's box score is missing. */
+        overridden: v.array(v.string()),
+      }),
+    ),
   }),
   handler: async (ctx, { playerId }) => {
     await requireOwner(ctx);
@@ -33,10 +42,16 @@ export const get = query({
       .query("rosterEntries")
       .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId))
       .take(MAX_ROWS);
-    const stats = await ctx.db
-      .query("seasonPlayerStats")
-      .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId))
-      .take(MAX_ROWS);
+    const [stats, reported] = await Promise.all([
+      ctx.db
+        .query("seasonPlayerStats")
+        .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId))
+        .take(MAX_ROWS),
+      ctx.db
+        .query("reportedSeasonStats")
+        .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId))
+        .take(MAX_ROWS),
+    ]);
     const [years, teams, franchise] = await Promise.all([
       seasonYears(
         ctx,
@@ -54,7 +69,14 @@ export const get = query({
     const seasons = stats.flatMap((row) => {
       const year = years.get(row.seasonId);
       const team = teams.get(row.teamId);
-      return year !== undefined && team ? [{ year, team: toTeamRef(team), stats: row }] : [];
+      if (year === undefined || !team) return [];
+      // Regular-season log totals show the season screen's number where a game is missing.
+      const screen =
+        row.source === "logs" && row.split === "regular"
+          ? reported.find((r) => r.seasonId === row.seasonId && r.teamId === row.teamId)
+          : undefined;
+      const { gamesPlayed, totals, overridden } = withMissingGames(row, screen);
+      return [{ year, team: toTeamRef(team), stats: { ...row, gamesPlayed, totals }, overridden }];
     });
     history.sort((a, b) => a.year - b.year);
     seasons.sort((a, b) => a.year - b.year);

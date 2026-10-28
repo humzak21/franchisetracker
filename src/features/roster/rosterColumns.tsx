@@ -1,13 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
-import { ArrowRightLeft } from "lucide-react";
+import { Ellipsis } from "lucide-react";
 import type { api } from "@convex/_generated/api";
-import { positionColor, type PositionColor } from "@shared/domain";
+import type { Id } from "@convex/_generated/dataModel";
+import { positionColor, type PositionColor, type PositionGroup } from "@shared/domain";
 import { ageInSeason, positionOrder } from "@shared/players/format";
+import { acquisitionLabel } from "@shared/roster/acquisition";
 import type { DataColumn } from "@/components/data/DataTable";
 import { PlayerChip } from "@/components/player/PlayerChip";
 import { rosterEntryColumns } from "@/components/player/rosterEntryColumns";
 import type { TeamLike } from "@/components/team/TeamLogo";
+import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
@@ -31,6 +34,9 @@ const accent: Record<PositionColor, string> = {
   p: "bg-pos-p",
   ls: "bg-pos-ls",
 };
+
+/** A position group's section anchor, for the roster's jump links. */
+export const positionAnchor = (group: PositionGroup) => `pos-${group.toLowerCase()}`;
 
 export const rosterAge = (row: RosterRow, year: number) => row.entry.age ?? ageInSeason(row.player, year);
 
@@ -79,17 +85,21 @@ function playerColumn(team: TeamLike): DataColumn<RosterRow> {
 
 /**
  * Roster table columns. The identity column links to the player page; in edit mode every column
- * but the action edits inline (the name and college on the player, the rest on this season's entry).
+ * but the actions edits inline (the name and college on the player, the rest on this season's entry).
+ * Acquired reads as the draft slot for players the user team drafted.
  */
 export function rosterColumns(
   team: TeamLike,
   year: number,
-  onMove: (row: RosterRow) => void,
+  userTeamId: Id<"teams"> | undefined,
+  actionsFor: (row: RosterRow) => ActionMenuItem[],
 ): DataColumn<RosterRow>[] {
   const c = rosterEntryColumns<RosterRow>(
     (r) => r.entry,
     (r) => rosterAge(r, year),
   );
+  const acquired = (r: RosterRow) =>
+    userTeamId ? acquisitionLabel(r.entry.acquisition, r.player.draft, userTeamId) : null;
   return [
     playerColumn(team),
     c.position,
@@ -100,7 +110,11 @@ export function rosterColumns(
     c.exp,
     c.status,
     c.statusWeekKey,
-    c.acquisitionType,
+    {
+      ...c.acquisitionType,
+      value: acquired,
+      cell: (r) => acquired(r) ?? <span className="text-subtle-foreground">—</span>,
+    },
     c.acquisitionYear,
     c.acquisitionDetail,
     c.contractYears,
@@ -114,23 +128,21 @@ export function rosterColumns(
     },
     c.gradeNote,
     {
-      id: "move",
-      header: "Move",
-      title: "Move to another team or status",
+      id: "actions",
+      header: "Actions",
+      title: "Move him, or record a transaction or injury",
       sortable: false,
       value: () => null,
       cell: (r) => (
-        <Button
-          size="sm"
-          variant="ghost"
-          aria-label={`Move ${r.player.displayName}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            onMove(r);
-          }}
-        >
-          <ArrowRightLeft /> Move…
-        </Button>
+        <ActionMenu
+          label={`Actions for ${r.player.displayName}`}
+          items={actionsFor(r)}
+          trigger={
+            <Button size="icon-sm" variant="ghost" aria-label={`Actions for ${r.player.displayName}`}>
+              <Ellipsis />
+            </Button>
+          }
+        />
       ),
     },
   ];

@@ -1,6 +1,6 @@
 import { ArrowLeftRight, HeartPulse, ListPlus, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { Editing } from "./forms/moveForm";
+import type { Editing } from "@/app/moves/forms/moveForm";
 
 /** The buttons that open the move sheets, or the injury sheet on the injury report. */
 export function MoveActions({ injuries, onOpen }: { injuries: boolean; onOpen: (editing: Editing) => void }) {

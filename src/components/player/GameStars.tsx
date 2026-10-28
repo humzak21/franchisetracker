@@ -9,6 +9,7 @@ export type StarView = {
   playerId: string | null;
   name: string;
   position: string | null;
+  headshotUrl: string | null;
   caption: string | null;
   /** The side the star played for, when known. */
   teamId: string | null;
@@ -43,7 +44,12 @@ export function GameStars({ stars, team, opponent, layout = "list" }: GameStarsP
     const chip = (
       <PlayerChip
         size={size}
-        player={{ displayName: star.name, position: star.position ?? "", team: teamOf(star) }}
+        player={{
+          displayName: star.name,
+          position: star.position ?? "",
+          headshotUrl: star.headshotUrl,
+          team: teamOf(star),
+        }}
         showPosition={star.position !== null}
         caption={size === "md" ? star.caption : undefined}
       />

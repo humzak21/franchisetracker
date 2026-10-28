@@ -9,7 +9,7 @@ import { TeamChip } from "@/components/team/TeamChip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
-import type { Move } from "./types";
+import type { Move } from "@/app/moves/types";
 
 function People({
   label,

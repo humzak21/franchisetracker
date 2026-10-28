@@ -19,6 +19,7 @@ import { BoxScore } from "./BoxScore";
 import { EditGameSheet } from "./EditGameSheet";
 import { GameNav } from "./GameNav";
 import { HeadToHead } from "./HeadToHead";
+import { QuarterScores } from "./QuarterScores";
 import { StarsSection } from "./StarsSection";
 import { TeamStatsCompare } from "./TeamStatsCompare";
 
@@ -108,13 +109,21 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
           </>
         ) : (
           <>
-            <ScoreBug
-              away={game.userIsHome ? them : user}
-              home={game.userIsHome ? user : them}
-              status={status}
-              overtime={game.overtime}
-              userTeam={userTeam.abbr}
-            />
+            <div className="space-y-2">
+              <ScoreBug
+                away={game.userIsHome ? them : user}
+                home={game.userIsHome ? user : them}
+                status={status}
+                overtime={game.overtime}
+                userTeam={userTeam.abbr}
+              />
+              <QuarterScores
+                gameId={game._id}
+                lineScore={header.lineScore}
+                away={game.userIsHome ? them : user}
+                home={game.userIsHome ? user : them}
+              />
+            </div>
             <SplitPane
               ratio="3fr 2fr"
               panes={[
@@ -124,7 +133,11 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
                   content: (
                     <div className="space-y-6">
                       <StarsSection gameId={game._id} stars={data.stars} {...sides} />
-                      <TeamStatsCompare gameId={game._id} onImport={() => importScreenshot()} />
+                      <TeamStatsCompare
+                        gameId={game._id}
+                        userIsHome={game.userIsHome}
+                        onImport={() => importScreenshot()}
+                      />
                     </div>
                   ),
                 },

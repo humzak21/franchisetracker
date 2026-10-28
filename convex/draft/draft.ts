@@ -12,10 +12,12 @@ import { invalid, must } from "../lib/errors";
 import { activeFranchise, playersById, teamsById } from "../lib/franchise";
 import { headshotUrls, toTeamRef, vTeamRef } from "../lib/refs";
 import { franchiseSeasonList } from "../lib/reports";
-import { vPosition } from "../lib/validators";
+import { vDevTrait, vPosition } from "../lib/validators";
 
 /** A full draft is about 260 picks. */
 const MAX_PICKS = 300;
+/** One player's entries in one season: a few teams at most, even after moves. */
+const MAX_STINTS = 20;
 const MAX_ROWS = 160;
 const MAX_NOTE = 500;
 
@@ -91,6 +93,11 @@ export const bySeason = query({
         position: v.optional(vPosition),
         college: v.optional(v.string()),
         ovrAtDraft: v.optional(v.number()),
+        /** OVR and dev trait on his roster entry in the draft's season, with the team that drafted him first. */
+        rating: v.union(
+          v.object({ ovr: v.union(v.number(), v.null()), devTrait: v.union(vDevTrait, v.null()) }),
+          v.null(),
+        ),
         notes: v.optional(v.string()),
         tradeNote: v.optional(v.string()),
         originTeam: v.union(vTeamRef, v.null()),
@@ -118,6 +125,27 @@ export const bySeason = query({
     const photos = await headshotUrls(
       ctx,
       userPicks.flatMap((p) => (p.playerId && players.has(p.playerId) ? [players.get(p.playerId)!] : [])),
+    );
+    const ratings = new Map(
+      await Promise.all(
+        picks.flatMap((p) => {
+          const playerId = p.playerId;
+          if (!playerId) return [];
+          return [
+            (async () => {
+              const entries = await ctx.db
+                .query("rosterEntries")
+                .withIndex("by_playerId_and_seasonId", (q) =>
+                  q.eq("playerId", playerId).eq("seasonId", seasonId),
+                )
+                .take(MAX_STINTS);
+              const entry = entries.find((e) => e.teamId === p.teamId) ?? entries[0];
+              const rating = entry ? { ovr: entry.ovr ?? null, devTrait: entry.devTrait ?? null } : null;
+              return [p._id, rating] as const;
+            })(),
+          ];
+        }),
+      ),
     );
     const grades = new Map(
       await Promise.all(
@@ -154,6 +182,7 @@ export const bySeason = query({
             position: p.position,
             college: p.college,
             ovrAtDraft: p.ovrAtDraft,
+            rating: ratings.get(p._id) ?? null,
             notes: p.notes,
             tradeNote: p.tradeNote,
             originTeam: origin ? toTeamRef(origin) : null,

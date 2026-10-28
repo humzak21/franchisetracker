@@ -45,10 +45,38 @@ function MoveSheetDemo() {
   );
 }
 const GALLERY_STARS: StarView[] = [
-  { playerId: null, name: "Drake Maye", position: "QB", caption: "24/31, 301 yds, 3 TD", teamId: "ne" },
-  { playerId: null, name: "Stefon Diggs", position: "WR", caption: "9 rec, 131 yds, 1 TD", teamId: "ne" },
-  { playerId: null, name: "Josh Allen", position: "QB", caption: "2 rush TD", teamId: "buf" },
-  { playerId: null, name: "Christian Gonzalez", position: "CB", caption: "INT, 3 PD", teamId: "ne" },
+  {
+    playerId: null,
+    name: "Drake Maye",
+    position: "QB",
+    headshotUrl: null,
+    caption: "24/31, 301 yds, 3 TD",
+    teamId: "ne",
+  },
+  {
+    playerId: null,
+    name: "Stefon Diggs",
+    position: "WR",
+    headshotUrl: null,
+    caption: "9 rec, 131 yds, 1 TD",
+    teamId: "ne",
+  },
+  {
+    playerId: null,
+    name: "Josh Allen",
+    position: "QB",
+    headshotUrl: null,
+    caption: "2 rush TD",
+    teamId: "buf",
+  },
+  {
+    playerId: null,
+    name: "Christian Gonzalez",
+    position: "CB",
+    headshotUrl: null,
+    caption: "INT, 3 PD",
+    teamId: "ne",
+  },
 ];
 const GALLERY_TEAMS = NFL_TEAMS.map((t) => ({ ...t, _id: t.abbr }));
 

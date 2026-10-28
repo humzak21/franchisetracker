@@ -4,6 +4,7 @@ import { PageChromeProvider } from "@/components/layout/PageChrome";
 import { useTheme } from "@/design/theme";
 import { CaptureProvider } from "../capture/CaptureProvider";
 import { useShortcut } from "../keyboard";
+import { MovesProvider } from "../moves/MovesProvider";
 import { useSeason } from "../season";
 import { BottomTabBar } from "./BottomTabBar";
 import { CaptureButton, CaptureFab } from "./CaptureButton";
@@ -62,22 +63,24 @@ export function AppShell() {
 
   return (
     <CaptureProvider>
-      <PageChromeProvider value={chrome}>
-        <div className="flex min-h-dvh">
-          <Sidebar />
-          <div className="pr-safe max-sm:pl-safe min-w-0 flex-1">
-            <Outlet />
+      <MovesProvider>
+        <PageChromeProvider value={chrome}>
+          <div className="flex min-h-dvh">
+            <Sidebar />
+            <div className="pr-safe max-sm:pl-safe min-w-0 flex-1">
+              <Outlet />
+            </div>
           </div>
-        </div>
-        <BottomTabBar onSearch={() => setPaletteOpen(true)} />
-        <CaptureFab />
-        <CommandPalette
-          open={paletteOpen}
-          onOpenChange={setPaletteOpen}
-          onShowShortcuts={() => setShortcutsOpen(true)}
-        />
-        <ShortcutSheet open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
-      </PageChromeProvider>
+          <BottomTabBar onSearch={() => setPaletteOpen(true)} />
+          <CaptureFab />
+          <CommandPalette
+            open={paletteOpen}
+            onOpenChange={setPaletteOpen}
+            onShowShortcuts={() => setShortcutsOpen(true)}
+          />
+          <ShortcutSheet open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+        </PageChromeProvider>
+      </MovesProvider>
     </CaptureProvider>
   );
 }

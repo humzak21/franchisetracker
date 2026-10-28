@@ -60,7 +60,12 @@ describe("games/manage", () => {
     });
     expect(game.dateLabel).toBe("Sun, Oct 26");
     const detail = await owner.query(api.games.schedule.get, { gameId });
-    expect(detail?.header).toEqual({ stadium: "Highmark Stadium", weather: "Snow", neutralSite: false });
+    expect(detail?.header).toEqual({
+      stadium: "Highmark Stadium",
+      weather: "Snow",
+      neutralSite: false,
+      lineScore: null,
+    });
     expect((await season())!.userRecord).toMatchObject({ w: 4, l: 2 });
   });
 

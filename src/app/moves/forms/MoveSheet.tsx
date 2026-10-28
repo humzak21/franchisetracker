@@ -23,6 +23,7 @@ import {
   timingOf,
   toPersonInput,
   type Person,
+  type Prefill,
   type Timing,
 } from "./moveForm";
 import type { SheetContext } from "./types";
@@ -46,12 +47,14 @@ export function MoveSheet({
   context,
   kind,
   move,
+  prefill,
   open,
   onOpenChange,
 }: {
   context: SheetContext;
   kind: "sign" | "other";
   move?: Move;
+  prefill?: Prefill;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -59,10 +62,15 @@ export function MoveSheet({
   const remove = useMutation(api.transactions.moves.remove);
   const current = context.seasons.find((s) => s._id === context.seasonId);
   const [type, setType] = useState<TransactionType>(move?.type ?? (kind === "sign" ? "sign" : "release"));
-  const [teamId, setTeamId] = useState<Id<"teams">>(move?.team?._id ?? context.userTeamId);
+  // A signing brings him to the user team; any other move acts on the team he plays for.
+  const [teamId, setTeamId] = useState<Id<"teams">>(
+    move?.team?._id ?? (kind === "other" ? prefill?.teamId : undefined) ?? context.userTeamId,
+  );
   const [from, setFrom] = useState<Id<"teams"> | undefined>(move?.counterpart?._id);
   const stored = move?.playersIn[0] ?? move?.playersOut[0];
-  const [person, setPerson] = useState<Person | null>(stored ? fromMovePerson(stored) : null);
+  const [person, setPerson] = useState<Person | null>(
+    stored ? fromMovePerson(stored) : (prefill?.person ?? null),
+  );
   const [contract, setContract] = useState(contractDraft(move?.contract));
   const [timing, setTiming] = useState<Timing>(() =>
     move

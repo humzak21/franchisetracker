@@ -133,6 +133,35 @@ describe("draft", () => {
     ).toBe("The franchise QB");
   });
 
+  test("a pick carries his OVR and dev trait from the draft's season", async () => {
+    const { t, owner, active, season } = await setup();
+    const pick = (await owner.query(api.draft.draft.bySeason, { seasonId: season(2025) })).picks.find(
+      (p) => p.isUser,
+    )!;
+    const playerId = pick.player!._id;
+    await t.run(async (ctx) => {
+      const entries = await ctx.db
+        .query("rosterEntries")
+        .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId).eq("seasonId", season(2025)))
+        .take(5);
+      for (const e of entries) await ctx.db.delete("rosterEntries", e._id);
+      await ctx.db.insert("rosterEntries", {
+        franchiseId: active.franchise._id,
+        seasonId: season(2025),
+        teamId: active.franchise.userTeamId,
+        playerId,
+        position: "HB",
+        ovr: 74,
+        devTrait: "hidden",
+        status: "active",
+      });
+    });
+    const after = (await owner.query(api.draft.draft.bySeason, { seasonId: season(2025) })).picks.find(
+      (p) => p._id === pick._id,
+    );
+    expect(after?.rating).toEqual({ ovr: 74, devTrait: "hidden" });
+  });
+
   test("the pick inventory records picks to and from the user team only", async () => {
     const { owner } = await setup();
     const before = await owner.query(api.draft.inventory.list, {});

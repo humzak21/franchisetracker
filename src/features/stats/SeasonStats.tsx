@@ -5,6 +5,7 @@ import { isPreFranchise } from "@shared/history/nflverse";
 import { STAT_GROUPS, statGroup, type ThresholdOverrides } from "@shared/stats";
 import { useFranchise } from "@/app/franchise";
 import { useSeason } from "@/app/season";
+import { MISSING_GAME_NOTE } from "@shared/ingestion/reconcile";
 import { DataTable } from "@/components/data/DataTable";
 import { EmptyState } from "@/components/data/EmptyState";
 import { Notice } from "@/components/data/Notice";
@@ -79,6 +80,11 @@ export function SeasonStats({ split }: { split: Split }) {
             />
           }
         />
+      )}
+      {table?.rows.some((r) => r.overridden.length > 0) && (
+        <p className="text-xs text-muted-foreground">
+          <span className="text-primary">•</span> {MISSING_GAME_NOTE}.
+        </p>
       )}
     </div>
   );

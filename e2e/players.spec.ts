@@ -42,3 +42,20 @@ test("search reaches imported players and compare adds and removes them", async 
   await page.getByRole("button", { name: "Remove Drake Maye" }).click();
   await expect(page.getByText("Pick players to compare")).toBeVisible();
 });
+
+test("a players row starts a trade with him already in it", async ({ page }) => {
+  await page.goto("/players");
+  const table = page.getByRole("table", { name: "Players" });
+  await expect(table.getByText("Drake Maye")).toBeVisible({ timeout: 20_000 });
+  const actions = table.getByRole("button", { name: "Actions for Drake Maye" });
+  // On phones the menu sits in the row's expansion card.
+  if (!(await actions.isVisible()))
+    await table.getByRole("row").filter({ hasText: "Drake Maye" }).getByRole("cell").last().click();
+  await actions.click();
+  await page.getByRole("button", { name: "Record trade" }).click();
+  const sheet = page.getByRole("dialog", { name: "Record a trade" });
+  await expect(sheet.getByRole("button", { name: "Remove Drake Maye" })).toBeVisible();
+  await expect(page).toHaveURL(/\/players$/);
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeHidden();
+});

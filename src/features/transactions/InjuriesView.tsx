@@ -7,7 +7,7 @@ import { TeamChip } from "@/components/team/TeamChip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
-import type { Injury } from "./types";
+import type { Injury } from "@/app/moves/types";
 
 /** The season's injury report (FEATURES.md 5.10): who, when, what, how long, and IR. */
 export function InjuriesView({ injuries, onEdit }: { injuries: Injury[]; onEdit: (injury: Injury) => void }) {

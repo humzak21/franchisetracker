@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
-import { Check } from "lucide-react";
+import { Check, Ellipsis } from "lucide-react";
 import type { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { positionOrder } from "@shared/players/format";
@@ -8,6 +8,8 @@ import type { DataColumn } from "@/components/data/DataTable";
 import { PlayerChip } from "@/components/player/PlayerChip";
 import { PositionBadge } from "@/components/player/PositionBadge";
 import type { TeamLike } from "@/components/team/TeamLogo";
+import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 
@@ -15,8 +17,15 @@ export type DirectoryRow = FunctionReturnType<typeof api.players.directory.byTea
 
 type Selection = { selected: ReadonlySet<Id<"players">>; toggle: (id: Id<"players">) => void; full: boolean };
 
-/** Players index columns: a compare toggle, the player linking to their page, then sortable facts. */
-export function playerColumns(team: TeamLike, selection: Selection): DataColumn<DirectoryRow>[] {
+/**
+ * Players index columns: a compare toggle, the player linking to their page, sortable facts, then
+ * a menu to record a transaction or injury for him (none until the sheets can open).
+ */
+export function playerColumns(
+  team: TeamLike,
+  selection: Selection,
+  actionsFor: (row: DirectoryRow) => ActionMenuItem[],
+): DataColumn<DirectoryRow>[] {
   return [
     {
       id: "player",
@@ -109,6 +118,27 @@ export function playerColumns(team: TeamLike, selection: Selection): DataColumn<
           {r.retired && <Badge>Retired</Badge>}
         </span>
       ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      title: "Record a transaction or injury",
+      sortable: false,
+      value: () => null,
+      cell: (r) => {
+        const items = actionsFor(r);
+        return items.length === 0 ? null : (
+          <ActionMenu
+            label={`Actions for ${r.displayName}`}
+            items={items}
+            trigger={
+              <Button size="icon-sm" variant="ghost" aria-label={`Actions for ${r.displayName}`}>
+                <Ellipsis />
+              </Button>
+            }
+          />
+        );
+      },
     },
   ];
 }

@@ -4,7 +4,7 @@ import { api } from "@convex/_generated/api";
 import { EmptyState } from "@/components/data/EmptyState";
 import { NotesEditor } from "@/components/forms/NotesEditor";
 import { MoveCard } from "./MoveCard";
-import type { Move } from "./types";
+import type { Move } from "@/app/moves/types";
 
 /** The trade tracker (FEATURES.md 5.10): each trade's assets both ways and how it looks in hindsight. */
 export function TradesView({ moves, onEdit }: { moves: Move[]; onEdit: (move: Move) => void }) {

@@ -61,7 +61,11 @@ export const leagueTables = {
     .index("by_seasonId_and_statKey_and_rank", ["seasonId", "statKey", "rank"])
     .index("by_playerId", ["playerId"]),
 
-  /** One row per season per team per stat key ("27.3 - T-3rd" → value 27.3, rank 3, tied). */
+  /**
+   * One row per season per team per stat key ("27.3 - T-3rd" → value 27.3, rank 3, tied), from
+   * the team stats screen or its manual entry. For the user team a row overrides the value derived
+   * from its games (`seasons.teamTotals`), and is the only source of league ranks.
+   */
   teamSeasonStats: defineTable({
     franchiseId: v.id("franchises"),
     seasonId: v.id("seasons"),

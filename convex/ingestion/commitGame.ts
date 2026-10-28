@@ -8,6 +8,7 @@ import type { MutationCtx } from "../_generated/server";
 import { invalid, must } from "../lib/errors";
 import { refreshLeagueRecords } from "../lib/leagueRecords";
 import { seasonGames } from "../lib/reports";
+import { teamSeasonTotals } from "../stats/teamTotals";
 
 export async function teamByAbbr(ctx: MutationCtx, abbr: string | null): Promise<Doc<"teams">> {
   const team = abbr
@@ -97,10 +98,11 @@ export async function upsertGame(
 }
 
 /**
- * Refreshes `seasons.userRecord` (regular season W-L-T and where the playoff run ended) and moves
- * the season along its lifecycle: the first regular-season result starts it, a playoff game
- * makes it the postseason, and a played Super Bowl completes it, which makes the post-season
- * report due. Status only moves forward.
+ * Refreshes `seasons.userRecord` (regular season W-L-T and where the playoff run ended) and the
+ * team stats derived from the games (`seasons.teamTotals`), and moves the season along its
+ * lifecycle: the first regular-season result starts it, a playoff game makes it the postseason,
+ * and a played Super Bowl completes it, which makes the post-season report due. Status only
+ * moves forward.
  */
 export async function refreshSeasonRecord(ctx: MutationCtx, seasonId: Id<"seasons">): Promise<void> {
   const season = must(await ctx.db.get("seasons", seasonId), "Season");
@@ -110,6 +112,7 @@ export async function refreshSeasonRecord(ctx: MutationCtx, seasonId: Id<"season
   await ctx.db.patch("seasons", seasonId, {
     userRecord: { ...season.userRecord, ...regular, ...(playoffResult ? { playoffResult } : {}) },
     status: laterStatus(season.status, statusFromGames(games)),
+    teamTotals: await teamSeasonTotals(ctx, season, games),
   });
   // The opponent's record moves with the score too.
   await refreshLeagueRecords(ctx, seasonId);
