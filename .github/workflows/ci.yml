@@ -1,9 +1,11 @@
 name: CI
 
+# Kept small for the GitHub Free plan: pull requests only (a merge to main was already checked
+# on its PR), one job for everything static, and one desktop Playwright job. Phones and the full
+# suite run locally with `npm run check:all`.
 on:
   pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -11,7 +13,7 @@ concurrency:
 
 jobs:
   check:
-    name: Typecheck, lint, unit and Convex tests
+    name: Format, typecheck, lint, tests and build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -23,45 +25,16 @@ jobs:
       - run: npm ci
       - run: npm run format:check
       - run: npm run check
-      - run: npm run build
+      # `npm run check` already ran `tsc -b`; the bundle is all that is left of `npm run build`.
+      - run: npx vite build
 
-  # Reads the Playwright version from the lockfile so the e2e image always matches it.
-  playwright-version:
-    name: Resolve Playwright version
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          sparse-checkout: package-lock.json
-          sparse-checkout-cone-mode: false
-      - id: version
-        run: echo "version=$(jq -r '.packages["node_modules/@playwright/test"].version' package-lock.json)" >> "$GITHUB_OUTPUT"
-
-  # One job per Playwright project, each with its own local backend. The official image ships
-  # the browsers and their system libraries, so nothing is downloaded or apt-installed here
-  # (`playwright install --with-deps` could hang on apt for the whole job timeout). The phone
-  # projects run WebKit, about twice as slow as desktop Chrome on these 2-vCPU runners, so each
-  # is split across two jobs: same tests, half the wait.
+  # Desktop Chrome only, against its own local backend. Browsers come from Playwright's cache
+  # rather than its Docker image, which saves pulling a 2 GB container on every run.
   e2e:
-    name: Playwright (${{ matrix.project }}${{ matrix.shard != '1/1' && format(' {0}', matrix.shard) || '' }})
-    needs: playwright-version
+    name: Playwright (desktop)
+    needs: check
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    container:
-      image: mcr.microsoft.com/playwright:v${{ needs.playwright-version.outputs.version }}-noble
-      options: --ipc=host
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { project: desktop, shard: 1/1 }
-          - { project: phone, shard: 1/2 }
-          - { project: phone, shard: 2/2 }
-          - { project: phone-large, shard: 1/2 }
-          - { project: phone-large, shard: 2/2 }
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -69,17 +42,21 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - name: Cache local Convex backend binary
+      - name: Cache Playwright browsers and the local Convex backend binary
         uses: actions/cache@v4
         with:
-          path: ~/.cache/convex
-          key: convex-backend-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - run: npx playwright test --project=${{ matrix.project }} --shard=${{ matrix.shard }}
+          path: |
+            ~/.cache/ms-playwright
+            ~/.cache/convex
+          key: e2e-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npx playwright install --with-deps chromium
+        timeout-minutes: 5
+      - run: npx playwright test --project=desktop
         env:
           CI: "true"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report-${{ matrix.project }}-${{ strategy.job-index }}
+          name: playwright-report
           path: playwright-report/
           retention-days: 7

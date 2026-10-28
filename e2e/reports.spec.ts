@@ -76,7 +76,6 @@ test("a need is added, resolved (by swipe on phones) and removed", async ({ page
 const INDUCTEE: Record<string, string> = {
   desktop: "Hunter Henry",
   phone: "DeMario Douglas",
-  "phone-large": "Robert Spillane",
 };
 
 test("a player is inducted from their page, hangs on the wall, and is removed", async ({
