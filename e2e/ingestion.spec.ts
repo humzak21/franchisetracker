@@ -8,7 +8,7 @@ const PNG = Buffer.from(
 );
 
 /** Each project captures into its own week of the empty second season, so parallel runs never collide. */
-const weekFor = (info: TestInfo) => ({ desktop: 1, phone: 2, "phone-large": 3 })[info.project.name] ?? 4;
+const weekFor = (info: TestInfo) => ({ desktop: 1, phone: 2 })[info.project.name] ?? 3;
 
 /** Opens the capture sheet from the phone's floating button or the header button, and returns it. */
 async function openCapture(page: Page, info: TestInfo) {

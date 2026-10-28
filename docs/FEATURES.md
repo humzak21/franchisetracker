@@ -412,7 +412,7 @@ Dense football data has to be as readable on a phone as on a 27 inch display. Th
 - **Gestures**: swipe to change week or season where the header shows a sequence, pull to refresh is unnecessary (reactive data) and disabled to avoid accidental triggers, long press on a row for actions.
 - **Charts**: a phone variant per chart type with fewer ticks, larger touch tooltips and a legend that collapses into tappable chips.
 - **Review on phone**: two swipeable panes (image, draft), pinch to zoom on the image, field list ordered by confidence ascending, numeric keyboard for stat fields, player picker as a bottom sheet with roster search.
-- **Testing**: every screen is verified at 390 x 844 and 430 x 932 in both themes before a sprint closes, using the in-app browser's mobile preset, and the component gallery renders every primitive at phone width beside its desktop rendering.
+- **Testing**: every screen is verified at 390 x 844 in both themes before a sprint closes, using the in-app browser's mobile preset, and the component gallery renders every primitive at phone width beside its desktop rendering.
 
 ---
 

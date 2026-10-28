@@ -16,8 +16,8 @@ A Football Manager style front end for a Madden franchise. Single user, Convex b
 | Front end only (backend already pushed) | `npm run dev:frontend` |
 | Seed the selected deployment | `npm run seed` (idempotent) |
 | Fast checks | `npm run check` (typecheck app + Convex + e2e, lint, unit and Convex tests) |
-| Browser smoke tests | `npm run test:e2e` (Playwright, desktop Chrome plus WebKit at 390 x 844 and 430 x 932, both themes) |
-| Everything a PR must pass | `npm run check:all` (CI runs the same, plus `format:check` and `build`) |
+| Browser smoke tests | `npm run test:e2e` (Playwright: everything in desktop Chrome, plus the layout checks in WebKit at 390 x 844; both themes) |
+| Everything a PR must pass | `npm run check:all` (CI runs a lighter set: `format:check`, `check`, the build and the desktop Playwright project) |
 | Before a production deploy | `npm run check:fresh-clone`, then the rest of `docs/LAUNCH.md` |
 | Format | `npm run format` (Prettier with the Tailwind class sorter) |
 | Production build, served locally | `npm run build && npm run preview` |
@@ -31,7 +31,7 @@ Environments:
 
 Real NFL history imports from nflverse when a franchise is created (`docs/NFL-HISTORY.md`); a franchise that predates the import starts it from Settings or with `npx convex run history/importJob:restart`. The sample franchise loads a bundled slice instead, so tests never fetch nflverse.
 
-`.env.local` (git-ignored, rewritten by `convex dev`) selects the backend for `npm run dev`. Playwright never reads it: it starts its own local backend, builds the app in `e2e` mode (`.env.e2e`, committed) and serves the build on port 5174, so tests cannot touch cloud data. Each signed-in test gets its own test-owner session (`e2e/ownerSession.ts`); never share one saved session across tests, because Convex Auth revokes a session whose refresh token is replayed. CI runs one Playwright job per project inside the official Playwright image. Never run `convex deploy`, or anything else that writes to production, without the user's explicit go-ahead. Secrets (OpenRouter key, Shortcut tokens, OAuth client secrets) live in Convex env vars, never in the client or the repo.
+`.env.local` (git-ignored, rewritten by `convex dev`) selects the backend for `npm run dev`. Playwright never reads it: it starts its own local backend, builds the app in `e2e` mode (`.env.e2e`, committed) and serves the build on port 5174, so tests cannot touch cloud data. Each signed-in test gets its own test-owner session (`e2e/ownerSession.ts`); never share one saved session across tests, because Convex Auth revokes a session whose refresh token is replayed. CI is kept small for the GitHub Free plan (`.github/workflows/ci.yml`): pull requests only, one static job and one desktop Playwright job; the phone layout checks run locally. Never run `convex deploy`, or anything else that writes to production, without the user's explicit go-ahead. Secrets (OpenRouter key, Shortcut tokens, OAuth client secrets) live in Convex env vars, never in the client or the repo.
 
 ## Architecture and layering
 
@@ -79,7 +79,7 @@ Every screen ships for phone and desktop together (FEATURES.md 5.13 and 9). Ther
 - **Screens never branch on viewport size; components do.** Primitives switch layout on their own width (`useElementWidth`, Tailwind container queries `@tablet:` and `@desktop:`), so a table in a narrow pane or the gallery's phone frame gets the phone layout. Only `app/shell` reads the viewport.
 - Breakpoints: phone under 640 px, tablet 640 to 1024 px, desktop above. Touch targets are 44 px minimum on coarse pointers (`pointer-coarse:` variants are built into the primitives).
 - Never hide a column or a capability on phones. `DataTable` keeps primary columns in the table and the rest in the tap-to-expand card.
-- Before a sprint closes, check every new screen at 390 x 844 and 430 x 932 in both themes in the in-app browser, plus desktop width.
+- Before a sprint closes, check every new screen at 390 x 844 in both themes in the in-app browser, plus desktop width. The app is mostly used on the Mac; phones need to work, not to be tested as heavily.
 
 ## Design system
 
@@ -104,7 +104,7 @@ Every screen ships for phone and desktop together (FEATURES.md 5.13 and 9). Ther
 
 - `npm run check:all` passes locally and CI is green on the PR (GitHub Actions: format, typecheck, lint, Vitest, build, Playwright).
 - New `shared/` logic has unit tests next to it (`*.test.ts`). New Convex mutations and queries have `convex-test` coverage of the happy path and the idempotency or authorization edge.
-- Every new screen gets a Playwright smoke test in `e2e/`: it loads in both themes at desktop and both phone sizes with no console errors and no horizontal overflow, and its main interaction works. Use the fixtures in `e2e/fixtures.ts`.
+- Every new screen gets a Playwright smoke test in `e2e/`: it loads in both themes with no console errors and no horizontal overflow (name it "... without overflow" so the phone project runs it too), and its main interaction works on desktop. Use the fixtures in `e2e/fixtures.ts`.
 - UI changes are also looked at in the running app (`.claude/launch.json` config `web`) at phone and desktop widths, not only by tests.
 - Each sprint's "Done when" in `docs/SPRINTS.md` is the bar for closing it.
 

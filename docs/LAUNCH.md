@@ -16,7 +16,7 @@ request; the rest is a short list of things to run by hand before shipping to pr
 | Every table is in the backup or left out on purpose; a backup restores as an identical, separate franchise | `convex/ops/backup.test.ts` |
 | Stat math, registries, extraction normalizers and validators, the import diff | `shared/**/*.test.ts` (`npm run test:coverage`: 96.7% of lines) |
 | The commit and recompute path | `convex/ingestion/*.test.ts`, `convex/stats/stats.test.ts` |
-| Every screen loads with no console errors and no horizontal overflow, both themes, desktop and two phone sizes | `e2e/*.spec.ts` |
+| Every screen loads with no console errors and no horizontal overflow, both themes, desktop and a phone | `e2e/*.spec.ts` |
 | Every control on a phone is at least 44 px (or has a 44 px hit area); reduced motion switches animation off | `e2e/touch.spec.ts` |
 | Screens seen before read offline, with the offline banner | `e2e/offline.spec.ts` |
 
