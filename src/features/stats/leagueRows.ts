@@ -14,6 +14,7 @@ export type LeagueRow = {
   id: string;
   playerId: string;
   name: string;
+  headshotUrl: string | null;
   position: Position;
   team: LeagueTeam | null;
   isUser: boolean;
@@ -37,6 +38,7 @@ export function leagueRows(data: LeagueData, group: StatGroup, scope: LeagueScop
       id: `${r.playerId}|${r.teamId}`,
       playerId: r.playerId,
       name: r.name,
+      headshotUrl: r.headshotUrl,
       position: r.position,
       team: teams.get(r.teamId) ?? null,
       isUser: r.isUser,

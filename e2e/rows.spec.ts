@@ -85,4 +85,19 @@ test("season stats land in reconciliation, where a difference can be settled", a
   await expect(card.getByText("Missing game", { exact: true })).toBeVisible();
   await card.getByRole("button", { name: "Reopen" }).click();
   await expect(card.getByRole("button", { name: "Use log number" })).toBeVisible();
+
+  // Every difference at once: pick them all, settle, then reopen them all the same way.
+  const section = (title: string) =>
+    page.locator("section").filter({ has: page.getByRole("heading", { name: title, exact: true }) });
+  const bar = (title: string) => section(title).getByRole("toolbar", { name: "Selection" });
+  await bar("Differences")
+    .getByRole("button", { name: /^Select all \d+$/ })
+    .click();
+  await bar("Differences").getByRole("button", { name: "Use log numbers" }).click();
+  await expect(page.getByText("Everything is settled")).toBeVisible();
+  await bar("Settled")
+    .getByRole("button", { name: /^Select all \d+$/ })
+    .click();
+  await bar("Settled").getByRole("button", { name: "Reopen" }).click();
+  await expect(card.getByRole("button", { name: "Use log number" })).toBeVisible();
 });

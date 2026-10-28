@@ -11,13 +11,13 @@ import { Page } from "@/components/layout/Page";
 import { Section } from "@/components/layout/Section";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
-import { ReconcileCard } from "./ReconcileCard";
+import { DifferenceList } from "./DifferenceList";
 import { useQuery } from "@/lib/convex/useQuery";
 
 /**
  * Reconciliation (Sprint 6): the season totals a season stats screenshot printed against the
  * totals from captured game logs. Differences are cards: accept the log number or flag a
- * missing game. Logs stay the source of truth either way.
+ * missing game, one at a time or every picked one at once. Logs stay the source of truth either way.
  */
 export function ReconcileScreen() {
   const { season } = useSeason();
@@ -75,24 +75,12 @@ export function ReconcileScreen() {
             />
           ) : (
             <Section title="Differences" description="Biggest first. The logs are the source of truth.">
-              <ul className="@container grid gap-3 @3xl:grid-cols-2">
-                {open.map((d) => (
-                  <li key={`${d.playerId}-${d.stat}`}>
-                    <ReconcileCard seasonId={season._id} difference={d} />
-                  </li>
-                ))}
-              </ul>
+              <DifferenceList seasonId={season._id} differences={open} settled={false} />
             </Section>
           )}
           {settled.length > 0 && (
             <Section title="Settled">
-              <ul className="@container grid gap-3 @3xl:grid-cols-2">
-                {settled.map((d) => (
-                  <li key={`${d.playerId}-${d.stat}`}>
-                    <ReconcileCard seasonId={season._id} difference={d} />
-                  </li>
-                ))}
-              </ul>
+              <DifferenceList seasonId={season._id} differences={settled} settled />
             </Section>
           )}
         </div>
