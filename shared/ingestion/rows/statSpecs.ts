@@ -2,7 +2,7 @@
 import { CATEGORY_PRIMARY } from "../../stats/categories";
 import {
   RAW_STATS,
-  STAT_CATEGORIES,
+  RAW_STAT_CATEGORIES,
   STAT_REGISTRY,
   extractionField,
   type RawStatKey,
@@ -40,7 +40,7 @@ export const seasonPlayerStatsSpec: RowSpec = {
   identity: (row) => `${row.teamAbbr ?? "?"}|${nameKey(row.name)}`,
   rowsSchema: () =>
     Object.fromEntries(
-      STAT_CATEGORIES.map((category) => {
+      RAW_STAT_CATEGORIES.map((category) => {
         const stats = rawKeysInCategory(category).map(statField);
         const row = object({
           name: { type: "string", description: "Player name exactly as printed." },
@@ -53,7 +53,7 @@ export const seasonPlayerStatsSpec: RowSpec = {
         return [category, { type: "array", items: row }];
       }),
     ),
-  readRows: (raw: Obj) => STAT_CATEGORIES.flatMap((category) => rowList(raw[category])),
+  readRows: (raw: Obj) => RAW_STAT_CATEGORIES.flatMap((category) => rowList(raw[category])),
 };
 
 /** The stats Madden's league leaders screen ranks. */

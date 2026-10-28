@@ -9,9 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/misc";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
-import { AllPro, Cabinet, ProBowl } from "./HonorViews";
+import { AllPro, ProBowl } from "./HonorViews";
+import { SeasonAwards } from "./SeasonAwards";
 import { TeamAwards } from "./TeamAwards";
-import type { SeasonAward } from "./types";
+import type { CountedAward, SeasonAward } from "./types";
 import { WeeklyAwards } from "./WeeklyAwards";
 import { useQuery } from "@/lib/convex/useQuery";
 
@@ -40,15 +41,24 @@ const VIEWS: {
   { value: "team", label: "Team", has: (a) => a.scope === "team", target: "yearly_awards" },
 ];
 
+/** Season awards with a winner: stored, or counted from the stats for an award not assigned yet. */
+function seasonCount(awards: SeasonAward[], counted: CountedAward[] | undefined) {
+  const stored = new Set(awards.filter(VIEWS[1]!.has).map((a) => a.type));
+  const fromStats = (counted ?? []).filter((c) => !stored.has(c.type) && c.contenders.length > 0);
+  return stored.size + fromStats.length;
+}
+
 /**
- * Awards (FEATURES.md 5.8): players of the week, the yearly cabinet, All-Pro teams, Pro Bowl
- * rosters and the owner's own team awards, with user-team winners highlighted.
+ * Awards (FEATURES.md 5.8): players of the week, the season's awards (Madden's and those counted
+ * from the stats), All-Pro teams, Pro Bowl rosters and the owner's own team awards, with
+ * user-team winners highlighted.
  */
 export function AwardsScreen() {
   const { season } = useSeason();
   const capture = useCapture();
   const [view, setView] = useLocalStorage<View>("ft.awards-view", "weekly");
   const awards = useQuery(api.awards.awards.bySeason, season ? { seasonId: season._id } : "skip");
+  const counted = useQuery(api.awards.counted.bySeason, season ? { seasonId: season._id } : "skip");
   const current = VIEWS.find((v) => v.value === view) ?? VIEWS[0]!;
   const shown = awards?.filter(current.has) ?? [];
   // Team awards have their own form; every league award can be typed in like its screenshot.
@@ -67,7 +77,8 @@ export function AwardsScreen() {
           options={VIEWS.map((v) => ({
             value: v.value,
             label: v.label,
-            count: awards?.filter(v.has).length,
+            count:
+              v.value === "season" && awards ? seasonCount(awards, counted) : awards?.filter(v.has).length,
           }))}
           className="max-w-full scrollbar-none overflow-x-auto"
         />
@@ -75,6 +86,8 @@ export function AwardsScreen() {
           <Skeleton className="h-64 rounded-xl" />
         ) : view === "team" ? (
           <TeamAwards seasonId={season._id} awards={awards} />
+        ) : view === "season" ? (
+          <SeasonAwards seasonId={season._id} awards={shown} counted={counted} />
         ) : shown.length === 0 ? (
           <EmptyState
             icon={Medal}
@@ -88,8 +101,6 @@ export function AwardsScreen() {
           />
         ) : view === "weekly" ? (
           <WeeklyAwards awards={shown} />
-        ) : view === "season" ? (
-          <Cabinet awards={shown} />
         ) : view === "allpro" ? (
           <AllPro awards={shown} />
         ) : (

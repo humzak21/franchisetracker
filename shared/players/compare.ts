@@ -4,7 +4,7 @@ import { statValue } from "../stats/aggregate";
 import { CATEGORY_PRIMARY, categoriesPlayed, statsWithData } from "../stats/categories";
 import {
   CATEGORY_GROUPS,
-  STAT_CATEGORIES,
+  RAW_STAT_CATEGORIES,
   STAT_REGISTRY,
   type StatKey,
   type StatLine,
@@ -18,12 +18,13 @@ const MIN_AXES = 3;
 /**
  * Stat keys for the comparison table: the categories that belong to any of the players'
  * positions and that someone played (a quarterback's stray tackle or two career punts do not
- * add a block). The first player's own categories come first, registry order within each.
+ * add a block). The first player's own categories come first, registry order within each, and
+ * fantasy points last.
  */
 export function compareStats(positions: readonly Position[], careers: readonly Career[]): StatKey[] {
   const groups = positions.map(positionGroupOf);
   const lead = groups[0];
-  const relevant = STAT_CATEGORIES.filter((c) => groups.some((g) => CATEGORY_GROUPS[c].includes(g)));
+  const relevant = RAW_STAT_CATEGORIES.filter((c) => groups.some((g) => CATEGORY_GROUPS[c].includes(g)));
   const ordered = [
     ...relevant.filter((c) => lead && CATEGORY_GROUPS[c].includes(lead)),
     ...relevant.filter((c) => !lead || !CATEGORY_GROUPS[c].includes(lead)),
@@ -32,7 +33,7 @@ export function compareStats(positions: readonly Position[], careers: readonly C
     careers.some((career) => categoriesPlayed([c], career.totals).length > 0),
   );
   return statsWithData(
-    played,
+    played.length > 0 ? [...played, "fantasy"] : [],
     careers.map((c) => ({ line: c.totals, games: c.games })),
   );
 }

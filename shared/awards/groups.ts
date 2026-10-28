@@ -17,6 +17,14 @@ export const CABINET_AWARDS = [
   "BestK",
   "BestP",
   "BestKR",
+  "BestQB",
+  "BestRB",
+  "BestWR",
+  "BestTE",
+  "BestOL",
+  "BestDL",
+  "BestLB",
+  "BestDB",
 ] as const satisfies readonly AwardType[];
 
 export const WEEKLY_SHORT: Record<(typeof WEEKLY_AWARDS)[number], string> = {
@@ -53,12 +61,13 @@ export function weekWinners<T extends AwardLike>(awards: readonly T[], week: Wee
   }));
 }
 
-/** The yearly awards in cabinet order, only those with a winner, then any custom ones. */
-export function cabinet<T extends AwardLike>(awards: readonly T[]) {
+/** Every slot of these yearly awards in order, with its stored winners (none yet is an empty slot). */
+export function cabinet<T extends AwardLike>(
+  awards: readonly T[],
+  types: readonly AwardType[] = CABINET_AWARDS,
+) {
   const yearly = awards.filter((a) => !a.weekKey && a.scope !== "team");
-  return CABINET_AWARDS.map((type) => ({ type, winners: yearly.filter((a) => a.type === type) })).filter(
-    (g) => g.winners.length > 0,
-  );
+  return types.map((type) => ({ type, winners: yearly.filter((a) => a.type === type) }));
 }
 
 const byPosition = <T extends AwardLike>(list: readonly T[]) =>

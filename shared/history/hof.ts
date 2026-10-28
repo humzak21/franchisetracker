@@ -13,6 +13,7 @@ const HEADLINE: Record<StatCategory, StatKey[]> = {
   kicking: ["fgm", "fgPct", "fgLong"],
   punting: ["punts", "puntAvg", "puntIn20"],
   returns: ["kickReturnYds", "puntReturnYds", "kickReturnTd"],
+  fantasy: ["fantasyPts", "fantasyPpg"],
 };
 
 /** The category a position is judged by; linemen and snappers have none in a box score. */

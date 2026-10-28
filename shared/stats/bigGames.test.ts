@@ -101,13 +101,16 @@ describe("season highs", () => {
     expect(Object.keys(highs)).toEqual(["tackles"]);
     for (const key of ["passYpg", "passInt", "passLong", "fumbles"] as const)
       expect(SEASON_HIGH_STATS).not.toContain(key);
-    expect(SEASON_HIGH_STATS).toEqual(expect.arrayContaining(["passRating", "scrimmageYds", "sacks"]));
+    expect(SEASON_HIGH_STATS).toEqual(
+      expect.arrayContaining(["passRating", "scrimmageYds", "sacks", "fantasyPts"]),
+    );
   });
 
   test("every rate stat with a season high has a minimum", () => {
     for (const key of SEASON_HIGH_STATS) {
       const def = STAT_REGISTRY[key];
-      if (def.kind === "derived" && def.format !== "int")
+      // Fantasy points are a decimal total, not a rate: any game can set the high.
+      if (def.kind === "derived" && def.format !== "int" && def.category !== "fantasy")
         expect(SINGLE_GAME_MINIMUMS, key).toHaveProperty(key);
     }
   });

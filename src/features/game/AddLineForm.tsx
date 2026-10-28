@@ -4,7 +4,7 @@ import { useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import { POSITIONS, type Position } from "@shared/domain";
-import { STAT_CATEGORIES, STAT_CATEGORY_LABELS, STAT_REGISTRY, type StatCategory } from "@shared/stats";
+import { RAW_STAT_CATEGORIES, STAT_CATEGORY_LABELS, STAT_REGISTRY, type StatCategory } from "@shared/stats";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
@@ -124,7 +124,7 @@ export function AddLineForm({ gameId, teams, category: initialCategory }: AddLin
             aria-label="Stat category"
             value={category}
             onValueChange={(c) => setCategory(c as StatCategory)}
-            options={STAT_CATEGORIES.map((c) => ({ value: c, label: STAT_CATEGORY_LABELS[c] }))}
+            options={RAW_STAT_CATEGORIES.map((c) => ({ value: c, label: STAT_CATEGORY_LABELS[c] }))}
           />
         </label>
         <label className="space-y-1.5">

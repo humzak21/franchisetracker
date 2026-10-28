@@ -11,6 +11,7 @@ import {
   weeklyAwardsSpec,
   yearlyAwardsSpec,
 } from "./peopleSpecs";
+import { leagueTeamStatsSpec } from "./leagueTeamSpec";
 import { leagueScheduleSpec } from "./scheduleSpec";
 import { leagueLeadersSpec, seasonPlayerStatsSpec, standingsSpec, teamSeasonStatsSpec } from "./statSpecs";
 import type { RowSpec } from "./types";
@@ -33,11 +34,12 @@ const rows = (def: Omit<RowTargetDef, "kind">): RowTargetDef => ({ kind: "rows",
 export const ROW_TARGETS = {
   season_player_stats: rows({
     label: "Season stats",
-    description: "A season stats tab (passing, rushing, defense, ...) with every player's totals",
+    description:
+      "A season stats tab (passing, rushing, defense, ...) for your team or the whole league, with every player's totals",
     scope: "season",
     multiImage: true,
     instructions:
-      "This is a Madden season stats screen: one tab (passing, rushing, receiving, defense, kicking, punting or returns) listing players with their season totals and games played. Put each row in the array for the tab shown.",
+      "This is a Madden season stats screen: one tab (passing, rushing, receiving, defense, kicking, punting or returns) listing players with their season totals and games played, for one team or the whole league. Put each row in the array for the tab shown, with the player's team as printed.",
     spec: seasonPlayerStatsSpec,
   }),
   league_leaders: rows({
@@ -57,6 +59,21 @@ export const ROW_TARGETS = {
     instructions:
       "This is a Madden team stats screen for one team's season: per-game and season figures, each with the team's rank in the league. Return one row per figure; a rank printed with T- is tied.",
     spec: teamSeasonStatsSpec,
+  }),
+  league_team_stats: rows({
+    label: "League team stats",
+    description:
+      "Every team's season numbers from the NFL team stats screen: offense, defense, conversions, red zone, turnovers",
+    scope: "season",
+    multiImage: true,
+    instructions: [
+      "This is Madden's team stats screen in the NFL view: one table listing every team (by nickname, e.g. Bengals) with season numbers.",
+      "The R2 label above the table names the tab: Offense, Defense, Conversions, Redzone Efficiency or Turnovers.",
+      "Put each team row in the array for that tab (Redzone Efficiency is redZone) and read only that tab's columns.",
+      "Columns with the same heading on different tabs mean different things: on Defense, PASS, RUSH and INT are what the defense allowed or picked off; on Turnovers, INT is interceptions thrown and D INT interceptions made.",
+      "Leave out OFF, the defense TOTAL, every percentage column, GIVE, TAKE and DIFF: the app computes them.",
+    ].join(" "),
+    spec: leagueTeamStatsSpec,
   }),
   standings: rows({
     label: "Standings",

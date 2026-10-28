@@ -19,6 +19,20 @@ export const AWARD_TYPES = [
   "BestK",
   "BestP",
   "BestKR",
+  "BestQB",
+  "BestRB",
+  "BestWR",
+  "BestTE",
+  "BestOL",
+  "BestDL",
+  "BestLB",
+  "BestDB",
+  "FPOY",
+  "SackLeader",
+  "BallHawk",
+  "HeatSeeker",
+  "MostOPOW",
+  "MostDPOW",
   "custom",
 ] as const;
 export type AwardType = (typeof AWARD_TYPES)[number];
@@ -26,7 +40,11 @@ export type AwardType = (typeof AWARD_TYPES)[number];
 export const AWARD_SCOPES = ["league", "conference", "team"] as const;
 export type AwardScope = (typeof AWARD_SCOPES)[number];
 
-type AwardInfo = { label: string; cadence: "weekly" | "yearly" | "honor" | "custom" };
+/**
+ * `yearly` awards and `honor` rosters come from Madden's awards screens; `counted` awards are
+ * the league leaders in a stat or in weekly awards (`shared/awards/counted.ts`).
+ */
+type AwardInfo = { label: string; cadence: "weekly" | "yearly" | "honor" | "counted" | "custom" };
 
 export const AWARD_INFO: Record<AwardType, AwardInfo> = {
   OPOW: { label: "Offensive Player of the Week", cadence: "weekly" },
@@ -47,5 +65,19 @@ export const AWARD_INFO: Record<AwardType, AwardInfo> = {
   BestK: { label: "Best Kicker", cadence: "yearly" },
   BestP: { label: "Best Punter", cadence: "yearly" },
   BestKR: { label: "Best Kick Returner", cadence: "yearly" },
+  BestQB: { label: "Best Quarterback", cadence: "yearly" },
+  BestRB: { label: "Best Running Back", cadence: "yearly" },
+  BestWR: { label: "Best Wide Receiver", cadence: "yearly" },
+  BestTE: { label: "Best Tight End", cadence: "yearly" },
+  BestOL: { label: "Best Offensive Lineman", cadence: "yearly" },
+  BestDL: { label: "Best Defensive Lineman", cadence: "yearly" },
+  BestLB: { label: "Best Linebacker", cadence: "yearly" },
+  BestDB: { label: "Best Defensive Back", cadence: "yearly" },
+  FPOY: { label: "Fantasy Player of the Year", cadence: "counted" },
+  SackLeader: { label: "Sack Leader", cadence: "counted" },
+  BallHawk: { label: "Ball Hawk", cadence: "counted" },
+  HeatSeeker: { label: "Heat Seeker", cadence: "counted" },
+  MostOPOW: { label: "Most Offensive POTW", cadence: "counted" },
+  MostDPOW: { label: "Most Defensive POTW", cadence: "counted" },
   custom: { label: "Custom award", cadence: "custom" },
 };

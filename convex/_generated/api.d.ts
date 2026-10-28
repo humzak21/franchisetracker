@@ -10,13 +10,16 @@
 
 import type * as account from "../account.js";
 import type * as auth from "../auth.js";
+import type * as awards_assign from "../awards/assign.js";
 import type * as awards_awards from "../awards/awards.js";
+import type * as awards_counted from "../awards/counted.js";
 import type * as crons from "../crons.js";
 import type * as dashboard_activity from "../dashboard/activity.js";
 import type * as dashboard_home from "../dashboard/home.js";
 import type * as dev_fixtureDashboard from "../dev/fixtureDashboard.js";
 import type * as dev_fixtureHistory from "../dev/fixtureHistory.js";
 import type * as dev_fixtureLeague from "../dev/fixtureLeague.js";
+import type * as dev_fixtureLeagueStats from "../dev/fixtureLeagueStats.js";
 import type * as dev_fixtureLines from "../dev/fixtureLines.js";
 import type * as dev_fixtures from "../dev/fixtures.js";
 import type * as draft_board from "../draft/board.js";
@@ -65,6 +68,7 @@ import type * as ingestion_commitTeamStats from "../ingestion/commitTeamStats.js
 import type * as ingestion_corrections from "../ingestion/corrections.js";
 import type * as ingestion_extract from "../ingestion/extract.js";
 import type * as ingestion_fixture from "../ingestion/fixture.js";
+import type * as ingestion_fixtureLeagueTeams from "../ingestion/fixtureLeagueTeams.js";
 import type * as ingestion_fixtureRows from "../ingestion/fixtureRows.js";
 import type * as ingestion_fixtureSchedule from "../ingestion/fixtureSchedule.js";
 import type * as ingestion_inbox from "../ingestion/inbox.js";
@@ -99,6 +103,7 @@ import type * as lib_franchise from "../lib/franchise.js";
 import type * as lib_goals from "../lib/goals.js";
 import type * as lib_hof from "../lib/hof.js";
 import type * as lib_leagueRecords from "../lib/leagueRecords.js";
+import type * as lib_leagueStats from "../lib/leagueStats.js";
 import type * as lib_media from "../lib/media.js";
 import type * as lib_needs from "../lib/needs.js";
 import type * as lib_owner from "../lib/owner.js";
@@ -147,6 +152,7 @@ import type * as seasons_lifecycle from "../seasons/lifecycle.js";
 import type * as seasons_needs from "../seasons/needs.js";
 import type * as seasons_reports from "../seasons/reports.js";
 import type * as seasons_staff from "../seasons/staff.js";
+import type * as stats_league from "../stats/league.js";
 import type * as stats_load from "../stats/load.js";
 import type * as stats_milestones from "../stats/milestones.js";
 import type * as stats_rebuild from "../stats/rebuild.js";
@@ -177,13 +183,16 @@ import type {
 declare const fullApi: ApiFromModules<{
   account: typeof account;
   auth: typeof auth;
+  "awards/assign": typeof awards_assign;
   "awards/awards": typeof awards_awards;
+  "awards/counted": typeof awards_counted;
   crons: typeof crons;
   "dashboard/activity": typeof dashboard_activity;
   "dashboard/home": typeof dashboard_home;
   "dev/fixtureDashboard": typeof dev_fixtureDashboard;
   "dev/fixtureHistory": typeof dev_fixtureHistory;
   "dev/fixtureLeague": typeof dev_fixtureLeague;
+  "dev/fixtureLeagueStats": typeof dev_fixtureLeagueStats;
   "dev/fixtureLines": typeof dev_fixtureLines;
   "dev/fixtures": typeof dev_fixtures;
   "draft/board": typeof draft_board;
@@ -232,6 +241,7 @@ declare const fullApi: ApiFromModules<{
   "ingestion/corrections": typeof ingestion_corrections;
   "ingestion/extract": typeof ingestion_extract;
   "ingestion/fixture": typeof ingestion_fixture;
+  "ingestion/fixtureLeagueTeams": typeof ingestion_fixtureLeagueTeams;
   "ingestion/fixtureRows": typeof ingestion_fixtureRows;
   "ingestion/fixtureSchedule": typeof ingestion_fixtureSchedule;
   "ingestion/inbox": typeof ingestion_inbox;
@@ -266,6 +276,7 @@ declare const fullApi: ApiFromModules<{
   "lib/goals": typeof lib_goals;
   "lib/hof": typeof lib_hof;
   "lib/leagueRecords": typeof lib_leagueRecords;
+  "lib/leagueStats": typeof lib_leagueStats;
   "lib/media": typeof lib_media;
   "lib/needs": typeof lib_needs;
   "lib/owner": typeof lib_owner;
@@ -314,6 +325,7 @@ declare const fullApi: ApiFromModules<{
   "seasons/needs": typeof seasons_needs;
   "seasons/reports": typeof seasons_reports;
   "seasons/staff": typeof seasons_staff;
+  "stats/league": typeof stats_league;
   "stats/load": typeof stats_load;
   "stats/milestones": typeof stats_milestones;
   "stats/rebuild": typeof stats_rebuild;

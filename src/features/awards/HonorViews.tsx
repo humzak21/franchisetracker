@@ -1,25 +1,10 @@
 import { AWARD_INFO } from "@shared/domain";
-import { allPro, cabinet, proBowl } from "@shared/awards/groups";
+import { allPro, proBowl } from "@shared/awards/groups";
 import { Section } from "@/components/layout/Section";
 import { AwardCard } from "./AwardCard";
 import type { SeasonAward } from "./types";
 
 const grid = "grid gap-2 @tablet:grid-cols-2 @desktop:grid-cols-3";
-
-/** The yearly cabinet: MVP, players of the year, coach of the year, the Super Bowl MVP. */
-export function Cabinet({ awards }: { awards: SeasonAward[] }) {
-  return (
-    <ul className={grid}>
-      {cabinet(awards).flatMap(({ winners }) =>
-        winners.map((w) => (
-          <li key={w._id}>
-            <AwardCard award={w} />
-          </li>
-        )),
-      )}
-    </ul>
-  );
-}
 
 /** First and second team All-Pro in depth-chart order. */
 export function AllPro({ awards }: { awards: SeasonAward[] }) {

@@ -178,7 +178,12 @@ describe("awards", () => {
     expect(awardWeeks(awards)).toEqual(["w1", "w2"]);
     const w2 = weekWinners(awards, "w2");
     expect(w2[0]!.awards[0]!.winners).toHaveLength(1);
-    expect(cabinet(awards).map((g) => g.type)).toEqual(["MVP"]);
+    expect(
+      cabinet(awards)
+        .filter((g) => g.winners.length > 0)
+        .map((g) => g.type),
+    ).toEqual(["MVP"]);
+    expect(cabinet(awards, ["MVP", "FPOY"]).map((g) => g.winners.length)).toEqual([1, 0]);
     expect(allPro(awards)[0]!.players.map((p) => p.position)).toEqual(["QB", "WR"]);
     expect(proBowl(awards).map((g) => g.players.length)).toEqual([0, 1]);
   });

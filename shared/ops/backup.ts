@@ -23,6 +23,7 @@ export const BACKUP_TABLES = [
   "standings",
   "leagueLeaders",
   "teamSeasonStats",
+  "leagueTeamStats",
   "rosterEntries",
   "playerSnapshots",
   "seasonPlayerStats",

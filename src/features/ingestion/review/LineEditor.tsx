@@ -4,7 +4,7 @@ import { POSITIONS, type Position } from "@shared/domain";
 import {
   RAW_STAT_KEYS,
   RAW_STATS,
-  STAT_CATEGORIES,
+  RAW_STAT_CATEGORIES,
   STAT_CATEGORY_LABELS,
   type RawStatKey,
 } from "@shared/stats";
@@ -94,7 +94,7 @@ export function LineEditor({ line, teams }: { line: Line; teams: readonly string
         </Button>
       </header>
       <div className="space-y-3 p-3">
-        {STAT_CATEGORIES.map((category) => {
+        {RAW_STAT_CATEGORIES.map((category) => {
           const keys = present.filter((k) => RAW_STATS[k].category === category);
           if (keys.length === 0) return null;
           return (

@@ -6,7 +6,8 @@
  * Tables, highlights, leaderboards, extraction schemas and the real-history importer all read
  * from this file; adding a stat is one entry.
  */
-import type { PositionGroup } from "../domain/positions";
+import { POSITION_GROUPS, type PositionGroup } from "../domain/positions";
+import { fantasyPoints } from "./fantasy";
 import { pct, passerRating, perGame, safeDiv } from "./math";
 
 export const STAT_CATEGORIES = [
@@ -17,8 +18,14 @@ export const STAT_CATEGORIES = [
   "kicking",
   "punting",
   "returns",
+  "fantasy",
 ] as const;
 export type StatCategory = (typeof STAT_CATEGORIES)[number];
+
+/** The categories a box score records: every one but fantasy, which is scored from them. */
+export const RAW_STAT_CATEGORIES = STAT_CATEGORIES.filter(
+  (c): c is Exclude<StatCategory, "fantasy"> => c !== "fantasy",
+);
 
 export const STAT_CATEGORY_LABELS: Record<StatCategory, string> = {
   passing: "Passing",
@@ -28,6 +35,7 @@ export const STAT_CATEGORY_LABELS: Record<StatCategory, string> = {
   kicking: "Kicking",
   punting: "Punting",
   returns: "Returns",
+  fantasy: "Fantasy",
 };
 
 /** Position groups whose stat tables show each category by default. */
@@ -39,6 +47,7 @@ export const CATEGORY_GROUPS: Record<StatCategory, readonly PositionGroup[]> = {
   kicking: ["K"],
   punting: ["P"],
   returns: ["RB", "WR", "DB"],
+  fantasy: POSITION_GROUPS,
 };
 
 /** int: 1,234 · decimal: 4.4 · pct: 69.1% · rating: 105.6 · half: 3.5 (sacks) */
@@ -174,6 +183,10 @@ const perGameStat = (label: string, category: StatCategory, total: RawStatKey): 
   perGame: true,
 });
 
+// Fantasy points score whatever a line recorded, so they list no inputs: a column wherever there
+// are rows, and a defender's zero is a real score.
+const fantasy = derived("Fantasy points (PPR)", "FPTS", "fantasy", "decimal", [], fantasyPoints);
+
 export const DERIVED_STATS = {
   passCmpPct: derived("Completion percentage", "CMP%", "passing", "pct", ["passCmp", "passAtt"], (s) =>
     pct(v(s, "passCmp"), v(s, "passAtt")),
@@ -246,6 +259,14 @@ export const DERIVED_STATS = {
     ["puntReturnYds", "puntReturns"],
     (s) => safeDiv(v(s, "puntReturnYds"), v(s, "puntReturns")),
   ),
+  fantasyPts: fantasy,
+  fantasyPpg: {
+    ...derived("Fantasy points per game", "FP/G", "fantasy", "decimal", [], (s, ctx) => {
+      const points = fantasyPoints(s);
+      return points === null ? null : perGame(points, ctx.games);
+    }),
+    perGame: true,
+  },
 } as const satisfies Record<string, DerivedStatDef>;
 
 export type DerivedStatKey = keyof typeof DERIVED_STATS;

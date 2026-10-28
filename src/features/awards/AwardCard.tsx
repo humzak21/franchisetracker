@@ -4,7 +4,7 @@ import { AWARD_INFO } from "@shared/domain";
 import { PlayerChip } from "@/components/player/PlayerChip";
 import { TeamChip } from "@/components/team/TeamChip";
 import { cn } from "@/lib/cn";
-import type { SeasonAward } from "./types";
+import type { AwardWinner } from "./types";
 
 /** One winner: the award, the player (linked when known), their team and the stat line. User-team winners stand out. */
 export function AwardCard({
@@ -12,9 +12,9 @@ export function AwardCard({
   label,
   action,
 }: {
-  award: SeasonAward;
+  award: AwardWinner;
   label?: string;
-  /** A control in the card's header, after the team (removing a team award). */
+  /** A control in the card's header, after the team (removing a team award, assigning a winner). */
   action?: ReactNode;
 }) {
   const title = label ?? award.customName ?? AWARD_INFO[award.type].label;
@@ -46,7 +46,7 @@ export function AwardCard({
       )}
     >
       <div className="mb-1.5 flex items-center justify-between gap-2">
-        <span className="truncate text-[11px] font-semibold tracking-[0.08em] text-subtle-foreground uppercase">
+        <span className="min-w-0 truncate text-[11px] font-semibold tracking-[0.08em] text-subtle-foreground uppercase">
           {title}
         </span>
         <span className="flex shrink-0 items-center gap-1">

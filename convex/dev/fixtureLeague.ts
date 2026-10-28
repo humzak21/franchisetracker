@@ -1,11 +1,13 @@
 /**
  * The league around the sample franchise's first season, so League, Awards, Draft and
  * Transactions have something to show in development, tests and CI: AFC East standings,
- * a few awards, moves (one trade), an injury, contracts against a cap, and traded picks.
+ * a few awards, league stats for a handful of rivals, moves (one trade), an injury, contracts
+ * against a cap, and traded picks.
  */
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { must } from "../lib/errors";
+import { seedSampleLeagueStats, seedSampleLeagueTeamStats } from "./fixtureLeagueStats";
 
 const CAP = 279_200_000;
 
@@ -76,6 +78,8 @@ export async function seedSampleLeague(
   await award({ type: "OPOW", weekKey: "w1", who: "Maye", statLine: "22/30, 284 yds, 3 TD" });
   await award({ type: "ROW", weekKey: "w5", who: "Henderson", statLine: "21 car, 132 yds, 2 TD" });
   await award({ type: "DPOW", weekKey: "w5", who: "Gonzalez", statLine: "2 INT, 3 PD" });
+  await seedSampleLeagueStats(ctx, franchiseId, seasonId, team);
+  await seedSampleLeagueTeamStats(ctx, franchiseId, seasonId, team);
 
   const signed = await ctx.db.insert("transactions", {
     franchiseId,

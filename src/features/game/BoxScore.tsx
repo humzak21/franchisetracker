@@ -6,7 +6,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import {
   CATEGORY_PRIMARY,
   categoriesWithData,
-  STAT_CATEGORIES,
+  RAW_STAT_CATEGORIES,
   STAT_CATEGORY_LABELS,
   statsWithData,
   type StatCategory,
@@ -42,7 +42,7 @@ export function BoxScore({ gameId, onImport }: BoxScoreProps) {
 
   const categories = useMemo(() => {
     const rows = (data?.teams ?? []).flatMap((t) => t.lines.map((l) => ({ line: l.stats as StatLine })));
-    return categoriesWithData(STAT_CATEGORIES, rows);
+    return categoriesWithData(RAW_STAT_CATEGORIES, rows);
   }, [data]);
 
   if (data === undefined) return <Skeleton className="h-64 rounded-xl" />;
@@ -86,7 +86,7 @@ export function BoxScore({ gameId, onImport }: BoxScoreProps) {
   const shown: BoxTeam[] = data.teams.filter((t) => side === "both" || t.team.abbr === side);
   // Columns from both teams, so the two tables line up when shown together.
   const allLines = data.teams.flatMap((t) => t.lines.map((l) => ({ line: l.stats as StatLine })));
-  const stats = statsWithData([category], allLines, { singleGame: true });
+  const stats = statsWithData([category, "fantasy"], allLines, { singleGame: true });
   return (
     <div ref={box} className="scroll-mt-20 scroll-mb-24 space-y-3 sm:scroll-mb-4">
       <div className="flex flex-wrap items-center justify-between gap-2">

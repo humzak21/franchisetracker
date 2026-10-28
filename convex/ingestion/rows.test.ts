@@ -131,6 +131,32 @@ describe("row targets", () => {
     ]);
   });
 
+  test("league team stats merge every tab into one row per team, read back for all teams", async () => {
+    const { commit, owner, seasonId } = await setup();
+    const { draft } = await commit("league_team_stats");
+    if (!("rows" in draft)) throw new Error("not a row draft");
+    expect(draft.rows.map((r) => r.teamAbbr)).toEqual(["CIN", "BUF", "NE"]);
+    const teams = await owner.query(api.league.teamStats.leagueBySeason, { seasonId });
+    // The sample seeds the AFC East; the capture adds Cincinnati and replaces what it read.
+    expect(teams.map((r) => r.team.abbr).sort()).toEqual(["BUF", "CIN", "MIA", "NE", "NYJ"]);
+    const ne = teams.find((r) => r.team.abbr === "NE")!;
+    expect(ne).toMatchObject({ isUser: true, games: 5 });
+    expect(ne.stats).toMatchObject({ passYds: 4454, intThrown: 15, redZoneAtt: 84, thirdDownAtt: 130 });
+    // Buffalo's capture read offense and defense only: its seeded conversions stay.
+    const buf = teams.find((r) => r.team.abbr === "BUF")!;
+    expect([buf.stats.passYds, buf.stats.thirdDownAtt]).toEqual([4605, 60]);
+    const cin = teams.find((r) => r.team.abbr === "CIN")!;
+    expect(cin.stats).toEqual({
+      totalYds: 6824,
+      passYds: 5590,
+      rushYds: 846,
+      pointsPg: 26.9,
+      passTd: 42,
+      rushTd: 12,
+      firstDowns: 273,
+    });
+  });
+
   test("season stats reconcile against the logs, and differences can be settled", async () => {
     const { owner, commit, seasonId, t, active } = await setup();
     const { result } = await commit("season_player_stats");

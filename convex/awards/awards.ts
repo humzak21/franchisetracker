@@ -17,7 +17,7 @@ const MAX_AWARDS = 1500;
 const MAX_PLAYER_AWARDS = 300;
 const MAX_NAME = 60;
 
-const vAwardPlayer = v.union(
+export const vAwardPlayer = v.union(
   v.object({
     _id: v.id("players"),
     displayName: v.string(),

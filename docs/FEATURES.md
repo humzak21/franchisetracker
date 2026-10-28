@@ -122,6 +122,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 
 - `teams`: abbreviation, city, name, conference, division, colors, logo storage id, ESPN id. Seeded with all 32. Relocation or rename supported via `aliases[]` with year ranges.
 - `standings`: per season per team: w, l, t, divisionRank, seed, playoffResult, pointsFor, pointsAgainst. Imported from screenshot or derived for the user team.
+- `leagueTeamStats`: per season per team, every raw number of Madden's league team stats screen (offense, defense, conversions, red zone, turnovers tabs), keyed by `shared/stats/leagueTeamRegistry.ts`. Each captured tab merges into the team's row; percentages, offensive and return yards, yards allowed, points scored and allowed per game, point and yard differentials and turnover margins are derived, never stored, as is every per-game figure.
 - `leagueLeaders`: per season, per stat key, ranked rows (rank, playerId or raw name, teamId, value). Top 20 per category.
 - `teamSeasonStats`: per season per team per stat key: value, rank, attempts, note, from the team stats season screen or its manual entry. Replaces the "27.3 - T-3rd" strings. For the user team a row overrides the value derived from the games (`seasons.teamTotals`) and is the only source of league ranks.
 - `leagueGames`: every game in the league for a week (away, home, scores when played, game time), from the Madden schedule screen or typed in. The user team's game also updates `games`. Every other team's standings record (W-L-T, points) is worked out from these scores plus the user team's games after any score changes; a captured standings record is only replaced when the scores cover at least as many games.
@@ -148,7 +149,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 
 ### 4.6 Awards, draft, transactions, Hall of Fame
 
-- `awards`: season, weekKey or null, scope (league, conference, team), type (OPOW, DPOW, STPOW, ROW, MVP, OPOY, DPOY, OROY, DROY, CPOY, COY, SBMVP, ProBowl, AllPro1, AllPro2, BestK, BestP, BestKR, custom), conference, playerId or raw name plus teamId, statLine text, notes.
+- `awards`: season, weekKey or null, scope (league, conference, team), type (OPOW, DPOW, STPOW, ROW, MVP, OPOY, DPOY, OROY, DROY, CPOY, COY, SBMVP, ProBowl, AllPro1, AllPro2, BestK, BestP, BestKR, BestQB, BestRB, BestWR, BestTE, BestOL, BestDL, BestLB, BestDB, the counted FPOY, SackLeader, BallHawk, HeatSeeker, MostOPOW, MostDPOW, custom), conference, playerId or raw name plus teamId, statLine text, notes.
 - `draftPicks`: season, round, pick overall, pick in round, teamId, playerId, position, ovr at draft, college, notes, trade note, origin pick (acquired from), retrospective grade (computed later from OVR progression and starts).
 - `draftPickInventory`: future picks that changed hands (acquired by the user team, or traded away), with origin team and how; any pick without a row is the team's own.
 - `draftBoard`: prospects noted for a draft, in the owner's order.
@@ -238,6 +239,9 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 ### 5.5 Stats
 
 - Season stats by position group (QB, RB, WR/TE, OL snaps if captured, DL, LB, DB, K, P, returners) for the selected season, with the registry-driven columns, per-game averages, big-game counts that always show (QB: 300+, 3+ TD, 158.3s, 100+ rush; RB: 100+ rush, 100+ rec, 5+ rec, 2+ TD; WR/TE: 100+ rec, 5+ rec, 100+ rush, 2+ TD; DL, LB, DB: 2+ sacks, 2+ INT), and a season high per stat with a week link to that game. Single-game rates need volume (10 pass attempts, 5 carries, 3 catches, ...). Totals row.
+- Fantasy points with ESPN's default PPR scoring (`shared/stats/fantasy.ts`) close every stat table: season, league, career, game log, box score and compare. Defenders score only on return touchdowns, as in ESPN's default league.
+- League stats: every player's regular-season totals across the league by position group, filterable to our team or the rest of the league. Our players come from the game logs (with games settled as missing on the reconcile screen); everyone else from captured season stats screens (the season stats target, for any team or the league view), never from the partial lines in our box scores.
+- League team stats: every team's season, as totals or per game. An overview (points scored and allowed per game, point and yard differentials, turnover margin, third down and red zone rates), then one Madden tab at a time: Offense (total, offensive, passing and rushing yards, points per game, passing and rushing TDs, first downs, plus points scored, offensive TDs and return yards), Defense (yards, passing and rushing yards and points allowed, points allowed per game, sacks, fumble recoveries, interceptions), Conversions (third down, fourth down and two-point made, tried and rate), Red zone (trips, touchdowns, field goals, touchdown and scoring rates, for and against), Turnovers (margin, giveaways, interceptions thrown, fumbles lost, takeaways, interceptions, fumble recoveries). Captured from the NFL team stats screen, any tabs in one set, or typed in. Per game divides by the team's games from the standings, else the user team's, else 17; percentages and per-game figures stay as they are. Points scored is points per game times games, so it is off by a point or two where Madden rounded the average.
 - Player goals for the season with progress and a goal-hit marker. Leaders, team stats and season totals can be typed in.
 - Elite highlighting: configurable thresholds (defaults: 100+ catches, 1000 and 1500 yards, 10+ TDs, 5000+ passing yards, 40+ passing TDs, 70%+ completion, 10+ sacks, 5+ INTs, 100+ tackles). Two tiers of highlight.
 - League leaders: imported top 20 per category per season, with the user's players marked and a "where we rank" summary.
@@ -266,7 +270,9 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 ### 5.8 Awards
 
 - Weekly: AFC and NFC offensive, defensive and special teams players of the week, rookie of the week, with player, team and stat line. User-team winners highlighted. Imported per week.
-- Yearly: MVP, OPOY, DPOY, OROY, DROY, CPOY, Coach of the Year, Super Bowl MVP, All-Pro teams, Pro Bowl rosters, and custom additional awards. Imported from the awards screens.
+- Yearly: MVP, OPOY, DPOY, OROY, DROY, CPOY, Coach of the Year, Super Bowl MVP, best player per position (K, P, KR, QB, RB, WR, TE, OL, DL, LB, DB), All-Pro teams, Pro Bowl rosters, and custom additional awards. Imported from the awards screens.
+- Counted from the stats, live: Fantasy Player of the Year (most fantasy points), Sack Leader, Ball Hawk (most interceptions), Heat Seeker (most tackles, solo plus assisted), and the most offensive and defensive players of the week. Leaders come from league stats and the weekly awards; ties share the award.
+- Every yearly and counted award can be assigned by hand from the awards screen (a league leader or any player), replacing the import or the count; clearing it goes back to the count.
 - Team awards defined by the user (team MVP, rookie of the year) chosen from the roster.
 - Awards cabinet per player and per season.
 

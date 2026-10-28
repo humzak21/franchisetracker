@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import { LeadersBoard } from "./LeadersBoard";
+import { LeagueView } from "./LeagueView";
 import { ManualStatsLinks } from "./ManualStatsLinks";
 import { PlayerGoals } from "./PlayerGoals";
 import { RecordsBook } from "./RecordsBook";
@@ -14,10 +15,11 @@ import { SPLIT_OPTIONS, type Split } from "./split";
 import { StreaksBoard } from "./StreaksBoard";
 import { TeamRanks } from "./TeamRanks";
 
-type View = "season" | "team" | "records" | "leaders" | "streaks";
+type View = "season" | "league" | "team" | "records" | "leaders" | "streaks";
 
 const VIEWS: { value: View; label: string }[] = [
   { value: "season", label: "Season" },
+  { value: "league", label: "League" },
   { value: "team", label: "Team" },
   { value: "records", label: "Records" },
   { value: "leaders", label: "Leaders" },
@@ -25,14 +27,15 @@ const VIEWS: { value: View; label: string }[] = [
 ];
 
 /**
- * Stats (FEATURES.md 5.5): season stats, team ranks, the records book, all-time leaders and streaks.
- * Player numbers come from game logs; team ranks from the captured team stats screen.
+ * Stats (FEATURES.md 5.5): season stats, league stats, team ranks, the records book, all-time
+ * leaders and streaks. Player numbers come from game logs, the rest of the league's from captured
+ * season stats screens, team ranks from the captured team stats screen.
  */
 export function StatsScreen() {
   const { season } = useSeason();
   const [view, setView] = useLocalStorage<View>("ft.stats-view", "season");
   const [split, setSplit] = useLocalStorage<Split>("ft.stats-split", "regular");
-  const seasonal = view === "season" || view === "team";
+  const seasonal = view === "season" || view === "league" || view === "team";
 
   return (
     <Page
@@ -49,8 +52,15 @@ export function StatsScreen() {
     >
       <div className="@container space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Segmented aria-label="View" value={view} onChange={setView} options={VIEWS} />
-          {view !== "streaks" && view !== "team" && (
+          <Segmented
+            aria-label="View"
+            value={view}
+            onChange={setView}
+            options={VIEWS}
+            className="max-w-full scrollbar-none overflow-x-auto"
+          />
+          {/* League stats are regular-season totals: Madden's season stats screen has no playoff tab. */}
+          {view !== "streaks" && view !== "team" && view !== "league" && (
             <Segmented
               size="sm"
               aria-label="Split"
@@ -62,6 +72,7 @@ export function StatsScreen() {
         </div>
         {view === "season" && season && <PlayerGoals seasonId={season._id} />}
         {view === "season" && <SeasonStats split={split} />}
+        {view === "league" && <LeagueView />}
         {view === "team" && <TeamRanks />}
         {seasonal && season && <ManualStatsLinks seasonId={season._id} />}
         {view === "records" && <RecordsBook split={split} />}
