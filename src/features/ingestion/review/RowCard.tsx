@@ -66,7 +66,11 @@ export function RowCard({
   const [open, setOpen] = useState(false);
   const base = `rows.${row.id}`;
   // Empty optional fields wait under "more": a passer's card does not lead with blank carries.
-  const inView = (f: RowField) => f.primary && (f.required || (row.values[f.key] ?? null) !== null);
+  // Which ones had a value is read once, so a field typed into does not jump grids and lose focus.
+  const [filled] = useState(
+    () => new Set(Object.keys(row.values).filter((k) => (row.values[k] ?? null) !== null)),
+  );
+  const inView = (f: RowField) => f.primary && (f.required || filled.has(f.key));
   const primary = fields.filter(inView);
   const rest = fields.filter((f) => !inView(f));
   const flagged = (f: RowField) => flag(`${base}.values.${f.key}`) !== null;
