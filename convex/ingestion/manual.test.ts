@@ -150,6 +150,10 @@ describe("manual entry", () => {
     );
     await owner.mutation(api.ingestion.manualCommit.discard, { draftId });
     expect(await owner.query(api.ingestion.manual.get, { draftId })).toBeNull();
+    // A save already on its way when Discard landed has nothing left to write.
+    await expect(
+      owner.mutation(api.ingestion.manualCommit.saveDraft, { draftId, draft }),
+    ).resolves.toBeNull();
     await expect(owner.mutation(api.ingestion.manualCommit.discard, { draftId })).rejects.toThrow(
       /not found/,
     );

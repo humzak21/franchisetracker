@@ -16,12 +16,14 @@ function requireOpen(entry: Doc<"manualDrafts">, draft?: StoredDraft) {
   if (draft && draft.target !== entry.targetKey) throw invalid("The draft does not match this entry");
 }
 
-/** Saves edits as they are made, so an entry survives a reload or a switch of device. */
+/** Saves edits as they are made, so an entry survives a reload or a switch of device; a discarded entry is a no-op. */
 export const saveDraft = mutation({
   args: { draftId: v.id("manualDrafts"), draft: vDraft },
   returns: v.null(),
   handler: async (ctx, { draftId, draft }) => {
     await requireOwner(ctx);
+    // Discarded while an edit was on its way (the save timer fires after Discard): nothing to keep.
+    if (!(await ctx.db.get("manualDrafts", draftId))) return null;
     const { entry } = await requireManualDraft(ctx, draftId);
     requireOpen(entry, draft);
     await ctx.db.patch("manualDrafts", entry._id, { draft });
