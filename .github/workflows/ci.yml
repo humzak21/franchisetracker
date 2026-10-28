@@ -42,9 +42,11 @@ jobs:
 
   # One job per Playwright project, each with its own local backend. The official image ships
   # the browsers and their system libraries, so nothing is downloaded or apt-installed here
-  # (`playwright install --with-deps` could hang on apt for the whole job timeout).
+  # (`playwright install --with-deps` could hang on apt for the whole job timeout). The phone
+  # projects run WebKit, about twice as slow as desktop Chrome on these 2-vCPU runners, so each
+  # is split across two jobs: same tests, half the wait.
   e2e:
-    name: Playwright (${{ matrix.project }})
+    name: Playwright (${{ matrix.project }}${{ matrix.shard != '1/1' && format(' {0}', matrix.shard) || '' }})
     needs: playwright-version
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -54,7 +56,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [desktop, phone, phone-large]
+        include:
+          - { project: desktop, shard: 1/1 }
+          - { project: phone, shard: 1/2 }
+          - { project: phone, shard: 2/2 }
+          - { project: phone-large, shard: 1/2 }
+          - { project: phone-large, shard: 2/2 }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -67,12 +74,12 @@ jobs:
         with:
           path: ~/.cache/convex
           key: convex-backend-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - run: npx playwright test --project=${{ matrix.project }}
+      - run: npx playwright test --project=${{ matrix.project }} --shard=${{ matrix.shard }}
         env:
           CI: "true"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report-${{ matrix.project }}
+          name: playwright-report-${{ matrix.project }}-${{ strategy.job-index }}
           path: playwright-report/
           retention-days: 7
