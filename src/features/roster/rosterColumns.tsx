@@ -11,6 +11,7 @@ import { PlayerChip } from "@/components/player/PlayerChip";
 import { rosterEntryColumns } from "@/components/player/rosterEntryColumns";
 import type { TeamLike } from "@/components/team/TeamLogo";
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
+import { SelectBox } from "@/components/ui/SelectBox";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
@@ -83,16 +84,21 @@ function playerColumn(team: TeamLike): DataColumn<RosterRow> {
   };
 }
 
+/** Which players are picked for a batch move, and how to pick one. */
+export type RosterPick = { has: (id: Id<"players">) => boolean; toggle: (id: Id<"players">) => void };
+
 /**
  * Roster table columns. The identity column links to the player page; in edit mode every column
  * but the actions edits inline (the name and college on the player, the rest on this season's entry).
- * Acquired reads as the draft slot for players the user team drafted.
+ * Acquired reads as the draft slot for players the user team drafted. The last column picks the
+ * player for a batch move.
  */
 export function rosterColumns(
   team: TeamLike,
   year: number,
   userTeamId: Id<"teams"> | undefined,
   actionsFor: (row: RosterRow) => ActionMenuItem[],
+  pick: RosterPick,
 ): DataColumn<RosterRow>[] {
   const c = rosterEntryColumns<RosterRow>(
     (r) => r.entry,
@@ -142,6 +148,20 @@ export function rosterColumns(
               <Ellipsis />
             </Button>
           }
+        />
+      ),
+    },
+    {
+      id: "select",
+      header: "Pick",
+      title: "Pick for a batch move",
+      sortable: false,
+      value: () => null,
+      cell: (r) => (
+        <SelectBox
+          checked={pick.has(r.player._id)}
+          onChange={() => pick.toggle(r.player._id)}
+          label={`Pick ${r.player.displayName}`}
         />
       ),
     },

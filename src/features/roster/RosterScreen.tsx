@@ -1,18 +1,21 @@
-import { ArrowRightLeft, ScanFace, UserPlus, Users } from "lucide-react";
+import { ArrowLeftRight, ArrowRightLeft, ScanFace, UserMinus, UserPlus, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
 import { isPreFranchise } from "@shared/history/nflverse";
 import { POSITION_GROUPS, positionGroupOf } from "@shared/domain";
-import { rosterAverages } from "@shared/roster/averages";
+import { onRoster, rosterAverages } from "@shared/roster/averages";
 import { useFranchise } from "@/app/franchise";
+import { useMoves } from "@/app/moves/MovesProvider";
 import { useMoveActions } from "@/app/moves/useMoveActions";
 import { useSeason } from "@/app/season";
 import { EmptyState } from "@/components/data/EmptyState";
+import { SelectionBar } from "@/components/data/SelectionBar";
 import { JumpLinks } from "@/components/layout/JumpLinks";
 import { Page } from "@/components/layout/Page";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { useQuery } from "@/lib/convex/useQuery";
+import { useSelection } from "@/lib/hooks/useSelection";
 import { AddPlayerSheet } from "./AddPlayerSheet";
 import { FaceMatchSheet } from "./FaceMatchSheet";
 import { PositionTable } from "./PositionTable";
@@ -72,33 +75,87 @@ export function RosterScreen() {
   const active = useFranchise();
   const userTeamId = active?.franchise.userTeamId;
   const moveActions = useMoveActions();
+  const moves = useMoves();
+  const ids = useMemo(() => all.map((r) => r.player._id), [all]);
+  const selection = useSelection(ids);
+  const { has, toggle } = selection;
+  // Every pick is on this roster, so each starts from the user team's side.
+  // The sheet takes the picks over; the roster starts clean for the next batch.
+  const batch = (kind: "trade" | "other") => {
+    selection.clear();
+    moves.open({
+      kind,
+      prefill: {
+        players: all
+          .filter((r) => has(r.player._id))
+          .map((r) => ({
+            person: {
+              kind: "existing",
+              playerId: r.player._id,
+              name: r.player.displayName,
+              position: r.entry.position,
+            },
+            teamId: r.entry.teamId,
+          })),
+      },
+    });
+  };
   const columns = useMemo(
     () =>
-      rosterColumns(team, year, userTeamId, (r) => [
-        {
-          id: "move",
-          label: "Move team or status",
-          icon: ArrowRightLeft,
-          onSelect: () => setMoving(r),
-        },
-        ...moveActions({
-          playerId: r.player._id,
-          name: r.player.displayName,
-          position: r.entry.position,
-          teamId: r.entry.teamId,
-        }),
-      ]),
-    [team, year, userTeamId, moveActions],
+      rosterColumns(
+        team,
+        year,
+        userTeamId,
+        (r) => [
+          {
+            id: "move",
+            label: "Move team or status",
+            icon: ArrowRightLeft,
+            onSelect: () => setMoving(r),
+          },
+          ...moveActions({
+            playerId: r.player._id,
+            name: r.player.displayName,
+            position: r.entry.position,
+            teamId: r.entry.teamId,
+          }),
+        ],
+        { has, toggle },
+      ),
+    [team, year, userTeamId, moveActions, has, toggle],
   );
   const empty = data !== undefined && all.length === 0;
+  // Released and traded-away players stay listed for the season but are no longer on the roster.
+  const count = all.filter((r) => onRoster(r.entry.status)).length;
   const startYear = active?.franchise.startYear;
   const preFranchise =
     season !== undefined && startYear !== undefined && isPreFranchise(season.year, startYear);
+  const batchBar = moves.ready && !preFranchise && (
+    <SelectionBar
+      count={selection.picked.length}
+      total={all.length}
+      state={selection.state}
+      onToggleAll={selection.toggleAll}
+      onClear={selection.clear}
+    >
+      <Button size="sm" variant="outline" onClick={() => batch("trade")}>
+        <ArrowLeftRight /> Trade
+      </Button>
+      <Button size="sm" variant="destructive" onClick={() => batch("other")}>
+        <UserMinus /> Release
+      </Button>
+    </SelectionBar>
+  );
 
   return (
     <Page
       title="Roster"
-      eyebrow={season ? `${season.year} season` : undefined}
+      // The count leads: a phone's header cuts the end off, and the season switcher shows the year.
+      eyebrow={
+        season
+          ? `${data ? `${count} player${count === 1 ? "" : "s"} · ` : ""}${season.year} season`
+          : undefined
+      }
       season
       actions={
         <>
@@ -132,12 +189,20 @@ export function RosterScreen() {
             <Skeleton className="h-96 rounded-xl" />
           ) : (
             <>
-              <JumpLinks
-                links={groups.map(({ group, rows }) => ({
-                  id: positionAnchor(group),
-                  label: `${group} ${rows.length}`,
-                }))}
-              />
+              {/* Picks move the batch bar into the jump links' sticky band, in reach down a long roster. */}
+              {selection.picked.length === 0 && batchBar}
+              <div className="sticky top-14 z-20 -mx-4 space-y-2 bg-background/90 backdrop-blur @tablet:top-16 @tablet:-mx-6">
+                <JumpLinks
+                  className="static mx-0 border-b-0 @tablet:mx-0"
+                  links={groups.map(({ group, rows }) => ({
+                    id: positionAnchor(group),
+                    label: `${group} ${rows.length}`,
+                  }))}
+                />
+                {selection.picked.length > 0 && batchBar && (
+                  <div className="border-b border-border px-4 pb-2 @tablet:px-6">{batchBar}</div>
+                )}
+              </div>
               {groups.map(({ group, rows }) => (
                 <PositionTable
                   key={group}

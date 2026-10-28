@@ -11,11 +11,14 @@ async function openRoster(page: Page) {
   return receivers;
 }
 
-/** Opens a row's actions menu; on phones the button sits in the row's expansion card. */
+/**
+ * Opens a row's actions menu; on phones the button sits in the row's expansion card, opened by
+ * tapping a plain cell (the first links to the player, the last picks him).
+ */
 async function openActions(table: Locator, name: string) {
   const actions = table.getByRole("button", { name: `Actions for ${name}` });
   if (!(await actions.isVisible()))
-    await table.getByRole("row").filter({ hasText: name }).getByRole("cell").last().click();
+    await table.getByRole("row").filter({ hasText: name }).getByRole("cell").nth(1).click();
   await actions.click();
 }
 
@@ -80,6 +83,23 @@ test("a roster row starts an injury for that player", async ({ page }) => {
   await expectNoHorizontalOverflow(page);
   await page.keyboard.press("Escape");
   await expect(sheet).toBeHidden();
+});
+
+test("the roster counts its players and releases or trades a batch", async ({ page }) => {
+  const receivers = await openRoster(page);
+  await expect(page.getByText(new RegExp(`^\\d+ players · ${SAMPLE_YEAR} season$`))).toBeVisible();
+  await receivers.getByRole("checkbox", { name: "Pick Stefon Diggs" }).click();
+  await receivers.getByRole("checkbox", { name: "Pick DeMario Douglas" }).click();
+  const bar = page.getByRole("toolbar", { name: "Selection" });
+  await expect(bar.getByText("2 players selected")).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await bar.getByRole("button", { name: "Trade" }).click();
+  const trade = page.getByRole("dialog", { name: "Record a trade" });
+  await expect(trade.getByRole("button", { name: "Remove Stefon Diggs" })).toBeVisible();
+  await expect(trade.getByRole("button", { name: "Remove DeMario Douglas" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(trade).toBeHidden();
 });
 
 test("a player row links to the player page", async ({ page }) => {

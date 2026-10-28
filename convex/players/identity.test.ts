@@ -213,6 +213,7 @@ describe("players/directory and compare", () => {
     expect(rows.find((r) => r.displayName === "Drake Maye")).toMatchObject({
       seasons: 1,
       latestYear: SAMPLE_START_YEAR,
+      onRoster: true,
       ovr: 79,
     });
     const hits = await owner.query(api.players.directory.search, { text: "Maye" });

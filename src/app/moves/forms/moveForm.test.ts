@@ -6,6 +6,7 @@ import {
   defaultPhase,
   fromMovePerson,
   newTradeSides,
+  prefillOf,
   parseMillions,
   parseWhole,
   toPersonInput,
@@ -70,11 +71,34 @@ describe("move form", () => {
       { teamId: ne, players: [], picks: [] },
       { players: [], picks: [] },
     ]);
-    expect(newTradeSides(ne, { person, teamId: ne })[0].players).toEqual([person]);
-    expect(newTradeSides(ne, { person })[1]).toEqual({ teamId: undefined, players: [person], picks: [] });
-    expect(newTradeSides(ne, { person, teamId: phi })).toEqual([
+    expect(newTradeSides(ne, prefillOf(person, ne))[0].players).toEqual([person]);
+    expect(newTradeSides(ne, prefillOf(person))[1]).toEqual({
+      teamId: undefined,
+      players: [person],
+      picks: [],
+    });
+    expect(newTradeSides(ne, prefillOf(person, phi))).toEqual([
       { teamId: ne, players: [], picks: [] },
       { teamId: phi, players: [person], picks: [] },
+    ]);
+  });
+
+  test("a trade started from several players sorts them onto both sides", () => {
+    const ne = "ne" as Id<"teams">;
+    const phi = "phi" as Id<"teams">;
+    const mine = { kind: "existing", playerId: id, name: "A" } as const;
+    const theirs = { kind: "existing", playerId: "p2" as Id<"players">, name: "B" } as const;
+    const another = { kind: "existing", playerId: "p3" as Id<"players">, name: "C" } as const;
+    const prefill = {
+      players: [
+        { person: mine, teamId: ne },
+        { person: theirs, teamId: phi },
+        { person: another, teamId: phi },
+      ],
+    };
+    expect(newTradeSides(ne, prefill)).toEqual([
+      { teamId: ne, players: [mine], picks: [] },
+      { teamId: phi, players: [theirs, another], picks: [] },
     ]);
   });
 });
