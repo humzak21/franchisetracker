@@ -68,7 +68,8 @@ test("the records book, leaders and streaks", async ({ page }) => {
   await page.getByRole("radio", { name: "Career", exact: true }).click();
   const careers = page.getByRole("region", { name: "Passing yards records" });
   await expect(careers.getByText("Drake Maye")).toBeVisible({ timeout: 20_000 });
-  await expect(careers.getByText(/2024–2026/).first()).toBeVisible();
+  // Other tests may commit later games, so only the start of the span is fixed.
+  await expect(careers.getByText(/2024–20\d\d/).first()).toBeVisible();
 
   await page.getByRole("radio", { name: "Leaders", exact: true }).click();
   await expect(
