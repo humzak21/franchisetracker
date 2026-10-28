@@ -78,3 +78,33 @@ export function weeksWithoutBoxScore(
     .filter((g) => g.status === "played" && !g.hasBoxScore && weekPhase(g.weekKey) !== "preseason")
     .map((g) => g.weekKey);
 }
+
+/** How a screen labels a number `withMissingGames` took from the season screen. */
+export const MISSING_GAME_NOTE = "From the season stats screen: a game's box score is missing";
+
+/**
+ * Regular-season totals as screens show them: wherever a difference was settled as a missing
+ * game, the screen's number stands in for the logs'. Display only; stored totals, records and
+ * the reconciliation itself keep reading the logs. `overridden` lists the stats replaced.
+ */
+export function withMissingGames(
+  logged: { gamesPlayed: number; totals: Record<string, number> },
+  reported: Omit<ReportedTotals<unknown>, "playerId"> | undefined,
+): { gamesPlayed: number; totals: Record<string, number>; overridden: string[] } {
+  let { gamesPlayed } = logged;
+  const totals = { ...logged.totals };
+  const overridden: string[] = [];
+  for (const [stat, resolution] of Object.entries(reported?.resolved ?? {})) {
+    if (resolution !== "missing" || !reported) continue;
+    if (stat === GAMES_KEY) {
+      if (reported.gamesPlayed === undefined) continue;
+      gamesPlayed = reported.gamesPlayed;
+    } else {
+      const value = reported.stats[stat];
+      if (value === undefined) continue;
+      totals[stat] = value;
+    }
+    overridden.push(stat);
+  }
+  return { gamesPlayed, totals, overridden };
+}

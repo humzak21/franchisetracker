@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { withMissingGames } from "../../shared/ingestion/reconcile";
 import type { Doc, Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
@@ -19,11 +20,15 @@ const vRow = v.object({
   totals: vStatMap,
   thresholdCounts: vStatMap,
   bestGames: vSeasonHighs,
+  /** Stats showing the season screen's number because a game's box score is missing. */
+  overridden: v.array(v.string()),
 });
 
 /**
  * The user team's season stats for one split, one row per player. Totals derived from game logs
- * win over imported totals for the same player and season (FEATURES.md principle 1).
+ * win over imported totals for the same player and season (FEATURES.md principle 1); in the
+ * regular season, a stat settled as "a game is missing" on the reconcile screen shows the
+ * season screen's number instead.
  */
 export const bySplit = query({
   args: { seasonId: v.id("seasons"), split: vStatSplit },
@@ -52,9 +57,23 @@ export const bySplit = query({
       )
       .take(MAX_ROWS);
     const jerseys = new Map(entries.map((e) => [e.playerId, e.jersey ?? null]));
+    const reported =
+      split === "regular"
+        ? await ctx.db
+            .query("reportedSeasonStats")
+            .withIndex("by_seasonId_and_teamId", (q) =>
+              q.eq("seasonId", seasonId).eq("teamId", franchise.userTeamId),
+            )
+            .take(MAX_ROWS)
+        : [];
+    const reportedFor = new Map(reported.map((r) => [r.playerId, r]));
     return [...byPlayer.values()].flatMap((row) => {
       const player = players.get(row.playerId);
       if (!player) return [];
+      const shown =
+        row.source === "logs"
+          ? withMissingGames(row, reportedFor.get(row.playerId))
+          : { gamesPlayed: row.gamesPlayed, totals: row.totals, overridden: [] };
       return [
         {
           playerId: row.playerId,
@@ -63,8 +82,9 @@ export const bySplit = query({
           positionGroup: row.positionGroup ?? null,
           jersey: jerseys.get(row.playerId) ?? null,
           source: row.source,
-          gamesPlayed: row.gamesPlayed,
-          totals: row.totals,
+          gamesPlayed: shown.gamesPlayed,
+          totals: shown.totals,
+          overridden: shown.overridden,
           thresholdCounts: row.thresholdCounts ?? {},
           bestGames: row.bestGames ?? {},
         },

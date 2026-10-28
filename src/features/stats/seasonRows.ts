@@ -24,6 +24,8 @@ export type Row = {
   line: StatLine;
   counts: Record<string, number>;
   highs: Record<string, SeasonHigh<Id<"games">>>;
+  /** Stats showing the season screen's number (see `withMissingGames`). */
+  overridden: readonly string[];
 };
 
 /** Players in the group: by season position, or anyone with stats in the group's categories. */
@@ -44,6 +46,7 @@ export function groupRows(rows: readonly SeasonStatRow[], group: StatGroup): Row
       line: r.totals as StatLine,
       counts: r.thresholdCounts,
       highs: r.bestGames,
+      overridden: r.overridden,
     }));
 }
 
@@ -59,5 +62,6 @@ export function totalsRow(rows: readonly Row[]): Row {
     line: aggregateLines(rows.map((r) => r.line)),
     counts: {},
     highs: {},
+    overridden: [],
   };
 }

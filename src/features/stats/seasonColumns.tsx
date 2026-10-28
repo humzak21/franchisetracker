@@ -9,6 +9,7 @@ import {
   type StatKey,
   type ThresholdOverrides,
 } from "@shared/stats";
+import { MISSING_GAME_NOTE } from "@shared/ingestion/reconcile";
 import { statColumn, type DataColumn } from "@/components/data/DataTable";
 import { PlayerChip } from "@/components/player/PlayerChip";
 import type { TeamLike } from "@/components/team/TeamLogo";
@@ -57,6 +58,7 @@ export function seasonColumns(
     return statColumn<Row>(key, value, {
       group: STAT_CATEGORY_LABELS[STAT_REGISTRY[key].category],
       thresholds,
+      note: (r) => (r.overridden.includes(key) ? MISSING_GAME_NOTE : undefined),
     });
   });
   return {

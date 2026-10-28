@@ -9,10 +9,14 @@ import type { DataColumn, StatColumnOptions } from "./types";
 export function statColumn<T>(
   stat: StatKey,
   value: (row: T) => number | null | undefined,
-  options: StatColumnOptions & { thresholds?: ThresholdOverrides } = {},
+  options: StatColumnOptions & {
+    thresholds?: ThresholdOverrides;
+    /** A row's source note for this stat (see `StatCell`'s `note`). */
+    note?: (row: T) => string | undefined;
+  } = {},
 ): DataColumn<T> {
   const def = getStat(stat);
-  const { highlight = true, thresholds, ...rest } = options;
+  const { highlight = true, thresholds, note, ...rest } = options;
   return {
     id: stat,
     header: def.abbr,
@@ -22,7 +26,15 @@ export function statColumn<T>(
     sortDescFirst: def.better === "higher",
     searchable: false,
     value,
-    cell: (row) => <StatCell stat={stat} value={value(row)} highlight={highlight} thresholds={thresholds} />,
+    cell: (row) => (
+      <StatCell
+        stat={stat}
+        value={value(row)}
+        highlight={highlight}
+        thresholds={thresholds}
+        note={note?.(row)}
+      />
+    ),
     ...rest,
   };
 }
