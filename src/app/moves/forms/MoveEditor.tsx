@@ -22,7 +22,7 @@ export function MoveEditor({
   context: SheetContext;
 }) {
   if (!editing) return null;
-  const props = { context, open, onOpenChange };
+  const props = { context, open, onOpenChange, prefill: editing.prefill };
   if (editing.kind === "injury") return <InjurySheet key={session} {...props} injury={editing.injury} />;
   if (editing.kind === "trade") return <TradeSheet key={session} {...props} move={editing.move} />;
   return <MoveSheet key={session} {...props} kind={editing.kind} move={editing.move} />;

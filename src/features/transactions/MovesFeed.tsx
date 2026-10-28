@@ -4,7 +4,7 @@ import { TRANSACTION_LABELS, type TransactionType } from "@shared/domain";
 import { EmptyState } from "@/components/data/EmptyState";
 import { FilterBar } from "@/components/data/FilterBar";
 import { MoveCard } from "./MoveCard";
-import type { Move } from "./types";
+import type { Move } from "@/app/moves/types";
 
 /** The season's transaction log as a feed (FEATURES.md 5.10), filtered by type with chips. */
 export function MovesFeed({ moves, onEdit }: { moves: Move[]; onEdit: (move: Move) => void }) {

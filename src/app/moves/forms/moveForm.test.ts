@@ -5,6 +5,7 @@ import {
   contractInput,
   defaultPhase,
   fromMovePerson,
+  newTradeSides,
   parseMillions,
   parseWhole,
   toPersonInput,
@@ -59,5 +60,21 @@ describe("move form", () => {
     expect(draft).toEqual({ years: "3", total: "67.5", apy: "22.5", guaranteed: "" });
     expect(contractInput(draft)).toEqual({ years: 3, total: 67_500_000, apy: 22_500_000 });
     expect(contractInput({ years: "", total: "", apy: "", guaranteed: "" })).toBeUndefined();
+  });
+
+  test("a new trade puts the player started from on his own team's side", () => {
+    const ne = "ne" as Id<"teams">;
+    const phi = "phi" as Id<"teams">;
+    const person = { kind: "existing", playerId: id, name: "A" } as const;
+    expect(newTradeSides(ne)).toEqual([
+      { teamId: ne, players: [], picks: [] },
+      { players: [], picks: [] },
+    ]);
+    expect(newTradeSides(ne, { person, teamId: ne })[0].players).toEqual([person]);
+    expect(newTradeSides(ne, { person })[1]).toEqual({ teamId: undefined, players: [person], picks: [] });
+    expect(newTradeSides(ne, { person, teamId: phi })).toEqual([
+      { teamId: ne, players: [], picks: [] },
+      { teamId: phi, players: [person], picks: [] },
+    ]);
   });
 });

@@ -1,37 +1,37 @@
-import { ScanFace, UserPlus, Users } from "lucide-react";
+import { ArrowRightLeft, ScanFace, UserPlus, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
 import { isPreFranchise } from "@shared/history/nflverse";
-import { POSITION_GROUPS, SIDES, positionGroupOf, sideOf, type PositionGroup } from "@shared/domain";
+import { POSITION_GROUPS, positionGroupOf } from "@shared/domain";
 import { rosterAverages } from "@shared/roster/averages";
 import { useFranchise } from "@/app/franchise";
+import { useMoveActions } from "@/app/moves/useMoveActions";
 import { useSeason } from "@/app/season";
 import { EmptyState } from "@/components/data/EmptyState";
-import { FilterBar, type FilterOption } from "@/components/data/FilterBar";
+import { JumpLinks } from "@/components/layout/JumpLinks";
 import { Page } from "@/components/layout/Page";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/misc";
 import { useQuery } from "@/lib/convex/useQuery";
 import { AddPlayerSheet } from "./AddPlayerSheet";
 import { FaceMatchSheet } from "./FaceMatchSheet";
+import { PositionTable } from "./PositionTable";
 import { RosterAverages } from "./RosterAverages";
 import { RosterMoveSheet } from "./RosterMoveSheet";
-import { byDepthOrder, rosterAge, rosterColumns, type RosterRow } from "./rosterColumns";
-import { SideTable } from "./SideTable";
+import { byDepthOrder, positionAnchor, rosterAge, rosterColumns, type RosterRow } from "./rosterColumns";
 import { useRosterEdit } from "./useRosterEdit";
-
-type GroupFilter = PositionGroup | "all";
 
 /** Neutral colors for the skeleton rows shown before the roster loads. */
 const LOADING_TEAM = { abbr: "", primaryColor: "#334155", secondaryColor: "#64748b" };
 
 /**
- * Roster (FEATURES.md 5.3): averages for the team and each side, then offense, defense and special
- * teams in their own tables, each editable inline. Players are added, moved and matched to faces here.
+ * Roster (FEATURES.md 5.3): averages for the team and each side, then every position group in its
+ * own table, one after another with jump links, each editable inline. Players are added, moved,
+ * matched to faces and traded, signed or put on IR from here.
  */
 export function RosterScreen() {
   const { season } = useSeason();
   const data = useQuery(api.players.roster.bySeason, season ? { seasonId: season._id } : "skip");
-  const [group, setGroup] = useState<GroupFilter>("all");
   const [moving, setMoving] = useState<RosterRow | null>(null);
   const [adding, setAdding] = useState(false);
   const [facesOpen, setFacesOpen] = useState(false);
@@ -39,9 +39,13 @@ export function RosterScreen() {
   const year = season?.year ?? 0;
 
   const all = useMemo(() => [...(data?.entries ?? [])].sort(byDepthOrder), [data]);
-  const rows = useMemo(
-    () => (group === "all" ? all : all.filter((r) => positionGroupOf(r.entry.position) === group)),
-    [all, group],
+  const groups = useMemo(
+    () =>
+      POSITION_GROUPS.map((group) => ({
+        group,
+        rows: all.filter((r) => positionGroupOf(r.entry.position) === group),
+      })).filter((g) => g.rows.length > 0),
+    [all],
   );
   const averages = useMemo(
     () =>
@@ -57,15 +61,6 @@ export function RosterScreen() {
       ),
     [data, all, year],
   );
-  const groupOptions: FilterOption<GroupFilter>[] = [
-    { value: "all", label: "All positions", count: all.length },
-    ...POSITION_GROUPS.filter((g) => all.some((r) => positionGroupOf(r.entry.position) === g)).map((g) => ({
-      value: g,
-      label: g,
-      count: all.filter((r) => positionGroupOf(r.entry.position) === g).length,
-    })),
-  ];
-
   const unmatched = useMemo(
     () =>
       all
@@ -74,9 +69,29 @@ export function RosterScreen() {
     [all],
   );
   const team = data?.team ?? LOADING_TEAM;
-  const columns = useMemo(() => rosterColumns(team, year, setMoving), [team, year]);
+  const active = useFranchise();
+  const userTeamId = active?.franchise.userTeamId;
+  const moveActions = useMoveActions();
+  const columns = useMemo(
+    () =>
+      rosterColumns(team, year, userTeamId, (r) => [
+        {
+          id: "move",
+          label: "Move team or status",
+          icon: ArrowRightLeft,
+          onSelect: () => setMoving(r),
+        },
+        ...moveActions({
+          playerId: r.player._id,
+          name: r.player.displayName,
+          position: r.entry.position,
+          teamId: r.entry.teamId,
+        }),
+      ]),
+    [team, year, userTeamId, moveActions],
+  );
   const empty = data !== undefined && all.length === 0;
-  const startYear = useFranchise()?.franchise.startYear;
+  const startYear = active?.franchise.startYear;
   const preFranchise =
     season !== undefined && startYear !== undefined && isPreFranchise(season.year, startYear);
 
@@ -113,24 +128,28 @@ export function RosterScreen() {
       ) : (
         <div className="space-y-8">
           <RosterAverages averages={averages} />
-          <div className="@container">
-            <FilterBar label="Position" value={group} onChange={setGroup} options={groupOptions} />
-          </div>
-          {SIDES.map((side) => {
-            const sideRows = rows.filter((r) => sideOf(r.entry.position) === side);
-            // A position filter hides the sides it leaves empty.
-            if (data && group !== "all" && sideRows.length === 0) return null;
-            return (
-              <SideTable
-                key={side}
-                side={side}
-                year={season?.year}
-                rows={data ? sideRows : undefined}
-                columns={columns}
-                onEdit={onEdit}
+          {!data || !season ? (
+            <Skeleton className="h-96 rounded-xl" />
+          ) : (
+            <>
+              <JumpLinks
+                links={groups.map(({ group, rows }) => ({
+                  id: positionAnchor(group),
+                  label: `${group} ${rows.length}`,
+                }))}
               />
-            );
-          })}
+              {groups.map(({ group, rows }) => (
+                <PositionTable
+                  key={group}
+                  group={group}
+                  year={season.year}
+                  rows={rows}
+                  columns={columns}
+                  onEdit={onEdit}
+                />
+              ))}
+            </>
+          )}
         </div>
       )}
       <RosterMoveSheet row={moving} onClose={() => setMoving(null)} />

@@ -29,7 +29,7 @@ import {
   PLAYERS,
   TEAM_STATS_2025,
 } from "./fixtures";
-import { SegmentedDemo, SheetDemo, TeamPickerDemo } from "./demos";
+import { ActionMenuDemo, SegmentedDemo, SheetDemo, TeamPickerDemo } from "./demos";
 import { GOAL_SPECIMENS } from "./goalSpecimens";
 import { HISTORY_SPECIMENS } from "./historySpecimens";
 import { INGESTION_SPECIMENS } from "./ingestionSpecimens";
@@ -268,7 +268,7 @@ export const SPECIMENS: Specimen[] = [
   },
   {
     id: "controls",
-    name: "Button · Badge · Segmented · BottomSheet",
+    name: "Button · Badge · ActionMenu · Segmented · BottomSheet",
     render: () => (
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2">
@@ -277,6 +277,7 @@ export const SPECIMENS: Specimen[] = [
           <Button variant="outline">Outline</Button>
           <Button variant="ghost">Ghost</Button>
           <Button variant="destructive">Reject</Button>
+          <ActionMenuDemo />
         </div>
         <div className="flex flex-wrap gap-1.5">
           {(["neutral", "accent", "solid", "win", "loss", "tie", "ot", "warn"] as const).map((tone) => (

@@ -2,28 +2,51 @@ import { Link } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
 import { useMutation } from "convex/react";
 import { Pencil } from "lucide-react";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { api } from "@convex/_generated/api";
+import { DEV_TRAIT_LABELS, positionColor, type DevTrait } from "@shared/domain";
 import { NotesEditor } from "@/components/forms/NotesEditor";
 import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { PlayerChip } from "@/components/player/PlayerChip";
 import { PositionBadge } from "@/components/player/PositionBadge";
 import { TeamChip } from "@/components/team/TeamChip";
 import { Button } from "@/components/ui/button";
+import { Badge, type BadgeProps } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { GradeBadge } from "./GradeBadge";
 
 export type DraftPick = FunctionReturnType<typeof api.draft.draft.bySeason>["picks"][number];
 
-/** One pick: slot, team, player, position and college; the user team's picks carry a grade and notes. */
+const TRAIT_TONE: Record<DevTrait, BadgeProps["tone"]> = {
+  hidden: "neutral",
+  normal: "neutral",
+  star: "accent",
+  superstar: "accent",
+  xfactor: "solid",
+};
+
+/**
+ * One pick, tinted in his position's color: slot, team, player, position, his OVR and dev trait
+ * that season (the OVR at the draft until a roster has him) and college. The user team's picks
+ * are ringed and carry a grade and notes.
+ */
 export function PickCard({ pick }: { pick: DraftPick }) {
   const update = useMutation(api.draft.draft.updatePick);
   const [editing, setEditing] = useState(false);
+  const position = pick.position ?? pick.player?.position;
+  const ovr = pick.rating?.ovr ?? pick.ovrAtDraft;
+  const trait = pick.rating?.devTrait;
+  // The position's token as a local variable, so one set of classes tints every position.
+  const tint = position
+    ? ({ "--pick-pos": `var(--pos-${positionColor(position)})` } as CSSProperties)
+    : undefined;
   return (
     <article
+      style={tint}
       className={cn(
         "rounded-xl border bg-surface p-3",
-        pick.isUser ? "border-primary/60 bg-elite-1" : "border-border",
+        tint ? "border-(--pick-pos)/40 bg-(--pick-pos)/10" : "border-border",
+        pick.isUser && "ring-2 ring-primary/70",
       )}
     >
       <div className="flex items-center gap-2">
@@ -61,11 +84,14 @@ export function PickCard({ pick }: { pick: DraftPick }) {
             )}
           </span>
         )}
-        {pick.position && !pick.player && <PositionBadge position={pick.position} />}
-        {pick.ovrAtDraft !== undefined && (
-          <span className="num text-xs text-muted-foreground">{pick.ovrAtDraft} OVR</span>
-        )}
       </div>
+      {(position || ovr !== undefined || trait) && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {position && <PositionBadge position={position} />}
+          {ovr !== undefined && <span className="num text-sm font-semibold">{ovr} OVR</span>}
+          {trait && <Badge tone={TRAIT_TONE[trait]}>{DEV_TRAIT_LABELS[trait]}</Badge>}
+        </div>
+      )}
       {pick.notes && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{pick.notes}</p>}
       {pick.isUser && (
         <BottomSheet open={editing} onOpenChange={setEditing} title={`Pick ${pick.overall}: ${pick.name}`}>

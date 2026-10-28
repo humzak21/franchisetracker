@@ -1,8 +1,10 @@
+import { ArrowLeftRight, Ellipsis, HeartPulse, ListPlus } from "lucide-react";
 import { useState } from "react";
 import { NFL_TEAMS } from "@shared/domain";
 import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { PlayerChip } from "@/components/player/PlayerChip";
 import { TeamPicker } from "@/components/team/TeamPicker";
+import { ActionMenu } from "@/components/ui/ActionMenu";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
 import { PLAYERS } from "./fixtures";
@@ -60,4 +62,33 @@ export function SegmentedDemo() {
 export function TeamPickerDemo() {
   const [abbr, setAbbr] = useState<string | null>("NE");
   return <TeamPicker teams={NFL_TEAMS} value={abbr} onChange={setAbbr} />;
+}
+
+/** A row's actions menu; choosing an item shows what was picked. */
+export function ActionMenuDemo() {
+  const [picked, setPicked] = useState<string | null>(null);
+  const item = (id: string, label: string, icon: typeof ListPlus) => ({
+    id,
+    label,
+    icon,
+    onSelect: () => setPicked(label),
+  });
+  return (
+    <span className="inline-flex items-center gap-2">
+      <ActionMenu
+        label="Actions for Drake Maye"
+        items={[
+          item("trade", "Record trade", ArrowLeftRight),
+          item("other", "Other move", ListPlus),
+          item("injury", "Log injury", HeartPulse),
+        ]}
+        trigger={
+          <Button size="icon" variant="ghost" aria-label="Actions for Drake Maye">
+            <Ellipsis />
+          </Button>
+        }
+      />
+      {picked && <span className="text-sm text-muted-foreground">{picked}</span>}
+    </span>
+  );
 }
