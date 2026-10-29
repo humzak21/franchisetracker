@@ -62,6 +62,7 @@ import type * as http from "../http.js";
 import type * as ingestion_candidates from "../ingestion/candidates.js";
 import type * as ingestion_commitBoxScore from "../ingestion/commitBoxScore.js";
 import type * as ingestion_commitDraft from "../ingestion/commitDraft.js";
+import type * as ingestion_commitDraftResults from "../ingestion/commitDraftResults.js";
 import type * as ingestion_commitGame from "../ingestion/commitGame.js";
 import type * as ingestion_commitPeopleRows from "../ingestion/commitPeopleRows.js";
 import type * as ingestion_commitRecordRows from "../ingestion/commitRecordRows.js";
@@ -255,6 +256,7 @@ declare const fullApi: ApiFromModules<{
   "ingestion/candidates": typeof ingestion_candidates;
   "ingestion/commitBoxScore": typeof ingestion_commitBoxScore;
   "ingestion/commitDraft": typeof ingestion_commitDraft;
+  "ingestion/commitDraftResults": typeof ingestion_commitDraftResults;
   "ingestion/commitGame": typeof ingestion_commitGame;
   "ingestion/commitPeopleRows": typeof ingestion_commitPeopleRows;
   "ingestion/commitRecordRows": typeof ingestion_commitRecordRows;

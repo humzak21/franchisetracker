@@ -40,7 +40,7 @@ test("a yearly award typed in by hand commits and shows on the awards screen", a
   const sheet = page.getByRole("dialog", { name: "Add a row" });
   await sheet.getByLabel("Player name").fill("Drake Maye");
   await sheet
-    .getByRole("list", { name: "Matching players" })
+    .getByRole("region", { name: "Matching players" })
     .getByRole("button", { name: /Drake Maye/ })
     .click();
   await page.getByLabel("Award", { exact: true }).selectOption("MVP");
@@ -69,4 +69,25 @@ test("the draft screen links to manual entry with the target preset", async ({ p
   await expect(page).toHaveURL(/\/inbox\/manual\?.*target=draft_results/);
   await expect(page.getByLabel("Screen", { exact: true })).toHaveValue("draft_results");
   await expectNoHorizontalOverflow(page);
+});
+
+test("a draft pick works out its overall number and takes a typed name for a new player", async ({
+  page,
+}) => {
+  await start(page, "draft_results");
+  await page.getByRole("button", { name: "Add row" }).click();
+  const add = page.getByRole("dialog", { name: "Add a row" });
+  await add.getByLabel("Player name").fill("M.Hawkins");
+  await add.getByRole("button", { name: "Add “M.Hawkins” as a new player" }).click();
+  await page.getByLabel("Round", { exact: true }).fill("4");
+  await page.getByLabel("Pick", { exact: true }).fill("32");
+  await expect(page.getByText("No. 128 overall")).toBeVisible();
+
+  await page.getByRole("button", { name: /^M\.Hawkins/ }).click();
+  const picker = page.getByRole("dialog", { name: "M.Hawkins" });
+  await picker.getByLabel("Search players").fill("Marcellous Hawkins");
+  await picker.getByRole("button", { name: "Add “Marcellous Hawkins” as a new player" }).click();
+  await expect(page.getByRole("button", { name: "Accept Marcellous Hawkins" })).toBeVisible();
+  await page.getByRole("button", { name: "Discard" }).click();
+  await page.getByRole("button", { name: "Confirm discard" }).click();
 });

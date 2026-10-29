@@ -201,7 +201,9 @@ function namesOf(draft: Draft, userTeamAbbr: string): { names: string[]; teams: 
       ),
     };
   }
-  if (!isRowDraft(draft) || !rowTarget(draft.target).spec.player) return null;
+  // A draft class is mostly created players, so a roster namesake is a false match; review picks.
+  const spec = isRowDraft(draft) ? rowTarget(draft.target).spec : null;
+  if (!isRowDraft(draft) || !spec?.player || spec.newPlayers) return null;
   const metaTeam = typeof draft.meta.team === "string" ? draft.meta.team : null;
   return {
     names: draft.rows.flatMap((r) => (r.name ? [r.name] : [])),

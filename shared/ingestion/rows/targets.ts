@@ -149,11 +149,15 @@ export const ROW_TARGETS = {
   draft_results: rows({
     label: "Draft results",
     goesTo: "Draft",
-    description: "Picks from the draft: round, overall pick, team, player, position, college",
+    description: "Drafted players: round, pick, team, player, position, OVR, age and college",
     scope: "season",
     multiImage: true,
-    instructions:
-      "This is a Madden draft results screen. Return one row per pick with the round, overall pick number, team, player, position, college and OVR where shown.",
+    instructions: [
+      "This is a Madden draft screen: a list of drafted players (one team's picks or the whole draft) with columns such as NAME, POS, ROUND, PICK and OVR.",
+      "Return one row per pick in the list. PICK is the pick within the round (1 to 32); return it as `pick_in_round`.",
+      'The list shortens names ("M.Hawkins"). Above the list, the highlighted (outlined) row\'s player is shown in large letters with AGE and COLLEGE: for that row return the full first and last name from there ("Marcellous Hawkins") with the age and college. Other rows keep the name as the list prints it, with age and college null unless the screen shows them.',
+      "When the list is one team's picks (a team filter such as \"PATRIOTS\" above it), that team is every row's team.",
+    ].join(" "),
     spec: draftResultsSpec,
   }),
   roster_page: rows({

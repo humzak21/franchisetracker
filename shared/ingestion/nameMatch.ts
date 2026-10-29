@@ -29,6 +29,17 @@ export function nameTokens(name: string): string[] {
     .filter((t) => t.length > 0 && !SUFFIXES.has(t));
 }
 
+/** "M.Hawkins" or "M. Hawkins": a first initial, the way list screens print names. */
+export function isShortened(name: string): boolean {
+  return /^\s*\p{L}\.\s*\S/u.test(name);
+}
+
+/** The fuller of two printings of one name: a list's "M.Hawkins" gives way to "Marcellous Hawkins". */
+export function fullerName(kept: string | null, other: string | null): string | null {
+  if (!kept || !other) return kept ?? other;
+  return isShortened(kept) && !isShortened(other) ? other : kept;
+}
+
 /** Jaro-Winkler similarity in [0, 1]; tolerant of the one-letter misreads OCR makes. */
 export function similarity(a: string, b: string): number {
   if (a === b) return 1;

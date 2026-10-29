@@ -237,13 +237,33 @@ describe("row targets", () => {
       ["OPOW", "w6", "D. Maye"],
     ]);
 
-    await commit("draft_results");
+    const drafted = await commit("draft_results");
+    // A draft class is not matched to the rosters: every pick starts as a new player.
+    expect(drafted.draft.rows.map((r) => r.match?.status)).toEqual(["new", "new"]);
     const rookie = (await playerNamed(t, fid, "Rookie Corner"))!;
     expect(rookie).toMatchObject({
       position: "CB",
       college: "Georgia",
       draft: { year: SAMPLE_START_YEAR, round: 1, pick: 28 },
     });
+    const picks = await t.run((ctx) =>
+      ctx.db
+        .query("draftPicks")
+        .withIndex("by_seasonId_and_overall", (q) => q.eq("seasonId", seasonId))
+        .collect(),
+    );
+    // The overall pick is worked out from the round and the pick in it.
+    expect(picks.map((p) => [p.round, p.pickInRound, p.overall, p.rawName])).toEqual([
+      [1, 28, 28, "Rookie Corner"],
+      [2, 28, 60, "R.Tackle"],
+    ]);
+    const rookieEntry = await t.run((ctx) =>
+      ctx.db
+        .query("rosterEntries")
+        .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", rookie._id).eq("seasonId", seasonId))
+        .first(),
+    );
+    expect(rookieEntry).toMatchObject({ age: 21, ovr: 72 });
 
     await commit("roster_page");
     const maye = (await playerNamed(t, fid, "Drake Maye"))!;

@@ -2,6 +2,7 @@
 import { describe, expect, test } from "vitest";
 import { mergeFor, normalizeFor, validateDraft, type RowTargetKey } from "../targets";
 import type { RowTargetDraft } from "../types";
+import { draftResultsSpec, rowOverallPick } from "./peopleSpecs";
 
 const sure = { confidence: 0.95, unclear_fields: [] };
 const read = (target: RowTargetKey, raw: unknown) => normalizeFor(target, raw).draft as RowTargetDraft;
@@ -49,18 +50,48 @@ describe("awards", () => {
 });
 
 describe("the draft", () => {
-  test("an accepted pick needs a team, and picks merge by overall number across screenshots", () => {
-    const shot = (rows: unknown[]) => normalizeFor("draft_results", { rows }) as never;
+  const shot = (rows: unknown[]) => normalizeFor("draft_results", { rows }) as never;
+  const pick = (round: number, pickInRound: number, name: string, extra: object = {}) => ({
+    round,
+    pick_in_round: pickInRound,
+    name,
+    position: "HB",
+    ...sure,
+    ...extra,
+  });
+
+  test("picks merge by the overall pick worked out from round and pick, and need a team", () => {
     const merged = mergeFor("draft_results", [
-      shot([{ round: 1, overall: 12, name: "Will Campbell", team: "NE", position: "LT", ...sure }]),
+      shot([pick(1, 12, "Will Campbell", { team: "NE" })]),
+      shot([pick(1, 12, "Will Campbell", { team: "NE" }), pick(2, 6, "TreVeyon Henderson")]),
+    ]);
+    const draft = merged.draft as RowTargetDraft;
+    expect(draft.rows.map((r) => rowOverallPick(r))).toEqual([12, 38]);
+    expect(draft.rows.map((r) => draftResultsSpec.caption?.(r))).toEqual([
+      "No. 12 overall",
+      "No. 38 overall",
+    ]);
+    expect(messages(draft)).toContain("TreVeyon Henderson: pick the team");
+  });
+
+  test("the screen with a pick highlighted gives his full name, age and college", () => {
+    const list = [pick(1, 7, "C.Coleman", { team: "NE" }), pick(4, 32, "M.Hawkins", { team: "NE" })];
+    const merged = mergeFor("draft_results", [
+      shot(list),
       shot([
-        { round: 1, overall: 12, name: "Will Campbell", team: "NE", position: "LT", ...sure },
-        { round: 2, overall: 38, name: "TreVeyon Henderson", position: "HB", ...sure },
+        list[0],
+        pick(4, 32, "Marcellous Hawkins", { team: "NE", age: 22, college: "Virginia Tech", ovr: 68 }),
       ]),
     ]);
     const draft = merged.draft as RowTargetDraft;
-    expect(draft.rows.map((r) => r.values.overall)).toEqual([12, 38]);
-    expect(messages(draft)).toContain("Pick 38: pick the team");
+    expect(draft.rows.map((r) => r.name)).toEqual(["C.Coleman", "Marcellous Hawkins"]);
+    expect(draft.rows[1]!.values).toMatchObject({ age: 22, college: "Virginia Tech", ovr: 68 });
+    expect(draft.rows.every((r) => r.match?.status === "new")).toBe(true);
+  });
+
+  test("a pick that is no draft slot cannot commit", () => {
+    const draft = read("draft_results", { rows: [pick(2, 90, "Off Slot", { team: "NE" })] });
+    expect(messages(draft)).toContain("Off Slot: round 2, pick 90 is not a draft slot");
   });
 });
 

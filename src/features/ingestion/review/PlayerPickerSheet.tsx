@@ -1,13 +1,14 @@
-import { Check, Search, UserPlus } from "lucide-react";
-import { useState, type ReactNode } from "react";
-import { api } from "@convex/_generated/api";
+import { Search, UserPlus } from "lucide-react";
+import { useState } from "react";
 import type { Id } from "@convex/_generated/dataModel";
+import { normalizePosition } from "@shared/domain";
 import type { PlayerMatch } from "@shared/ingestion/types";
 import { BottomSheet } from "@/components/overlay/BottomSheet";
-import { PositionBadge } from "@/components/player/PositionBadge";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/cn";
-import { useQuery } from "@/lib/convex/useQuery";
+import type { PlayerChoice } from "./draftEdit";
+import { PickerGroup } from "./PickerGroup";
+import { PickerOption } from "./PickerOption";
+import { usePlayerSearch, useProspectSearch } from "./playerSearch";
 
 type PlayerPickerSheetProps = {
   open: boolean;
@@ -15,103 +16,126 @@ type PlayerPickerSheetProps = {
   printedName: string;
   match: PlayerMatch<Id<"players">>;
   value: Id<"players"> | null;
-  /** The chosen player and their name, or null for a new player. */
-  onChange: (player: { _id: Id<"players">; name: string } | null) => void;
+  /** The row is a draft pick: search college football too, since he may be a real prospect. */
+  prospects?: boolean;
+  onChange: (choice: PlayerChoice) => void;
 };
 
-/** Who a printed name is: the rosters' best guesses, a search of every player, or a new player. */
+/**
+ * Who a printed name is: the rosters' best guesses, a search of every player (and of college
+ * football for a draft pick), or a new player named as printed or as typed.
+ */
 export function PlayerPickerSheet({
   open,
   onOpenChange,
   printedName,
   match,
   value,
+  prospects = false,
   onChange,
 }: PlayerPickerSheetProps) {
   const [text, setText] = useState("");
-  const results = useQuery(api.players.search.byName, open && text.trim().length >= 2 ? { text } : "skip");
-  const choose = (player: { _id: Id<"players">; name: string } | null) => {
-    onChange(player);
+  const typed = text.trim();
+  const franchise = usePlayerSearch(text, open);
+  const college = useProspectSearch(text, open && prospects);
+  const choose = (choice: PlayerChoice) => {
+    onChange(choice);
     onOpenChange(false);
   };
-
-  const option = (key: string, selected: boolean, onClick: () => void, children: ReactNode) => (
-    <li key={key}>
-      <button
-        type="button"
-        onClick={onClick}
-        className={cn(
-          "flex min-h-12 w-full items-center gap-3 rounded-lg px-3 text-left hover:bg-surface-2",
-          selected && "bg-elite-1",
-        )}
-      >
-        {children}
-        {selected && <Check className="ml-auto size-4 text-primary" />}
-      </button>
-    </li>
-  );
 
   return (
     <BottomSheet
       open={open}
       onOpenChange={onOpenChange}
+      textEntry
       title={printedName}
       description="Which player is this? Your choice is remembered for this team and season."
     >
       <div className="space-y-4">
-        {match.candidates.length > 0 && (
-          <ul aria-label="Likely players" className="space-y-1">
-            {match.candidates.map((c) =>
-              option(
-                c.playerId,
-                value === c.playerId,
-                () => choose({ _id: c.playerId, name: c.name }),
-                <>
-                  <span className="font-medium">{c.name}</span>
-                  <span className="num text-xs text-muted-foreground">
-                    {Math.round(c.score * 100)}% match
-                  </span>
-                </>,
-              ),
-            )}
-          </ul>
-        )}
-        <label className="relative block">
-          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-subtle-foreground" />
+        <label className="sticky top-0 z-10 block bg-surface pb-1">
+          <Search className="absolute top-[calc(50%-2px)] left-3 size-4 -translate-y-1/2 text-subtle-foreground" />
           <Input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Search every player"
+            placeholder={prospects ? "Search players, or type his full name" : "Search every player"}
             className="pl-9"
             aria-label="Search players"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
           />
         </label>
-        {results && results.length > 0 && (
-          <ul aria-label="Search results" className="space-y-1">
-            {results.map((p) =>
-              option(
-                p._id,
-                value === p._id,
-                () => choose({ _id: p._id, name: p.displayName }),
-                <>
-                  <span className="font-medium">{p.displayName}</span>
-                  <PositionBadge position={p.position} />
-                </>,
-              ),
-            )}
-          </ul>
-        )}
-        <ul>
-          {option(
-            "new",
-            value === null,
-            () => choose(null),
-            <>
-              <UserPlus className="size-4 text-primary" />
-              <span className="font-medium">Add as a new player</span>
-            </>,
+        <ul aria-label="New player" className="space-y-1">
+          {typed.length >= 2 && typed !== printedName && (
+            <PickerOption
+              icon={<UserPlus className="size-4 shrink-0 text-primary" />}
+              label={`Add “${typed}” as a new player`}
+              onClick={() => choose({ kind: "new", name: typed })}
+            />
           )}
+          <PickerOption
+            icon={<UserPlus className="size-4 shrink-0 text-primary" />}
+            label={typed ? `Keep “${printedName}” as a new player` : "Add as a new player"}
+            selected={value === null}
+            onClick={() => choose({ kind: "new", name: printedName })}
+          />
         </ul>
+        {match.candidates.length > 0 && (
+          <PickerGroup label="Likely players" searching={false} empty="" count={match.candidates.length}>
+            {match.candidates.map((c) => (
+              <PickerOption
+                key={c.playerId}
+                label={c.name}
+                detail={`${Math.round(c.score * 100)}% match`}
+                selected={value === c.playerId}
+                onClick={() => choose({ kind: "player", _id: c.playerId, name: c.name })}
+              />
+            ))}
+          </PickerGroup>
+        )}
+        {typed.length >= 2 && (
+          <PickerGroup
+            label="In this franchise"
+            searching={franchise.searching}
+            empty="No players by that name"
+            count={franchise.players.length}
+          >
+            {franchise.players.map((p) => (
+              <PickerOption
+                key={p._id}
+                label={p.displayName}
+                position={p.position}
+                detail={p.college}
+                selected={value === p._id}
+                onClick={() => choose({ kind: "player", _id: p._id, name: p.displayName })}
+              />
+            ))}
+          </PickerGroup>
+        )}
+        {prospects && typed.length >= 3 && (
+          <PickerGroup
+            label="College football"
+            searching={college.searching}
+            empty={college.failed ? "ESPN did not answer; try again" : "No college players by that name"}
+            count={college.prospects.length}
+          >
+            {college.prospects.map((c) => {
+              // ESPN's "RB" is Madden's "HB": show and keep the app's own position.
+              const position = c.position ? normalizePosition(c.position) : null;
+              return (
+                <PickerOption
+                  key={c.espnId}
+                  label={c.name}
+                  position={position ?? c.position}
+                  detail={[c.college, c.classYear].filter(Boolean).join(" · ") || null}
+                  onClick={() =>
+                    choose({ kind: "prospect", espnId: c.espnId, name: c.name, position, college: c.college })
+                  }
+                />
+              );
+            })}
+          </PickerGroup>
+        )}
       </div>
     </BottomSheet>
   );

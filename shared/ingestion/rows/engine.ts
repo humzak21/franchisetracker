@@ -5,7 +5,7 @@
 import { normalizePosition } from "../../domain/positions";
 import { resolveTeamAbbr } from "../../domain/teams";
 import { extractionField } from "../../stats/registry";
-import { nameTokens } from "../nameMatch";
+import { fullerName, nameTokens } from "../nameMatch";
 import {
   CHECK_BELOW,
   clamp01,
@@ -169,6 +169,7 @@ export function normalizeRows<T extends string>(
     let draftRow = byIdentity.get(identity);
     if (draftRow) {
       mergeValues(draftRow, values, warnings);
+      draftRow.name = fullerName(draftRow.name, name);
       draftRow.accepted &&= sure;
     } else {
       draftRow = {
@@ -269,6 +270,8 @@ export function mergeRowDrafts<T extends string>(
       const existing = byIdentity.get(identity);
       if (existing) {
         mergeValues(existing, row.values, warnings);
+        // A list prints "M.Hawkins"; the screen with him highlighted prints his whole name.
+        existing.name = fullerName(existing.name, row.name);
         existing.accepted &&= row.accepted;
         ids.set(row.id, existing.id);
       } else {
