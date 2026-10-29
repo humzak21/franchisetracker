@@ -1,7 +1,8 @@
+import { useMutation } from "convex/react";
 import { Camera, Globe2 } from "lucide-react";
 import { useMemo } from "react";
 import { api } from "@convex/_generated/api";
-import { STAT_GROUPS, statGroup, type ThresholdOverrides } from "@shared/stats";
+import { GAMES_EDIT_KEY, STAT_GROUPS, statGroup, type ThresholdOverrides } from "@shared/stats";
 import { useCapture } from "@/app/capture/CaptureProvider";
 import { useFranchise } from "@/app/franchise";
 import { useSeason } from "@/app/season";
@@ -34,6 +35,7 @@ export function LeagueStats() {
   const [scope, setScope] = useLocalStorage<LeagueScope>("ft.league-stats-scope", "all");
   const group = statGroup(groupId);
   const thresholds = active?.franchise.settings.thresholdOverrides as ThresholdOverrides | undefined;
+  const setStat = useMutation(api.stats.edit.setStat);
 
   const table = useMemo(() => {
     if (!data) return undefined;
@@ -89,6 +91,18 @@ export function LeagueStats() {
           }
           searchable
           searchPlaceholder="Find a player or team"
+          onEdit={(row, columnId, value) =>
+            season
+              ? setStat({
+                  playerId: row.playerId,
+                  seasonId: season._id,
+                  teamId: row.teamId,
+                  split: "regular",
+                  stat: columnId === "gp" ? GAMES_EDIT_KEY : columnId,
+                  value: typeof value === "number" ? value : null,
+                })
+              : undefined
+          }
           emptyState={
             <EmptyState
               icon={Globe2}

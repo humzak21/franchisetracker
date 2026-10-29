@@ -10,7 +10,7 @@ import {
   type ThresholdOverrides,
 } from "@shared/stats";
 import { MISSING_GAME_NOTE } from "@shared/ingestion/reconcile";
-import { statColumn, type DataColumn } from "@/components/data/DataTable";
+import { editableStat, statColumn, type DataColumn } from "@/components/data/DataTable";
 import { PlayerChip } from "@/components/player/PlayerChip";
 import type { TeamLike } from "@/components/team/TeamLogo";
 import { countColumns, highColumns } from "./bigGameColumns";
@@ -58,14 +58,16 @@ export function seasonColumns(
     align: "right",
     sortDescFirst: true,
     value: (r) => (r.playerId === null ? null : r.games),
+    edit: { kind: "number", get: (r) => r.games, min: 0, max: 25 },
   };
   const statCols = stats.map((key) => {
     const value = (r: Row) => statValue(key, r.line, { games: r.games ?? 1 });
-    return statColumn<Row>(key, value, {
+    const column = statColumn<Row>(key, value, {
       group: STAT_CATEGORY_LABELS[STAT_REGISTRY[key].category],
       thresholds,
       note: (r) => (r.overridden.includes(key) ? MISSING_GAME_NOTE : undefined),
     });
+    return editableStat(column, key, (r) => r.line);
   });
   return {
     columns: [player, games, ...statCols, ...countColumns(group), ...highColumns(stats, rows)],

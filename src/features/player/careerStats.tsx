@@ -14,13 +14,18 @@ import {
   type ThresholdOverrides,
 } from "@shared/stats";
 import { MISSING_GAME_NOTE } from "@shared/ingestion/reconcile";
-import { statColumn, type DataColumn } from "@/components/data/DataTable";
+import type { Id } from "@convex/_generated/dataModel";
+import { editableStat, statColumn, type DataColumn } from "@/components/data/DataTable";
 import { StatCell } from "@/components/data/StatCell";
 import type { PlayerPage } from "./types";
 
 export type CareerRow = {
   id: string;
   year: number | null;
+  /** Where an edit of the row saves; absent on the career totals row. */
+  seasonId?: Id<"seasons">;
+  teamId?: Id<"teams">;
+  source?: PlayerPage["seasons"][number]["stats"]["source"];
   teamAbbr: string;
   games: number;
   line: StatLine;
@@ -37,10 +42,18 @@ export function careerRows(
 ): CareerRow[] {
   const regular = seasons
     .filter((s) => s.stats.split === split)
-    .map((s) => ({ ...s, teamKey: s.team._id, source: s.stats.source }));
+    // A captured line only appears for a season with no season row, so it never competes.
+    .map((s) => ({
+      ...s,
+      teamKey: s.team._id,
+      source: s.stats.source === "logs" ? ("logs" as const) : ("import" as const),
+    }));
   return preferLogs(regular).map((s) => ({
     id: `${s.year}-${s.team.abbr}`,
     year: s.year,
+    seasonId: s.stats.seasonId,
+    teamId: s.stats.teamId,
+    source: s.stats.source,
     teamAbbr: s.team.abbr,
     games: s.stats.gamesPlayed,
     line: s.stats.totals as StatLine,
@@ -126,11 +139,15 @@ export function careerColumns(
     align: "right",
     sortDescFirst: true,
     value: (r) => r.games,
+    edit: { kind: "number", get: (r) => r.games, min: 0, max: 25 },
   };
   const statCols = stats.map((key) => {
     const value = (r: CareerRow) => statValue(key, r.line, { games: r.games });
+    const column = statColumn<CareerRow>(key, value, {
+      group: STAT_CATEGORY_LABELS[STAT_REGISTRY[key].category],
+    });
     return {
-      ...statColumn<CareerRow>(key, value, { group: STAT_CATEGORY_LABELS[STAT_REGISTRY[key].category] }),
+      ...editableStat(column, key, (r) => r.line),
       cell: (r: CareerRow) => (
         <StatCell
           stat={key}

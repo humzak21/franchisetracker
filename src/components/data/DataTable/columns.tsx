@@ -1,4 +1,12 @@
-import { formatValue, getStat, type StatFormat, type StatKey, type ThresholdOverrides } from "@shared/stats";
+import {
+  formatValue,
+  getStat,
+  isRawStatKey,
+  RAW_STATS,
+  type StatFormat,
+  type StatKey,
+  type ThresholdOverrides,
+} from "@shared/stats";
 import { cn } from "@/lib/cn";
 import { StatCell } from "../StatCell";
 import type { DataColumn, StatColumnOptions } from "./types";
@@ -96,4 +104,18 @@ export function groupSpans<T>(columns: readonly DataColumn<T>[]): { label: strin
     else spans.push({ label, span: 1 });
   }
   return spans;
+}
+
+/**
+ * Makes a stat column edit as a number when the stat is recorded; rates and averages stay
+ * read-only because they are worked out from the recorded ones. `line` reads the row's stats.
+ */
+export function editableStat<T>(
+  column: DataColumn<T>,
+  stat: StatKey,
+  line: (row: T) => Partial<Record<string, number>>,
+): DataColumn<T> {
+  if (!isRawStatKey(stat)) return column;
+  const step = RAW_STATS[stat].format === "half" ? 0.5 : 1;
+  return { ...column, edit: { kind: "number", get: (r) => line(r)[stat], step } };
 }

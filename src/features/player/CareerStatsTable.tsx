@@ -1,6 +1,8 @@
+import { useMutation } from "convex/react";
 import { BarChart3 } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { ThresholdOverrides } from "@shared/stats";
+import { api } from "@convex/_generated/api";
+import { GAMES_EDIT_KEY, type ThresholdOverrides } from "@shared/stats";
 import { useFranchise } from "@/app/franchise";
 import { MISSING_GAME_NOTE } from "@shared/ingestion/reconcile";
 import { DataTable } from "@/components/data/DataTable";
@@ -14,6 +16,7 @@ export function CareerStatsTable({ page }: { page: PlayerPage }) {
   const position = page.history[page.history.length - 1]?.entry.position ?? page.player.position;
   const [split, setSplit] = useState<"regular" | "postseason">("regular");
   const thresholds = useFranchise()?.franchise.settings.thresholdOverrides as ThresholdOverrides | undefined;
+  const setStat = useMutation(api.stats.edit.setStat);
   const hasPlayoffs = page.seasons.some((s) => s.stats.split === "postseason");
   const { rows, totals, columns, primary } = useMemo(() => {
     const rows = careerRows(page.seasons, split);
@@ -63,6 +66,20 @@ export function CareerStatsTable({ page }: { page: PlayerPage }) {
         primaryColumns={primary}
         totals={totals}
         caption="Career stats"
+        onEdit={(row, columnId, value) =>
+          row.seasonId && row.teamId
+            ? setStat({
+                playerId: page.player._id,
+                seasonId: row.seasonId,
+                teamId: row.teamId,
+                split,
+                stat: columnId === "gp" ? GAMES_EDIT_KEY : columnId,
+                value: typeof value === "number" ? value : null,
+              })
+            : undefined
+        }
+        // Playoff totals from the logs change only through their games.
+        canEditRow={(row) => row.seasonId !== undefined && (split === "regular" || row.source === "import")}
       />
       {rows.some((r) => r.overridden.length > 0) && (
         <p className="text-xs text-muted-foreground">

@@ -49,6 +49,27 @@ test("league stats put our players beside the league's, with fantasy points", as
   await expectNoHorizontalOverflow(page);
 });
 
+test("any player's season stats edit in place from League stats", async ({ page }) => {
+  await openView(page, "League");
+  await page.getByRole("radio", { name: "QB", exact: true }).click();
+  const table = page.getByRole("table", { name: "QB league stats" });
+  const allen = table.getByRole("row").filter({ hasText: "Josh Allen" });
+  await expect(allen).toBeVisible();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  const tds = allen.getByRole("textbox", { name: "Passing touchdowns" });
+  const before = await tds.inputValue();
+  await tds.fill("40");
+  await tds.press("Tab");
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(allen.getByRole("cell", { name: "40", exact: true })).toBeVisible();
+  // Put it back for the other tests sharing this backend.
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await allen.getByRole("textbox", { name: "Passing touchdowns" }).fill(before);
+  await allen.getByRole("textbox", { name: "Passing touchdowns" }).press("Tab");
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(allen.getByRole("cell", { name: before, exact: true }).first()).toBeVisible();
+});
+
 test("league team stats: every team per Madden tab, rates computed from the counts", async ({ page }) => {
   await openView(page, "League");
   await page.getByRole("radio", { name: "Teams", exact: true }).click();
