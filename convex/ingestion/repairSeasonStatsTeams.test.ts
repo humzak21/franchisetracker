@@ -115,4 +115,42 @@ describe("season stats team repair", () => {
     const again = await t.mutation(internal.ingestion.repairSeasonStatsTeams.run, { dryRun: false });
     expect(again).toEqual({ moved: [], unresolved: [] });
   });
+
+  test("a misread name is merged into the real player and placed on his team", async () => {
+    const { t, team, misfile, player, linesFor } = await setup();
+    const gb = await team("GB");
+    const josh = await player("Josh Jacobs", { teamId: gb });
+    const misread = await player("John Jacobs");
+    const najee = await player("Najee Harris");
+    await misfile(misread);
+    await misfile(najee);
+    const fixes = [
+      { name: "John Jacobs", into: "Josh Jacobs", teamAbbr: "GB" },
+      { name: "Najee Harris", teamAbbr: "ind" },
+      { name: "Nobody Here", into: "Josh Jacobs", teamAbbr: "GB" },
+    ];
+
+    const dry = await t.mutation(internal.ingestion.repairSeasonStatsTeams.fixMisreads, {
+      dryRun: true,
+      year: SAMPLE_START_YEAR,
+      fixes,
+    });
+    expect(dry.map((r) => [r.name, r.targets.map((m) => m.teams), r.done, r.skipped])).toEqual([
+      ["John Jacobs", [["GB"]], false, null],
+      ["Najee Harris", [], false, null],
+      ["Nobody Here", [["GB"]], false, "0 players named Nobody Here"],
+    ]);
+
+    await t.mutation(internal.ingestion.repairSeasonStatsTeams.fixMisreads, {
+      dryRun: false,
+      year: SAMPLE_START_YEAR,
+      fixes,
+    });
+    expect(await t.run((ctx) => ctx.db.get("players", misread))).toBeNull();
+    expect(await linesFor(josh)).toEqual({ reported: [gb], roster: [gb] });
+    const ind = await team("IND");
+    expect(await linesFor(najee)).toEqual({ reported: [ind], roster: [ind] });
+    const merged = await t.run((ctx) => ctx.db.get("players", josh));
+    expect(merged?.aliases).toContain("John Jacobs");
+  });
 });
