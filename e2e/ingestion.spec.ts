@@ -81,7 +81,6 @@ test("a full game log goes from capture to review to team and player stats", asy
   await expect(page.getByRole("heading", { level: 1, name: `W${week} vs Dolphins` })).toBeVisible();
   await expect(page.getByRole("table", { name: "NE passing" })).toBeVisible();
   await expect(page.getByText("3+ TD").first()).toBeVisible();
-  await page.getByRole("radio", { name: "Rushing" }).click();
   await expect(page.getByRole("table", { name: "NE rushing" }).getByText("110")).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });

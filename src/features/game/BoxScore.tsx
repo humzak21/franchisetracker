@@ -1,34 +1,25 @@
 import { useMutation } from "convex/react";
 import { ImageUp, ListPlus } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import {
-  CATEGORY_PRIMARY,
-  categoriesWithData,
-  RAW_STAT_CATEGORIES,
-  STAT_CATEGORY_LABELS,
-  statsWithData,
-  type StatCategory,
-  type StatLine,
-} from "@shared/stats";
-import { DataTable } from "@/components/data/DataTable";
+import { categoriesWithData, RAW_STAT_CATEGORIES, type StatLine } from "@shared/stats";
+import type { EditValue } from "@/components/data/DataTable";
 import { EmptyState } from "@/components/data/EmptyState";
 import type { StarView } from "@/components/player/GameStars";
 import { Button } from "@/components/ui/button";
-import { TeamChip } from "@/components/team/TeamChip";
 import { Skeleton } from "@/components/ui/misc";
-import { Segmented } from "@/components/ui/segmented";
 import { useQuery } from "@/lib/convex/useQuery";
 import { errorMessage } from "@/lib/errors";
-import { useRevealOnChange } from "@/lib/hooks/useRevealOnChange";
+import { BoxCategory } from "./BoxCategory";
 import { BoxLinesSheet } from "./BoxLinesSheet";
-import { boxColumns, boxRows, totalsRow, type BoxRow, type BoxStars, type BoxTeam } from "./boxScoreColumns";
+import type { BoxRow } from "./boxScoreColumns";
 
 type BoxScoreProps = { gameId: Id<"games">; stars: readonly StarView[]; onImport: () => void };
 
 /**
- * Game detail v2 box score: one category at a time, either team or both, with threshold
+ * Game detail box score: every category with stats on one page (passing, rushing, receiving,
+ * defense, ...), each with the user's team's table and then the opponent's, with threshold
  * highlights. Phone tables keep each category's defining stats and fold the rest into the
  * tap-to-expand card. Edit turns recorded stats into inputs; Player lines adds or removes lines.
  * The star beside each player makes him a star of the game in one click, and a second click undoes it.
@@ -51,12 +42,7 @@ export function BoxScore({ gameId, stars, onImport }: BoxScoreProps) {
     },
     [gameId, toggleStar],
   );
-  const [side, setSide] = useState<string>("both");
-  const [picked, setPicked] = useState<StatCategory | null>(null);
   const [linesOpen, setLinesOpen] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
-  // Categories differ a lot in length (receiving vs passing): keep the whole table on screen.
-  useRevealOnChange(box, `${picked}:${side}`);
 
   const categories = useMemo(() => {
     const rows = (data?.teams ?? []).flatMap((t) => t.lines.map((l) => ({ line: l.stats as StatLine })));
@@ -64,14 +50,13 @@ export function BoxScore({ gameId, stars, onImport }: BoxScoreProps) {
   }, [data]);
 
   if (data === undefined) return <Skeleton className="h-64 rounded-xl" />;
-  const category = picked && categories.includes(picked) ? picked : (categories[0] ?? "passing");
   const linesSheet = (
     <BoxLinesSheet
       open={linesOpen}
       onOpenChange={setLinesOpen}
       gameId={gameId}
       teams={data.teams}
-      category={category}
+      category={categories[0] ?? "passing"}
     />
   );
   const addLines = (
@@ -101,80 +86,32 @@ export function BoxScore({ gameId, stars, onImport }: BoxScoreProps) {
     );
   }
 
-  const shown: BoxTeam[] = data.teams.filter((t) => side === "both" || t.team.abbr === side);
-  // Columns from both teams, so the two tables line up when shown together.
-  const allLines = data.teams.flatMap((t) => t.lines.map((l) => ({ line: l.stats as StatLine })));
-  const stats = statsWithData([category, "fantasy"], allLines, { singleGame: true });
+  const onEdit = (row: BoxRow, statKey: string, value: EditValue) =>
+    row.playerId
+      ? setStat({
+          gameId,
+          playerId: row.playerId as Id<"players">,
+          statKey,
+          value: typeof value === "string" ? Number(value) : value,
+        })
+      : undefined;
   return (
-    <div ref={box} className="scroll-mt-20 scroll-mb-24 space-y-3 sm:scroll-mb-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div data-swipe-ignore className="-mx-1 max-w-full scrollbar-none overflow-x-auto px-1">
-          <Segmented
-            size="sm"
-            aria-label="Category"
-            value={category}
-            onChange={setPicked}
-            options={categories.map((c) => ({ value: c, label: STAT_CATEGORY_LABELS[c] }))}
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <Segmented
-            size="sm"
-            aria-label="Team"
-            value={side}
-            onChange={setSide}
-            options={[
-              ...data.teams.map((t) => ({ value: t.team.abbr, label: t.team.abbr })),
-              { value: "both", label: "Both" },
-            ]}
-          />
-          {addLines}
-        </div>
-      </div>
+    <div className="space-y-8">
+      <div className="flex flex-wrap items-center justify-end gap-2">{addLines}</div>
       {starError && (
         <p role="alert" className="text-sm text-loss">
           {starError}
         </p>
       )}
-      {shown.map((team) => {
-        const rows = boxRows(team, stats);
-        const teamStars: BoxStars = {
-          isStar: (id) => starIds.has(id),
-          pending,
-          toggle: (row) => toggle(row, team.team._id),
-        };
-        return (
-          <section key={`${team.team._id}-${category}`} className="space-y-2">
-            <TeamChip team={team.team} label="full" size="xs" className="text-sm" />
-            <DataTable
-              id={`box-${category}`}
-              caption={`${team.team.abbr} ${STAT_CATEGORY_LABELS[category].toLowerCase()}`}
-              data={rows}
-              columns={boxColumns(stats, team.team, teamStars)}
-              getRowId={(r) => r.id}
-              identityColumn="player"
-              primaryColumns={CATEGORY_PRIMARY[category]}
-              totals={rows.length > 1 ? totalsRow(rows) : undefined}
-              onEdit={(row, statKey, value) =>
-                row.playerId
-                  ? setStat({
-                      gameId,
-                      playerId: row.playerId as Id<"players">,
-                      statKey,
-                      value: typeof value === "string" ? Number(value) : value,
-                    })
-                  : undefined
-              }
-              canEditRow={(row) => row.playerId !== null}
-              emptyState={
-                <p className="py-6 text-center text-sm text-muted-foreground">
-                  No {STAT_CATEGORY_LABELS[category].toLowerCase()} for {team.team.abbr}.
-                </p>
-              }
-            />
-          </section>
-        );
-      })}
+      {categories.map((category) => (
+        <BoxCategory
+          key={category}
+          category={category}
+          teams={data.teams}
+          stars={{ isStar: (id) => starIds.has(id), pending, toggle }}
+          onEdit={onEdit}
+        />
+      ))}
       {linesSheet}
     </div>
   );
