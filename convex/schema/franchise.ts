@@ -31,6 +31,10 @@ export const franchiseTables = {
       thresholdOverrides: v.optional(
         v.record(v.string(), v.object({ tier1: v.number(), tier2: v.optional(v.number()) })),
       ),
+      /** The same overrides for one game's numbers (box scores, game logs), over `DEFAULT_GAME_TIERS`. */
+      gameThresholdOverrides: v.optional(
+        v.record(v.string(), v.object({ tier1: v.number(), tier2: v.optional(v.number()) })),
+      ),
       /** OpenRouter model choices for extraction. */
       models: v.optional(
         v.object({

@@ -16,7 +16,9 @@ import {
   statsWithData,
   statValue,
   type StatLine,
+  type ThresholdOverrides,
 } from "@shared/stats";
+import { useFranchise } from "@/app/franchise";
 import { DataTable, statColumn, type DataColumn } from "@/components/data/DataTable";
 import { EmptyState } from "@/components/data/EmptyState";
 import { TeamChip } from "@/components/team/TeamChip";
@@ -29,7 +31,11 @@ import { useQuery } from "@/lib/convex/useQuery";
 
 type Row = FunctionReturnType<typeof api.players.gameLog.bySeason>[number];
 
-function columns(position: Position, rows: readonly Row[]): { cols: DataColumn<Row>[]; primary: string[] } {
+function columns(
+  position: Position,
+  rows: readonly Row[],
+  thresholds: ThresholdOverrides | undefined,
+): { cols: DataColumn<Row>[]; primary: string[] } {
   const group = positionGroupOf(position);
   const own = RAW_STAT_CATEGORIES.filter((c) => CATEGORY_GROUPS[c].includes(group));
   const rest = RAW_STAT_CATEGORIES.filter((c) => !own.includes(c));
@@ -95,6 +101,7 @@ function columns(position: Position, rows: readonly Row[]): { cols: DataColumn<R
         group: STAT_CATEGORY_LABELS[STAT_REGISTRY[key].category],
         // Per-game cells use the single-game tiers, not the season ones.
         highlight: "game",
+        thresholds,
       });
       // Recorded stats edit in place (the same save as the box score); rates are worked out.
       return isRawStatKey(key)
@@ -120,7 +127,12 @@ export function GameLog({ page }: { page: PlayerPage }) {
   );
   const setStat = useMutation(api.games.statLines.setStat);
   const position = page.history[page.history.length - 1]?.entry.position ?? page.player.position;
-  const { cols, primary } = useMemo(() => columns(position, rows ?? []), [position, rows]);
+  const thresholds = useFranchise()?.franchise.settings.gameThresholdOverrides as
+    ThresholdOverrides | undefined;
+  const { cols, primary } = useMemo(
+    () => columns(position, rows ?? [], thresholds),
+    [position, rows, thresholds],
+  );
 
   if (seasons.length === 0) {
     return (

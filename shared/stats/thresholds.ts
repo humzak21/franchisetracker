@@ -1,6 +1,6 @@
 /**
  * Elite highlight thresholds (two tiers, for a season and for one game) and threshold games.
- * Defaults come from FEATURES.md 5.5; franchises override season tiers in settings.
+ * Defaults come from FEATURES.md 5.5; franchises override both scales' tiers in settings.
  */
 import { PERFECT_PASSER_RATING } from "./math";
 import { STAT_REGISTRY, type StatKey, type StatLine } from "./registry";
@@ -63,9 +63,16 @@ export function eliteTier(
   return tierOf(key, value, overrides?.[key] ?? DEFAULT_SEASON_THRESHOLDS[key]);
 }
 
-/** Highlight tier for one game's value (`DEFAULT_GAME_TIERS`); stats without game tiers are 0. */
-export function gameTier(key: StatKey, value: number | null | undefined): Tier {
-  return tierOf(key, value, DEFAULT_GAME_TIERS[key]);
+/**
+ * Highlight tier for one game's value: the franchise's game overrides, else `DEFAULT_GAME_TIERS`.
+ * Stats with neither are never marked.
+ */
+export function gameTier(
+  key: StatKey,
+  value: number | null | undefined,
+  overrides?: ThresholdOverrides,
+): Tier {
+  return tierOf(key, value, overrides?.[key] ?? DEFAULT_GAME_TIERS[key]);
 }
 
 export type GameThreshold = {

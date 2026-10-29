@@ -9,6 +9,7 @@ import {
   statValue,
   type StatKey,
   type StatLine,
+  type ThresholdOverrides,
 } from "@shared/stats";
 import { editableStat, statColumn, type DataColumn } from "@/components/data/DataTable";
 import { StatCell } from "@/components/data/StatCell";
@@ -70,7 +71,12 @@ export type BoxStars = {
  * The player column carries the one-click star and the game's threshold highlights (300-yard
  * passer, 2 sacks) as badges.
  */
-export function boxColumns(stats: readonly StatKey[], team: TeamLike, stars: BoxStars): DataColumn<BoxRow>[] {
+export function boxColumns(
+  stats: readonly StatKey[],
+  team: TeamLike,
+  stars: BoxStars,
+  thresholds: ThresholdOverrides | undefined,
+): DataColumn<BoxRow>[] {
   const player: DataColumn<BoxRow> = {
     id: "player",
     header: "Player",
@@ -127,7 +133,7 @@ export function boxColumns(stats: readonly StatKey[], team: TeamLike, stars: Box
     player,
     ...stats.map((key) => {
       const value = (r: BoxRow) => statValue(key, r.line);
-      const column = statColumn<BoxRow>(key, value, { highlight: "game" });
+      const column = statColumn<BoxRow>(key, value, { highlight: "game", thresholds });
       return editableStat(
         {
           ...column,

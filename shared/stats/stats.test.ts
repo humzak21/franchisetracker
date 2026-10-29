@@ -89,6 +89,8 @@ describe("thresholds", () => {
     expect(gameTier("sacks", 2.5)).toBe(1);
     // A season-only tier (completion rate) never marks a game.
     expect(gameTier("passCmpPct", 90)).toBe(0);
+    expect(gameTier("passYds", 350, { passYds: { tier1: 400, tier2: 450 } })).toBe(0);
+    expect(gameTier("passYds", 460, { passYds: { tier1: 400, tier2: 450 } })).toBe(2);
   });
   it("detects threshold games", () => {
     const keys = gameHighlights({ passCmp: 20, passAtt: 26, passYds: 320, passTd: 3, passInt: 0 }).map(
