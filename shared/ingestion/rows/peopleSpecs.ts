@@ -11,9 +11,10 @@ import {
   weekLabel,
   type AwardType,
 } from "../../domain";
+import { overallPick } from "../../draft/slot";
 import type { DraftWarning } from "../types";
 import { nameKey } from "./engine";
-import type { RowField, RowSpec, RowsDraft } from "./types";
+import type { DraftRow, RowField, RowSpec, RowsDraft } from "./types";
 
 const POSITION: RowField = { key: "position", label: "Position", type: "position", primary: true };
 const CONFERENCE: RowField = {
@@ -89,31 +90,57 @@ export const yearlyAwardsSpec: RowSpec = {
     oneWinnerPer(draft, ["award", "conference"], (award) => (AWARD_INFO[award].cadence === "honor" ? 99 : 1)),
 };
 
+/**
+ * Where a pick's ESPN college athlete id rides on its row when review matched the pick to a real
+ * prospect; set by the player picker, never read from a screen, so it is not a field.
+ */
+export const PROSPECT_ESPN_ID = "espnId";
+
+/** The overall pick of a draft row, from its round and pick in the round. */
+export const rowOverallPick = (row: Pick<DraftRow, "values">) =>
+  overallPick(row.values.round, row.values.pickInRound);
+
 export const draftResultsSpec: RowSpec = {
   player: true,
   rowTeam: true,
+  newPlayers: true,
   meta: [],
   fields: () => [
     { key: "round", label: "Round", type: "int", primary: true, required: true },
-    { key: "overall", label: "Overall pick", type: "int", primary: true, required: true },
-    { key: "pickInRound", label: "Pick in round", type: "int" },
+    {
+      key: "pickInRound",
+      label: "Pick",
+      type: "int",
+      primary: true,
+      required: true,
+      hint: "The pick within the round (1 to 32), the PICK column",
+    },
     POSITION,
-    { key: "college", label: "College", type: "text" },
-    { key: "ovr", label: "OVR", type: "int" },
+    { key: "ovr", label: "OVR", type: "int", primary: true },
+    { key: "age", label: "Age", type: "int", primary: true },
+    { key: "college", label: "College", type: "text", primary: true },
   ],
-  identity: (row) => String(row.values.overall ?? nameKey(row.name)),
+  identity: (row) => String(rowOverallPick(row) ?? nameKey(row.name)),
+  caption: (row) => {
+    const overall = rowOverallPick(row);
+    return overall === null ? null : `No. ${overall} overall`;
+  },
   rules: (draft) =>
-    draft.rows.flatMap((r) =>
-      r.accepted && !r.teamAbbr
-        ? [
-            {
-              path: `rows.${r.id}.teamAbbr`,
-              message: `Pick ${String(r.values.overall)}: pick the team`,
-              severity: "error" as const,
-            },
-          ]
-        : [],
-    ),
+    draft.rows.flatMap((r) => {
+      if (!r.accepted) return [];
+      const overall = rowOverallPick(r);
+      const who = r.name ?? "A pick";
+      const out: DraftWarning[] = [];
+      if (overall === null && r.values.round != null && r.values.pickInRound != null)
+        out.push({
+          path: `rows.${r.id}.values.pickInRound`,
+          message: `${who}: round ${String(r.values.round)}, pick ${String(r.values.pickInRound)} is not a draft slot`,
+          severity: "error",
+        });
+      if (!r.teamAbbr)
+        out.push({ path: `rows.${r.id}.teamAbbr`, message: `${who}: pick the team`, severity: "error" });
+      return out;
+    }),
 };
 
 const DEV_TRAIT: RowField = {

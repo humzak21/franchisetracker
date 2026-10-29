@@ -50,6 +50,11 @@ export type RowSpec = {
   player: boolean;
   /** Rows carry a team (a standings row, a leader's team). */
   rowTeam: boolean;
+  /**
+   * Rows are players new to the franchise (a draft class, mostly created players): reading does
+   * not match their names to the rosters, and review can also find them in college football.
+   */
+  newPlayers?: boolean;
   meta: readonly RowField[];
   /** The row's fields for a draft; season stats show only the categories the screen had. */
   fields: (draft?: RowsDraft) => readonly RowField[];
@@ -59,6 +64,8 @@ export type RowSpec = {
   rowsSchema?: () => Record<string, JsonSchema>;
   /** Custom reading of the model's answer into rows, paired with `rowsSchema`. */
   readRows?: (raw: Record<string, unknown>) => Record<string, unknown>[];
+  /** A line the row card shows under the row's name, worked out from its fields. */
+  caption?: (row: Pick<DraftRow, "values">) => string | null;
   /** Target-specific consistency checks on accepted rows. */
   rules?: (draft: RowsDraft) => DraftWarning[];
 };

@@ -6,6 +6,8 @@ import { isRawStatKey, getStat } from "@shared/stats";
 import { isTeamStatKey, TEAM_STATS } from "@shared/stats/teamRegistry";
 import { CHECK_BELOW, ROW_CHECK_BELOW, deriveDraft } from "@shared/ingestion/normalize";
 import { isRowDraft, rowTarget } from "@shared/ingestion/targets";
+import type { Position } from "@shared/domain";
+import { PROSPECT_ESPN_ID } from "@shared/ingestion/rows/peopleSpecs";
 import type { Draft, DraftWarning, FieldConfidence, PlayerMatch } from "@shared/ingestion/types";
 
 type Node = Record<string, unknown> | unknown[];
@@ -144,16 +146,42 @@ export function parseStat(text: string): number | undefined | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Apply a reviewed player choice without changing the name printed on the screenshot. */
-export function choosePlayerAt<D extends Draft>(
-  draft: D,
-  base: string,
-  player: { _id: string; name: string } | null,
-): D {
+/**
+ * Who a printed name is, as review decides it: a franchise player, a new player (named as printed
+ * or as typed), or a college prospect found on ESPN, who joins as a new player with his ESPN id.
+ */
+export type PlayerChoice =
+  | { kind: "player"; _id: string; name: string }
+  | { kind: "new"; name: string }
+  | { kind: "prospect"; espnId: number; name: string; position: Position | null; college: string | null };
+
+/**
+ * Applies a reviewed player choice. Choosing a known player keeps the name printed on the
+ * screenshot; a new player or a prospect takes the name chosen, since that is who gets created.
+ */
+export function choosePlayerAt<D extends Draft>(draft: D, base: string, choice: PlayerChoice): D {
   const match = getAt(draft, `${base}.match`) as PlayerMatch | null;
-  const candidates = match?.candidates.filter((c) => c.playerId !== player?._id) ?? [];
-  return setAt(setAt(draft, `${base}.playerId`, player?._id ?? null), `${base}.match`, {
-    status: player ? "matched" : "new",
-    candidates: player ? [{ playerId: player._id, name: player.name, score: 1 }, ...candidates] : candidates,
-  });
+  const others = (id?: string) => match?.candidates.filter((c) => c.playerId !== id) ?? [];
+  if (choice.kind === "player") {
+    return setAt(setAt(draft, `${base}.playerId`, choice._id), `${base}.match`, {
+      status: "matched",
+      candidates: [{ playerId: choice._id, name: choice.name, score: 1 }, ...others(choice._id)],
+    });
+  }
+  let next = setAt(draft, `${base}.playerId`, null);
+  next = setAt(next, `${base}.match`, { status: "new", candidates: others() });
+  next = setAt(next, `${base}.name`, choice.name);
+  const values = getAt(next, `${base}.values`) as Record<string, unknown> | undefined;
+  if (!values) return next;
+  if (choice.kind === "new") {
+    return values[PROSPECT_ESPN_ID] === undefined
+      ? next
+      : setAt(next, `${base}.values.${PROSPECT_ESPN_ID}`, undefined);
+  }
+  next = setAt(next, `${base}.values.${PROSPECT_ESPN_ID}`, choice.espnId);
+  if (choice.college) next = setAt(next, `${base}.values.college`, choice.college);
+  if (choice.position && (values.position ?? null) === null) {
+    next = setAt(next, `${base}.values.position`, choice.position);
+  }
+  return next;
 }

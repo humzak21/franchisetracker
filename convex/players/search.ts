@@ -9,7 +9,14 @@ const MAX_RESULTS = 12;
 /** Players whose name matches the text, for pickers (review's player picker, later the palette). */
 export const byName = query({
   args: { text: v.string() },
-  returns: v.array(v.object({ _id: v.id("players"), displayName: v.string(), position: vPosition })),
+  returns: v.array(
+    v.object({
+      _id: v.id("players"),
+      displayName: v.string(),
+      position: vPosition,
+      college: v.union(v.string(), v.null()),
+    }),
+  ),
   handler: async (ctx, { text }) => {
     await requireOwner(ctx);
     const trimmed = text.trim();
@@ -21,6 +28,11 @@ export const byName = query({
         q.search("displayName", trimmed).eq("franchiseId", franchise._id),
       )
       .take(MAX_RESULTS);
-    return players.map((p) => ({ _id: p._id, displayName: p.displayName, position: p.position }));
+    return players.map((p) => ({
+      _id: p._id,
+      displayName: p.displayName,
+      position: p.position,
+      college: p.college ?? null,
+    }));
   },
 });

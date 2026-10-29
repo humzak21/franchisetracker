@@ -5,7 +5,6 @@ import type { MutationCtx } from "../_generated/server";
 import { invalid, must } from "../lib/errors";
 import type { DraftContext } from "./commitGame";
 import {
-  commitDraftResults,
   commitInjuryReport,
   commitPlayerCard,
   commitRosterPage,
@@ -13,6 +12,7 @@ import {
   commitWeeklyAwards,
   commitYearlyAwards,
 } from "./commitPeopleRows";
+import { commitDraftResults } from "./commitDraftResults";
 import {
   commitLeagueLeaders,
   commitLeagueTeamStats,

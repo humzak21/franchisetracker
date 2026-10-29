@@ -1,6 +1,6 @@
 import { validateDraft } from "@shared/ingestion/targets";
 import { describe, expect, it } from "vitest";
-import type { BoxScoreDraft, TeamStatsDraft } from "@shared/ingestion/types";
+import type { BoxScoreDraft, RowTargetDraft, TeamStatsDraft } from "@shared/ingestion/types";
 import { attentionItems, choosePlayerAt, fieldLabel, getAt, parseStat, setAt } from "./draftEdit";
 
 const draft: BoxScoreDraft = {
@@ -101,16 +101,60 @@ describe("combined game review", () => {
   });
 
   it("a chosen player clears ambiguity, preserving the printed name", () => {
-    const chosen = choosePlayerAt(draft, "lines.ne-d-maye", { _id: "maye", name: "Drake Maye" });
+    const chosen = choosePlayerAt(draft, "lines.ne-d-maye", {
+      kind: "player",
+      _id: "maye",
+      name: "Drake Maye",
+    });
     expect(chosen.lines[0]).toMatchObject({
       name: "D. Maye",
       playerId: "maye",
       match: { status: "matched", candidates: [{ playerId: "maye", name: "Drake Maye", score: 1 }] },
     });
-    expect(choosePlayerAt(chosen, "lines.ne-d-maye", null).lines[0]).toMatchObject({
+    expect(
+      choosePlayerAt(chosen, "lines.ne-d-maye", { kind: "new", name: "D. Maye" }).lines[0],
+    ).toMatchObject({
       playerId: null,
       match: { status: "new" },
     });
     expect(draft.lines[0]?.playerId).toBeNull();
+  });
+
+  it("a new player takes the name typed for him", () => {
+    const typed = choosePlayerAt(draft, "lines.ne-d-maye", { kind: "new", name: "Drake Maye" });
+    expect(typed.lines[0]).toMatchObject({ name: "Drake Maye", playerId: null, match: { status: "new" } });
+  });
+
+  it("a college prospect becomes a new player with his ESPN id, school and position", () => {
+    const pick: RowTargetDraft = {
+      target: "draft_results",
+      meta: {},
+      rows: [
+        {
+          id: "128",
+          accepted: true,
+          name: "M.Hawkins",
+          teamAbbr: "NE",
+          values: { round: 4, pickInRound: 32 },
+          playerId: null,
+          match: { status: "new", candidates: [] },
+        },
+      ],
+    };
+    const prospect = choosePlayerAt(pick, "rows.128", {
+      kind: "prospect",
+      espnId: 4567,
+      name: "Marcellous Hawkins",
+      position: "HB",
+      college: "Virginia Tech",
+    });
+    expect(prospect.rows[0]).toMatchObject({
+      name: "Marcellous Hawkins",
+      playerId: null,
+      values: { round: 4, pickInRound: 32, espnId: 4567, college: "Virginia Tech", position: "HB" },
+    });
+    // Changing course to a plain new player drops the ESPN id.
+    const plain = choosePlayerAt(prospect, "rows.128", { kind: "new", name: "Marcellous Hawkins" });
+    expect(plain.rows[0]?.values).not.toHaveProperty("espnId");
   });
 });

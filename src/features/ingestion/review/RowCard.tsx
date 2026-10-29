@@ -1,7 +1,8 @@
 import { Check, ChevronDown, ChevronRight, Trash2, UserPlus } from "lucide-react";
 import { useState } from "react";
 import type { Id } from "@convex/_generated/dataModel";
-import type { RowField } from "@shared/ingestion/rows/types";
+import { PROSPECT_ESPN_ID } from "@shared/ingestion/rows/peopleSpecs";
+import type { RowField, RowSpec } from "@shared/ingestion/rows/types";
 import type { RowTargetDraft } from "@shared/ingestion/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -14,7 +15,17 @@ type Row = RowTargetDraft<Id<"players">>["rows"][number];
 
 const TEAM: RowField = { key: "teamAbbr", label: "Team", type: "team" };
 
-function Who({ row, onPick, flagged }: { row: Row; onPick: () => void; flagged: boolean }) {
+function Who({
+  row,
+  caption,
+  onPick,
+  flagged,
+}: {
+  row: Row;
+  caption: string | null;
+  onPick: () => void;
+  flagged: boolean;
+}) {
   const chosen = row.match?.candidates.find((c) => c.playerId === row.playerId);
   return (
     <button
@@ -36,12 +47,16 @@ function Who({ row, onPick, flagged }: { row: Row; onPick: () => void; flagged: 
             <span className="text-warn">Choose who this is</span>
           ) : (
             <span className="inline-flex items-center gap-1">
-              <UserPlus className="size-3" /> New player
+              <UserPlus className="size-3" />
+              {typeof row.values[PROSPECT_ESPN_ID] === "number"
+                ? "New player · college prospect"
+                : "New player"}
             </span>
           )}
         </span>
       </span>
-      <ChevronRight className="ml-auto size-4 shrink-0 text-subtle-foreground" />
+      {caption && <span className="num ml-auto shrink-0 text-xs text-muted-foreground">{caption}</span>}
+      <ChevronRight className={cn("size-4 shrink-0 text-subtle-foreground", !caption && "ml-auto")} />
     </button>
   );
 }
@@ -50,17 +65,8 @@ function Who({ row, onPick, flagged }: { row: Row; onPick: () => void; flagged: 
  * One row of a list screen as a card: accept it, fix who it is, and its fields; the primary ones
  * in view and the rest a tap away, so a long list can be reviewed with thumbs (FEATURES.md 9).
  */
-export function RowCard({
-  row,
-  fields,
-  player,
-  rowTeam,
-}: {
-  row: Row;
-  fields: readonly RowField[];
-  player: boolean;
-  rowTeam: boolean;
-}) {
+export function RowCard({ row, spec, fields }: { row: Row; spec: RowSpec; fields: readonly RowField[] }) {
+  const { player, rowTeam } = spec;
   const { set, update, flag } = useReviewDraft();
   const [picking, setPicking] = useState(false);
   const [open, setOpen] = useState(false);
@@ -99,7 +105,12 @@ export function RowCard({
           <Check />
         </Button>
         {player ? (
-          <Who row={row} onPick={() => setPicking(true)} flagged={flag(`${base}.name`) !== null} />
+          <Who
+            row={row}
+            caption={spec.caption?.(row) ?? null}
+            onPick={() => setPicking(true)}
+            flagged={flag(`${base}.name`) !== null}
+          />
         ) : (
           <span className="min-w-0 flex-1 truncate font-display text-lg font-semibold">{title}</span>
         )}
@@ -168,6 +179,7 @@ export function RowCard({
           printedName={row.name ?? ""}
           match={row.match}
           value={row.playerId}
+          prospects={spec.newPlayers}
           onChange={(chosen) => update((d) => choosePlayerAt(d, base, chosen))}
         />
       )}

@@ -1,12 +1,12 @@
 import { Search, UserPlus } from "lucide-react";
 import { useState } from "react";
-import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import type { Position } from "@shared/domain";
 import { BottomSheet } from "@/components/overlay/BottomSheet";
-import { PositionBadge } from "@/components/player/PositionBadge";
 import { Input } from "@/components/ui/input";
-import { useQuery } from "@/lib/convex/useQuery";
+import { PickerGroup } from "./PickerGroup";
+import { PickerOption } from "./PickerOption";
+import { usePlayerSearch } from "./playerSearch";
 
 export type AddedPlayer = { name: string; playerId: Id<"players"> | null; position: Position | null };
 
@@ -24,7 +24,7 @@ type AddPlayerSheetProps = {
 export function AddPlayerSheet({ open, onOpenChange, title, onAdd }: AddPlayerSheetProps) {
   const [text, setText] = useState("");
   const name = text.trim();
-  const results = useQuery(api.players.search.byName, open && name.length >= 2 ? { text: name } : "skip");
+  const { players, searching } = usePlayerSearch(text, open);
   const add = (player: AddedPlayer) => {
     onAdd(player);
     setText("");
@@ -32,10 +32,16 @@ export function AddPlayerSheet({ open, onOpenChange, title, onAdd }: AddPlayerSh
   };
 
   return (
-    <BottomSheet open={open} onOpenChange={onOpenChange} title={title} description="Find a player or add one">
+    <BottomSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      textEntry
+      title={title}
+      description="Find a player or add one"
+    >
       <div className="space-y-4">
-        <label className="relative block">
-          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-subtle-foreground" />
+        <label className="sticky top-0 z-10 block bg-surface pb-1">
+          <Search className="absolute top-[calc(50%-2px)] left-3 size-4 -translate-y-1/2 text-subtle-foreground" />
           <Input
             autoFocus
             value={text}
@@ -43,35 +49,37 @@ export function AddPlayerSheet({ open, onOpenChange, title, onAdd }: AddPlayerSh
             placeholder="Player name"
             className="pl-9"
             aria-label="Player name"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
           />
         </label>
-        {results && results.length > 0 && (
-          <ul aria-label="Matching players" className="space-y-1">
-            {results.map((p) => (
-              <li key={p._id}>
-                <button
-                  type="button"
-                  onClick={() => add({ name: p.displayName, playerId: p._id, position: p.position })}
-                  className="flex min-h-12 w-full items-center gap-3 rounded-lg px-3 text-left hover:bg-surface-2"
-                >
-                  <span className="font-medium">{p.displayName}</span>
-                  <PositionBadge position={p.position} />
-                </button>
-              </li>
+        <ul aria-label="New player">
+          <PickerOption
+            icon={<UserPlus className="size-4 shrink-0 text-primary" />}
+            label={name.length >= 2 ? `Add “${name}” as a new player` : "Type a name"}
+            disabled={name.length < 2}
+            onClick={() => add({ name, playerId: null, position: null })}
+          />
+        </ul>
+        {name.length >= 2 && (
+          <PickerGroup
+            label="Matching players"
+            searching={searching}
+            empty="No players by that name"
+            count={players.length}
+          >
+            {players.map((p) => (
+              <PickerOption
+                key={p._id}
+                label={p.displayName}
+                position={p.position}
+                detail={p.college}
+                onClick={() => add({ name: p.displayName, playerId: p._id, position: p.position })}
+              />
             ))}
-          </ul>
+          </PickerGroup>
         )}
-        <button
-          type="button"
-          disabled={name.length < 2}
-          onClick={() => add({ name, playerId: null, position: null })}
-          className="flex min-h-12 w-full items-center gap-3 rounded-lg px-3 text-left hover:bg-surface-2 disabled:opacity-50"
-        >
-          <UserPlus className="size-4 text-primary" />
-          <span className="font-medium">
-            {name.length >= 2 ? `Add ${name} as a new player` : "Type a name"}
-          </span>
-        </button>
       </div>
     </BottomSheet>
   );

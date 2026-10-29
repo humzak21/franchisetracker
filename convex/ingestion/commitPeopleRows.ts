@@ -1,4 +1,4 @@
-/** Commits for the screens about people: awards, the draft, roster pages, transactions, injuries, cards. */
+/** Commits for the screens about people: awards, roster pages, transactions, injuries, cards. */
 import { AWARD_INFO, isWeekKey, type AwardType, type TransactionType } from "../../shared/domain";
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
@@ -103,52 +103,6 @@ export async function commitYearlyAwards(ctx: MutationCtx, commit: RowCommit): P
       teamId,
       statLine: textOf(row, "statLine"),
     });
-  }
-  return {};
-}
-
-/** Draft picks upserted by overall pick; every pick becomes a player with the draft slot on them. */
-export async function commitDraftResults(ctx: MutationCtx, commit: RowCommit): Promise<RowCommitResult> {
-  const team = teamCache(ctx);
-  for (const row of commit.rows) {
-    const overall = numberOf(row, "overall");
-    const round = numberOf(row, "round");
-    if (!row.teamAbbr || overall === undefined || round === undefined) continue;
-    const t = await team(row.teamAbbr);
-    const player = await rowPlayer(ctx, commit, row, t._id, {
-      fields: {
-        ovr: numberOf(row, "ovr"),
-        exp: 0,
-        acquisition: { type: "draft", year: commit.season.year, detail: `Round ${round}, pick ${overall}` },
-      },
-    });
-    const college = textOf(row, "college");
-    const bio: Partial<Doc<"players">> = {};
-    if (!player.draft) bio.draft = { year: commit.season.year, round, pick: overall, teamId: t._id };
-    if (!player.college && college) bio.college = college;
-    if (Object.keys(bio).length > 0) await ctx.db.patch("players", player._id, bio);
-    const fields = {
-      round,
-      overall,
-      pickInRound: numberOf(row, "pickInRound"),
-      teamId: t._id,
-      playerId: player._id,
-      rawName: row.name ?? undefined,
-      position: positionOf(row) ?? player.position,
-      ovrAtDraft: numberOf(row, "ovr"),
-      college,
-    };
-    const existing = await ctx.db
-      .query("draftPicks")
-      .withIndex("by_seasonId_and_overall", (q) => q.eq("seasonId", commit.season._id).eq("overall", overall))
-      .first();
-    if (existing) await ctx.db.patch("draftPicks", existing._id, fields);
-    else
-      await ctx.db.insert("draftPicks", {
-        franchiseId: commit.franchise._id,
-        seasonId: commit.season._id,
-        ...fields,
-      });
   }
   return {};
 }

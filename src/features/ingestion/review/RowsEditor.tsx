@@ -75,7 +75,7 @@ export function RowsEditor() {
         <ul className="@container grid gap-3 @3xl:grid-cols-2">
           {draft.rows.map((row) => (
             <li key={row.id}>
-              <RowCard row={row} fields={fields} player={spec.player} rowTeam={spec.rowTeam} />
+              <RowCard row={row} spec={spec} fields={fields} />
             </li>
           ))}
         </ul>

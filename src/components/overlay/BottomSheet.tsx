@@ -9,6 +9,12 @@ type BottomSheetProps = {
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
+  /**
+   * The sheet is for typing (a player search): it keeps one height as results come and go, only
+   * its handle drags it closed (so selecting text or scrolling results cannot dismiss it), and it
+   * does not resize itself around the phone keyboard.
+   */
+  textEntry?: boolean;
   className?: string;
 };
 
@@ -23,19 +29,29 @@ export function BottomSheet({
   description,
   children,
   footer,
+  textEntry = false,
   className,
 }: BottomSheetProps) {
   return (
-    <Drawer.Root open={open} onOpenChange={onOpenChange}>
+    <Drawer.Root open={open} onOpenChange={onOpenChange} handleOnly={textEntry} repositionInputs={!textEntry}>
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-50 bg-black/50" />
         <Drawer.Content
           className={cn(
             "fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[88dvh] w-full max-w-xl flex-col rounded-t-2xl border border-b-0 border-border-strong bg-surface outline-none",
+            textEntry && "h-[min(88dvh,44rem)]",
             className,
           )}
         >
-          <div aria-hidden className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-surface-3" />
+          {textEntry ? (
+            // vaul styles its handle unlayered, so the token color and size go inline to win.
+            <Drawer.Handle
+              className="mt-2.5 shrink-0"
+              style={{ background: "var(--color-surface-3)", height: 4, width: 40, opacity: 1 }}
+            />
+          ) : (
+            <div aria-hidden className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-surface-3" />
+          )}
           <div className="px-5 pt-3 pb-2">
             <Drawer.Title className="font-display text-xl font-semibold tracking-wide uppercase">
               {title}

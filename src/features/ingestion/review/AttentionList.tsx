@@ -1,6 +1,7 @@
 import { CircleAlert, Info, TriangleAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Id } from "@convex/_generated/dataModel";
+import { isRowDraft, rowTarget } from "@shared/ingestion/targets";
 import type { DraftWarning, PlayerMatch } from "@shared/ingestion/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -110,7 +111,11 @@ export function AttentionList() {
                       aria-label={`Assign ${candidate.name} for ${item.label}`}
                       onClick={() => {
                         update((d) =>
-                          choosePlayerAt(d, base, { _id: candidate.playerId, name: candidate.name }),
+                          choosePlayerAt(d, base, {
+                            kind: "player",
+                            _id: candidate.playerId,
+                            name: candidate.name,
+                          }),
                         );
                         confirm(item.path);
                       }}
@@ -151,6 +156,7 @@ export function AttentionList() {
           printedName={String(getAt(draft, `${picking}.name`) ?? "")}
           match={pickedMatch}
           value={getAt(draft, `${picking}.playerId`) as Id<"players"> | null}
+          prospects={isRowDraft(draft) && rowTarget(draft.target).spec.newPlayers}
           onChange={(player) => {
             update((d) => choosePlayerAt(d, picking, player));
             confirm(`${picking}.name`);

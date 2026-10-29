@@ -24,6 +24,8 @@ import { cacheHeadshots } from "../external/media";
 
 /** Detailed lookups per league per search: enough to tell namesakes apart. */
 const DETAILED = 4;
+/** A typed search in review lists a few more, since the name may be partial. */
+const PROSPECT_HITS = 6;
 const MAX_SUGGEST = 60;
 const MAX_ENTRIES = 60;
 
@@ -97,8 +99,8 @@ export const subjects = internalQuery({
 });
 
 /** Detailed candidates for a name in one league. */
-async function candidates(name: string, league: EspnLeague): Promise<Candidate[]> {
-  const hits = await searchAthletes(name, league, DETAILED);
+async function candidates(name: string, league: EspnLeague, limit = DETAILED): Promise<Candidate[]> {
+  const hits = await searchAthletes(name, league, limit);
   const athletes = await Promise.all(hits.map((h) => fetchAthlete(h.espnId, league)));
   return athletes.filter((a): a is EspnAthlete => a !== null).map(toCandidate);
 }
@@ -124,6 +126,18 @@ export const search = action({
     const nflIds = new Set(nfl?.map((c) => c.espnId));
     const all = [...(nfl ?? []), ...(college ?? []).filter((c) => !nflIds.has(c.espnId))];
     return rankCandidates({ ...subject, name }, all);
+  },
+});
+
+/** College football players matching typed text, for picking a drafted player in review. */
+export const prospects = action({
+  args: { text: v.string() },
+  returns: v.array(vCandidate),
+  handler: async (ctx, { text }) => {
+    await requireOwnerAction(ctx);
+    const name = text.trim();
+    if (name.length < 3) return [];
+    return await candidates(name, "college", PROSPECT_HITS);
   },
 });
 
