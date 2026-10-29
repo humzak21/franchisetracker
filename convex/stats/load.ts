@@ -6,8 +6,8 @@ import { weekIndex, weekPhase } from "../../shared/domain";
 import type { SeasonRow, StatLine } from "../../shared/stats";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
+import { MAX_SEASONS } from "../lib/franchise";
 
-const MAX_SEASONS = 100;
 const MAX_GAMES_PER_SEASON = 40;
 /** A season's worth of one team's players, with room for trades and the practice squad. */
 const MAX_ROWS_PER_SEASON_TEAM = 300;

@@ -6,9 +6,8 @@ import { toTeamRef, vTeamRef } from "../lib/refs";
 import { vSeasonStatus } from "../lib/validators";
 import schema from "../schema";
 import { deactivateAll } from "./create";
+import { MAX_SEASONS } from "../lib/franchise";
 
-/** Upper bound on seasons per franchise read in one query. */
-const MAX_SEASONS = 100;
 /** One owner keeps a handful of franchises; the switcher lists them all. */
 const MAX_FRANCHISES = 50;
 

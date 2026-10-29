@@ -1,17 +1,23 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, FileText, Landmark, ScrollText, type LucideIcon } from "lucide-react";
+import { Camera, ChevronRight, FileText, Landmark, ScrollText, type LucideIcon } from "lucide-react";
+import { useCallback, useState } from "react";
 import { api } from "@convex/_generated/api";
+import type { Doc } from "@convex/_generated/dataModel";
 import { isPreFranchise } from "@shared/history/nflverse";
 import { byDecade, totalsOf, trophyRoom } from "@shared/history/trophies";
 import { formatRecord, winPct } from "@shared/stats";
+import { useCapture } from "@/app/capture/CaptureProvider";
 import { Tile, TileStrip } from "@/components/data/Tile";
+import { ManualEntryLink } from "@/components/forms/ManualEntryLink";
 import { Page } from "@/components/layout/Page";
 import { Section } from "@/components/layout/Section";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
+import { useQuery } from "@/lib/convex/useQuery";
 import { DecadeGrid } from "./DecadeGrid";
 import { EditHistory } from "./EditHistory";
+import { EditSeasonSheet } from "./EditSeasonSheet";
 import { TrophyRoom } from "./TrophyRoom";
-import { useQuery } from "@/lib/convex/useQuery";
 
 const PLACES: { to: string; icon: LucideIcon; title: string; description: string }[] = [
   {
@@ -60,6 +66,9 @@ function Places() {
 /** Franchise history home: reports, Hall of Fame and timeline, all-time totals, the trophy room and decade grids. */
 export function HistoryScreen() {
   const data = useQuery(api.history.trophies.overview, {});
+  const capture = useCapture();
+  const [editing, setEditing] = useState<Doc<"seasons"> | null>(null);
+  const onEdit = useCallback((season: Doc<"seasons">) => setEditing(season), []);
 
   if (data === undefined) {
     return (
@@ -77,6 +86,7 @@ export function HistoryScreen() {
   const totals = totalsOf(played);
   const pct = winPct(totals);
   const room = trophyRoom(data.seasons, data.entries, data.startYear);
+  const firstSeasonId = data.seasons.find((s) => s.year === data.startYear)?._id;
 
   return (
     <Page title="History" eyebrow={`Since ${data.seasons[0]?.year ?? data.startYear}`}>
@@ -111,16 +121,44 @@ export function HistoryScreen() {
           <TrophyRoom room={room} />
         </Section>
 
-        {byDecade(data.seasons).map(({ decade, seasons, totals: decadeTotals }) => (
-          <Section
-            key={decade}
-            title={`${decade}s`}
-            description={`${formatRecord(decadeTotals)} · ${decadeTotals.playoffs} playoff trips`}
-          >
-            <DecadeGrid seasons={seasons} totals={decadeTotals} startYear={data.startYear} />
-          </Section>
-        ))}
+        <Section
+          title="Seasons"
+          description="Seasons before the real NFL import come from your team's history: a screenshot, a CSV or typed in."
+          actions={
+            <>
+              <Button size="sm" variant="outline" onClick={() => capture.open({ targetKey: "team_history" })}>
+                <Camera /> <span className="max-sm:sr-only">Capture history</span>
+              </Button>
+              <ManualEntryLink target="team_history" seasonId={firstSeasonId} label="Type or import" />
+            </>
+          }
+        >
+          <div className="space-y-10">
+            {byDecade(data.seasons).map(({ decade, seasons, totals: decadeTotals }) => (
+              <Section
+                key={decade}
+                title={`${decade}s`}
+                description={`${formatRecord(decadeTotals)} · ${decadeTotals.playoffs} playoff trips`}
+              >
+                <DecadeGrid
+                  seasons={seasons}
+                  totals={decadeTotals}
+                  startYear={data.startYear}
+                  onEdit={onEdit}
+                />
+              </Section>
+            ))}
+          </div>
+        </Section>
       </div>
+      {editing && (
+        <EditSeasonSheet
+          key={editing._id}
+          season={editing}
+          real={isPreFranchise(editing.year, data.startYear)}
+          onClose={() => setEditing(null)}
+        />
+      )}
     </Page>
   );
 }

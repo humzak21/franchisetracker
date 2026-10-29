@@ -3,6 +3,9 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { must } from "./errors";
 
+/** Every season a franchise can hold: real history back to 1920 plus a long franchise run. */
+export const MAX_SEASONS = 150;
+
 /** 32 teams today; headroom without becoming unbounded. */
 const MAX_TEAMS = 64;
 

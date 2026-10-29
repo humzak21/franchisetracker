@@ -67,7 +67,7 @@ export function decadeOf(year: number): number {
   return Math.floor(year / 10) * 10;
 }
 
-/** Seasons grouped by decade (oldest first) with totals per decade. */
+/** Seasons grouped by decade, the latest decade first, each in year order with its totals. */
 export function byDecade<T extends SeasonRecordLike>(
   seasons: readonly T[],
 ): { decade: number; seasons: T[]; totals: DecadeTotals }[] {
@@ -76,7 +76,9 @@ export function byDecade<T extends SeasonRecordLike>(
     const decade = decadeOf(season.year);
     groups.set(decade, [...(groups.get(decade) ?? []), season]);
   }
-  return [...groups.entries()].map(([decade, list]) => ({ decade, seasons: list, totals: totalsOf(list) }));
+  return [...groups.entries()]
+    .sort(([a], [b]) => b - a)
+    .map(([decade, list]) => ({ decade, seasons: list, totals: totalsOf(list) }));
 }
 
 export function totalsOf(seasons: readonly SeasonRecordLike[]): DecadeTotals {

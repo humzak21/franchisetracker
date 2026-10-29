@@ -6,6 +6,7 @@
 import type { RowTargetKey } from "../../shared/ingestion/rows/targets";
 import { fixtureLeagueTeams } from "./fixtureLeagueTeams";
 import { fixtureSchedule } from "./fixtureSchedule";
+import { FIXTURE_TEAM_HISTORY } from "./fixtureTeamHistory";
 
 const sure = { confidence: 0.95, unclear_fields: [] as string[] };
 const unsure = (...fields: string[]) => ({ confidence: 0.7, unclear_fields: fields });
@@ -86,6 +87,8 @@ export function fixtureRows(
           { rank: 3, name: "Kevin Greene", team: "PIT", year: 1999, value: 160, ...unsure("team") },
         ],
       };
+    case "team_history":
+      return FIXTURE_TEAM_HISTORY;
     case "team_season_stats":
       return {
         team: us,
