@@ -129,6 +129,7 @@ import type * as ops_exportData from "../ops/exportData.js";
 import type * as ops_restoreData from "../ops/restoreData.js";
 import type * as players_activity from "../players/activity.js";
 import type * as players_cap from "../players/cap.js";
+import type * as players_carryOver from "../players/carryOver.js";
 import type * as players_compare from "../players/compare.js";
 import type * as players_create from "../players/create.js";
 import type * as players_directory from "../players/directory.js";
@@ -316,6 +317,7 @@ declare const fullApi: ApiFromModules<{
   "ops/restoreData": typeof ops_restoreData;
   "players/activity": typeof players_activity;
   "players/cap": typeof players_cap;
+  "players/carryOver": typeof players_carryOver;
   "players/compare": typeof players_compare;
   "players/create": typeof players_create;
   "players/directory": typeof players_directory;

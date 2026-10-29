@@ -73,7 +73,10 @@ export async function upsertGame(
           overtime: header.overtime,
           status: "played" as const,
         }
-      : {}),
+      : // A game captured for a week marked as a bye replaces the bye.
+        existing?.status === "bye"
+        ? { status: "scheduled" as const }
+        : {}),
     ...(header.lineScore ? { lineScore: header.lineScore } : {}),
     ...(isPlayoffRound(weekKey) ? { playoffRound: weekKey } : {}),
   };

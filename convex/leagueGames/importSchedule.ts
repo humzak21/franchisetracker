@@ -13,7 +13,7 @@ import type { Doc } from "../_generated/dataModel";
 import { action, internalMutation, internalQuery } from "../_generated/server";
 import { fetchText } from "../history/importStep";
 import { findGame, refreshSeasonRecord, teamByAbbr } from "../ingestion/commitGame";
-import { upsertUserGame, upsertWeekGames, type WeekGame } from "../ingestion/commitSchedule";
+import { recordUserBye, upsertUserGame, upsertWeekGames, type WeekGame } from "../ingestion/commitSchedule";
 import { requireOwnerAction } from "../lib/auth";
 import { invalid, notFound } from "../lib/errors";
 import { activeFranchise } from "../lib/franchise";
@@ -72,6 +72,7 @@ export const write = internalMutation({
       }
       const userGame = await upsertWeekGames(ctx, franchise, seasonId, weekKey, week);
       if (userGame && !ownGame) await upsertUserGame(ctx, franchise, { seasonId, weekKey }, userGame);
+      if (!userGame) await recordUserBye(ctx, franchise, { seasonId, weekKey });
     }
     await refreshSeasonRecord(ctx, seasonId);
     return { weeks: weeks.length - skipped, skipped };

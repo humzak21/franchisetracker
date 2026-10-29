@@ -105,7 +105,7 @@ export const ROW_TARGETS = {
   }),
   league_schedule: rows({
     label: "Schedule / scores",
-    goesTo: "League → Season → Scores",
+    goesTo: "Schedule (your games and bye) and League → Season → Scores",
     description: "A week's games across the league (or several weeks at once), with final scores once played",
     scope: "week",
     multiImage: true,
