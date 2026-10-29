@@ -17,7 +17,7 @@ async function setup() {
   const seasonId = active.seasons.find((s) => s.year === SAMPLE_START_YEAR)!._id;
   const { games } = await owner.query(api.games.schedule.bySeason, { seasonId });
   const week1 = games.find((g) => g.weekKey === "w1")!;
-  return { t, owner, week1 };
+  return { t, owner, seasonId, week1 };
 }
 
 describe("games/stars", () => {
@@ -56,6 +56,53 @@ describe("games/stars", () => {
     expect((await owner.query(api.games.schedule.get, { gameId: week1._id }))?.stars).toHaveLength(4);
     await owner.mutation(api.games.stars.setStars, { gameId: week1._id, stars: [] });
     expect((await owner.query(api.games.schedule.get, { gameId: week1._id }))?.stars).toEqual([]);
+  });
+
+  test("each star carries their line from the box score, already-picked stars included", async () => {
+    const { t, owner, seasonId, week1 } = await setup();
+    const candidates = await owner.query(api.games.stars.candidates, { gameId: week1._id });
+    const maye = candidates.find((c) => c.name === "Drake Maye")!;
+    // Stars saved before stat lines were shown get them too: nothing about the star is stored.
+    await t.run((ctx) =>
+      ctx.db.patch("games", week1._id, { stars: [{ playerId: maye.playerId }, { rawName: "Maxx Crosby" }] }),
+    );
+    const line = await t.run((ctx) =>
+      ctx.db
+        .query("gameStatLines")
+        .withIndex("by_gameId_and_playerId", (q) => q.eq("gameId", week1._id).eq("playerId", maye.playerId))
+        .first(),
+    );
+    const { passCmp, passAtt, passYds, passTd } = line!.stats;
+    const detail = await owner.query(api.games.schedule.get, { gameId: week1._id });
+    expect(detail?.stars[0]?.statLine).toMatch(
+      new RegExp(`^${passCmp}/${passAtt}, [\\d.]+%, ${passYds} yds, ${passTd} TD`),
+    );
+    expect(detail?.stars[1]?.statLine).toBeNull();
+    const { games } = await owner.query(api.games.schedule.bySeason, { seasonId });
+    expect(games.find((g) => g._id === week1._id)?.stars[0]?.statLine).toBe(detail?.stars[0]?.statLine);
+  });
+
+  test("the backfill clears typed stat lines that the box score now gives, and keeps notes", async () => {
+    const { t, owner, week1 } = await setup();
+    const candidates = await owner.query(api.games.stars.candidates, { gameId: week1._id });
+    const id = (name: string) => candidates.find((c) => c.name === name)!.playerId;
+    const before = [
+      { playerId: id("Drake Maye"), caption: "22/30, 284 yds, 3 TD" },
+      { playerId: id("Stefon Diggs"), caption: "Iced it on third down" },
+      { rawName: "Maxx Crosby", caption: "2 sacks" },
+    ];
+    await t.run((ctx) => ctx.db.patch("games", week1._id, { stars: before }));
+    const preview = await t.mutation(internal.games.clearTypedStarLines.run, { dryRun: true });
+    expect(preview).toEqual([{ year: SAMPLE_START_YEAR, weekKey: "w1", caption: "22/30, 284 yds, 3 TD" }]);
+    expect((await t.run((ctx) => ctx.db.get("games", week1._id)))?.stars).toEqual(before);
+
+    await t.mutation(internal.games.clearTypedStarLines.run, {});
+    expect((await t.run((ctx) => ctx.db.get("games", week1._id)))?.stars).toEqual([
+      { playerId: id("Drake Maye") },
+      before[1],
+      before[2],
+    ]);
+    expect(await t.mutation(internal.games.clearTypedStarLines.run, {})).toEqual([]);
   });
 
   test("refuses blank or duplicate stars", async () => {

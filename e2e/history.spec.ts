@@ -24,6 +24,27 @@ test("real-history titles can be added and removed", async ({ page }) => {
   await expect(row).toHaveCount(0);
 });
 
+test("a saved season edits from its pencil, and the decade grid shows it", async ({ page }) => {
+  await page.goto("/history");
+  await page.getByRole("button", { name: "Edit 2024" }).click();
+  const sheet = page.getByRole("dialog", { name: "Edit 2024" });
+  await sheet.getByLabel("Note").fill("Edited in a smoke test");
+  await sheet.getByRole("button", { name: "Save" }).click();
+  await expect(sheet).toHaveCount(0);
+  await expect(page.getByText("Edited in a smoke test")).toBeVisible();
+  await page.getByRole("button", { name: "Edit 2024" }).click();
+  await page.getByRole("dialog", { name: "Edit 2024" }).getByLabel("Note").fill("");
+  await page.getByRole("dialog", { name: "Edit 2024" }).getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Edited in a smoke test")).toHaveCount(0);
+});
+
+test("team history can be captured or typed in from History", async ({ page }) => {
+  await page.goto("/history");
+  await expect(page.getByRole("button", { name: "Capture history" })).toBeVisible();
+  await page.getByRole("link", { name: "Type or import" }).click();
+  await expect(page).toHaveURL(/target=team_history/);
+});
+
 test("a season in the decade grid opens that season's schedule", async ({ page }) => {
   await page.goto("/history");
   await page.getByText("2027", { exact: true }).first().click();

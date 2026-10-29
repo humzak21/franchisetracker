@@ -1,15 +1,20 @@
 import { useNavigate } from "@tanstack/react-router";
+import { Pencil } from "lucide-react";
 import { useMemo } from "react";
 import type { Doc } from "@convex/_generated/dataModel";
-import { formatSchemes, PLAYOFF_RESULT_LABELS } from "@shared/domain";
+import { formatSchemes } from "@shared/domain";
 import { isPreFranchise } from "@shared/history/nflverse";
+import { finishTiers, playoffFinishLabel } from "@shared/history/seasonRecord";
 import type { DecadeTotals } from "@shared/history/trophies";
 import { formatOrdinal, formatRecord } from "@shared/stats";
 import { useSeason } from "@/app/season";
 import { DataTable, type DataColumn } from "@/components/data/DataTable";
-import { StaffLine } from "@/components/team/StaffLine";
-import { Badge } from "@/components/ui/misc";
+import { Highlight } from "@/components/data/Highlight";
+import { Button } from "@/components/ui/button";
 import { useElementWidth } from "@/lib/hooks/useElementWidth";
+import { DecadeSeasonCard } from "./DecadeSeasonCard";
+import { PlayoffFinish } from "./PlayoffFinish";
+import { RealBadge } from "./RealBadge";
 
 type Season = Doc<"seasons">;
 type Row = Season | { _id: "totals"; totals: DecadeTotals };
@@ -17,26 +22,15 @@ type Row = Season | { _id: "totals"; totals: DecadeTotals };
 const isTotals = (row: Row): row is { _id: "totals"; totals: DecadeTotals } => row._id === "totals";
 const rec = (row: Row) => (isTotals(row) ? row.totals : row.userRecord);
 
+/** The seed and playoff result as text, for sorting and search. */
 function result(season: Season): string {
   const r = season.userRecord;
   if (!r?.playoffResult) return "";
   const seed = r.seed ? `${formatOrdinal(r.seed)} seed · ` : "";
-  return `${seed}${PLAYOFF_RESULT_LABELS[r.playoffResult]}`;
+  return `${seed}${playoffFinishLabel(r.playoffResult, season.year)}`;
 }
 
-/** Marks a real NFL season from before the franchise (imported, not played). */
-function RealBadge() {
-  return (
-    <Badge
-      className="border border-dashed border-border-strong bg-transparent"
-      title="Real NFL season before the franchise"
-    >
-      NFL
-    </Badge>
-  );
-}
-
-const columns = (startYear: number): DataColumn<Row>[] => [
+const columns = (startYear: number, onEdit: (season: Season) => void): DataColumn<Row>[] => [
   {
     id: "year",
     header: "Year",
@@ -57,13 +51,28 @@ const columns = (startYear: number): DataColumn<Row>[] => [
     title: "Division finish",
     align: "right",
     value: (r) => (isTotals(r) ? null : (r.userRecord?.divisionRank ?? null)),
-    cell: (r) => (isTotals(r) || !r.userRecord?.divisionRank ? "" : formatOrdinal(r.userRecord.divisionRank)),
+    cell: (r) =>
+      isTotals(r) || !r.userRecord?.divisionRank ? (
+        ""
+      ) : (
+        <Highlight tier={finishTiers(r.userRecord).division}>
+          {formatOrdinal(r.userRecord.divisionRank)}
+        </Highlight>
+      ),
   },
   {
     id: "playoffs",
     header: "Playoffs",
     value: (r) => (isTotals(r) ? `${r.totals.playoffs} trips, ${r.totals.titles} titles` : result(r)),
-    minWidth: 220,
+    cell: (r) =>
+      isTotals(r) ? (
+        `${r.totals.playoffs} trips, ${r.totals.titles} titles`
+      ) : r.userRecord ? (
+        <PlayoffFinish year={r.year} record={r.userRecord} />
+      ) : (
+        ""
+      ),
+    minWidth: 300,
   },
   { id: "coach", header: "Coach", value: (r) => (isTotals(r) ? "" : (r.coaching?.headCoach ?? "")) },
   {
@@ -73,58 +82,49 @@ const columns = (startYear: number): DataColumn<Row>[] => [
     value: (r) => (isTotals(r) ? "" : formatSchemes(r.coaching)),
   },
   { id: "note", header: "Note", value: (r) => (isTotals(r) ? "" : (r.notes ?? "")), minWidth: 240 },
+  {
+    id: "edit",
+    header: "",
+    title: "Edit",
+    sortable: false,
+    value: () => null,
+    cell: (r) =>
+      isTotals(r) ? null : (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={`Edit ${r.year}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(r);
+          }}
+        >
+          <Pencil />
+        </Button>
+      ),
+  },
 ];
-
-function SeasonCard({ season, real, onOpen }: { season: Season; real: boolean; onOpen: () => void }) {
-  const r = season.userRecord;
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="w-full rounded-xl border border-border bg-surface p-4 text-left"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <span className="inline-flex items-center gap-2">
-          <span className="num font-display text-2xl font-bold">{season.year}</span>
-          {real && <RealBadge />}
-        </span>
-        <span className="num font-display text-2xl font-bold">{r ? formatRecord(r) : "—"}</span>
-      </div>
-      <div className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
-        {r?.divisionRank && <Badge>{formatOrdinal(r.divisionRank)} in division</Badge>}
-        {r?.playoffResult && (
-          <Badge
-            tone={
-              r.playoffResult === "champion" ? "solid" : r.playoffResult === "missed" ? "neutral" : "accent"
-            }
-          >
-            {PLAYOFF_RESULT_LABELS[r.playoffResult]}
-          </Badge>
-        )}
-      </div>
-      <StaffLine staff={season.coaching} className="mt-2 text-xs" />
-      {season.notes && <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{season.notes}</p>}
-    </button>
-  );
-}
 
 /**
  * One decade of seasons: a grid on wide screens, stacked season cards on phones. Real NFL seasons
  * before the franchise are marked and open their imported season stats; played ones open the schedule.
+ * Every season edits from its pencil.
  */
 export function DecadeGrid({
   seasons,
   totals,
   startYear,
+  onEdit,
 }: {
   seasons: Season[];
   totals: DecadeTotals;
   startYear: number;
+  onEdit: (season: Season) => void;
 }) {
   const { ref, compact } = useElementWidth<HTMLDivElement>();
   const { setYearFor } = useSeason();
   const navigate = useNavigate();
-  const cols = useMemo(() => columns(startYear), [startYear]);
+  const cols = useMemo(() => columns(startYear, onEdit), [startYear, onEdit]);
   const open = (season: Season) => {
     const to = isPreFranchise(season.year, startYear) ? "/stats" : "/schedule";
     setYearFor(to.slice(1), season.year);
@@ -136,11 +136,12 @@ export function DecadeGrid({
       {compact ? (
         <div className="space-y-2">
           {seasons.map((season) => (
-            <SeasonCard
+            <DecadeSeasonCard
               key={season._id}
               season={season}
               real={isPreFranchise(season.year, startYear)}
               onOpen={() => open(season)}
+              onEdit={() => onEdit(season)}
             />
           ))}
           <div className="num flex justify-between rounded-xl bg-surface-2 px-4 py-3 text-sm font-semibold">

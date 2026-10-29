@@ -11,6 +11,7 @@ const LANDING = {
   season_player_stats: "/stats/reconcile",
   league_leaders: "/stats",
   records_list: "/stats",
+  team_history: "/history",
   team_season_stats: "/stats",
   league_team_stats: "/stats",
   standings: "/league",

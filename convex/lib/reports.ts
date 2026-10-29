@@ -3,11 +3,10 @@ import { NEW_PROMPTS } from "../../shared/seasons/reports";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { invalid, must } from "./errors";
-import { activeFranchise } from "./franchise";
+import { activeFranchise, MAX_SEASONS } from "./franchise";
 
 /** A season's games: the schedule, byes and playoffs fit well under this. */
 const MAX_GAMES_PER_SEASON = 40;
-const MAX_SEASONS = 100;
 
 export async function seasonGames(ctx: QueryCtx, seasonId: Id<"seasons">): Promise<Doc<"games">[]> {
   return await ctx.db

@@ -3,12 +3,10 @@ import { TROPHY_KINDS } from "../../shared/history/trophies";
 import { mutation, query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { invalid, must } from "../lib/errors";
-import { activeFranchise } from "../lib/franchise";
+import { activeFranchise, MAX_SEASONS } from "../lib/franchise";
 import { literals } from "../lib/validators";
 import schema from "../schema";
 
-/** Real history plus the franchise run: comfortably under this. */
-const MAX_SEASONS = 100;
 const MAX_ENTRIES = 200;
 
 /** Seasons (with records, coaching and notes) and real-history trophy entries for the History screen. */

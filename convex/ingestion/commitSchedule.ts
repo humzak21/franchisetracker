@@ -1,10 +1,11 @@
 /**
  * Commit for the league schedule screen: one week's games across the league, upserted per
  * matchup into `leagueGames`. The user team's game also goes through the game path, so its
- * schedule row, score and the season record agree with the league view; every other team's
- * standings record is worked out again from the scores.
+ * schedule row, score and the season record agree with the league view (and a whole week without
+ * it is its bye); every other team's standings record is worked out again from the scores.
  */
 import { isWeekKey, weekLabel, type WeekKey } from "../../shared/domain";
+import { isByeWeekSlate } from "../../shared/league/byeWeek";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
@@ -87,6 +88,25 @@ export async function upsertWeekGames(
   return userGame;
 }
 
+/**
+ * Puts the user team's bye on its schedule for a week it is missing from, once the week holds a
+ * whole bye week's slate (`isByeWeekSlate`). A week that already has a game or bye is left alone;
+ * a game captured for the week later replaces a bye recorded here (`upsertGame`).
+ */
+export async function recordUserBye(
+  ctx: MutationCtx,
+  franchise: Doc<"franchises">,
+  context: { seasonId: Id<"seasons">; weekKey: WeekKey },
+) {
+  const { seasonId, weekKey } = context;
+  const games = await ctx.db
+    .query("leagueGames")
+    .withIndex("by_seasonId_and_weekKey", (q) => q.eq("seasonId", seasonId).eq("weekKey", weekKey))
+    .take(MAX_WEEK_GAMES);
+  if (!isByeWeekSlate(weekKey, games.length) || (await findGame(ctx, context))) return;
+  await ctx.db.insert("games", { franchiseId: franchise._id, seasonId, weekKey, status: "bye" });
+}
+
 /** The user team's game on its schedule, scored if the screen had the score. */
 export async function upsertUserGame(
   ctx: MutationCtx,
@@ -127,7 +147,10 @@ export async function commitLeagueSchedule(ctx: MutationCtx, commit: RowCommit):
   let userPlayed = false;
   for (const [weekKey, games] of byWeek) {
     const userGame = await upsertWeekGames(ctx, commit.franchise, seasonId, weekKey, games);
-    if (!userGame) continue;
+    if (!userGame) {
+      await recordUserBye(ctx, commit.franchise, { seasonId, weekKey });
+      continue;
+    }
     userPlayed = true;
     const game = await upsertUserGame(ctx, commit.franchise, { seasonId, weekKey }, userGame);
     await ctx.scheduler.runAfter(0, internal.stats.refresh.afterGame, { gameId: game._id, playerIds: [] });

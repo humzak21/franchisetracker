@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/misc";
 import { useQuery } from "@/lib/convex/useQuery";
 import { useSelection } from "@/lib/hooks/useSelection";
 import { AddPlayerSheet } from "./AddPlayerSheet";
+import { CarryOverButton } from "./CarryOverButton";
 import { FaceMatchSheet } from "./FaceMatchSheet";
 import { PositionTable } from "./PositionTable";
 import { RosterAverages } from "./RosterAverages";
@@ -134,6 +135,10 @@ export function RosterScreen() {
   const startYear = active?.franchise.startYear;
   const preFranchise =
     season !== undefined && startYear !== undefined && isPreFranchise(season.year, startYear);
+  const previousYear =
+    season && startYear !== undefined && season.year > startYear
+      ? active?.seasons.find((s) => s.year === season.year - 1)?.year
+      : undefined;
   const batchBar = moves.ready && !preFranchise && (
     <SelectionBar
       count={selection.picked.length}
@@ -183,7 +188,14 @@ export function RosterScreen() {
           description={
             preFranchise
               ? "Rosters before the franchise are not imported; each real player's seasons are on their own page."
-              : "Rosters come from the real NFL import for the first season and from roster screenshots. Add players by hand with Add player."
+              : previousYear !== undefined
+                ? `Starting a season brings the last one's roster along. This season started without it; bring the ${previousYear} roster over, then record the offseason's moves.`
+                : "Rosters come from the real NFL import for the first season and from roster screenshots. Add players by hand with Add player."
+          }
+          action={
+            season && previousYear !== undefined ? (
+              <CarryOverButton seasonId={season._id} fromYear={previousYear} />
+            ) : undefined
           }
         />
       ) : (

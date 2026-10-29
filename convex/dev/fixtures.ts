@@ -235,8 +235,8 @@ export const seedFixtures = internalMutation({
         opponentRecord: { w: ow, l: ol, t: 0 },
         notes: weekKey === "w1" ? "Maye opened the season hot: three touchdowns before halftime." : undefined,
         stars: [
-          { playerId: playerIds.get("Maye"), caption: "22/30, 284 yds, 3 TD" },
-          { playerId: playerIds.get("Diggs"), caption: "8 rec, 131 yds, 1 TD" },
+          { playerId: playerIds.get("Maye"), caption: "Three touchdowns before halftime" },
+          { playerId: playerIds.get("Diggs") },
           { rawName: "Opponent standout", caption: "2 sacks" },
         ],
         status: "played",

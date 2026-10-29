@@ -41,10 +41,10 @@ describe("trophies", () => {
     ]);
   });
 
-  it("groups seasons by decade with totals", () => {
+  it("groups seasons by decade, latest first, with totals", () => {
     const decades = byDecade(seasons);
-    expect(decades.map((d) => d.decade)).toEqual([2020, 2030]);
-    expect(decades[0]!.totals).toEqual({ w: 24, l: 10, t: 0, playoffs: 1, titles: 1 });
-    expect(decades[1]!.seasons.map((s) => s.year)).toEqual([2030, 2031]);
+    expect(decades.map((d) => d.decade)).toEqual([2030, 2020]);
+    expect(decades[1]!.totals).toEqual({ w: 24, l: 10, t: 0, playoffs: 1, titles: 1 });
+    expect(decades[0]!.seasons.map((s) => s.year)).toEqual([2030, 2031]);
   });
 });

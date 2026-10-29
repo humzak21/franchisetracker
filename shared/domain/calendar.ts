@@ -87,6 +87,10 @@ export type GameResult = (typeof GAME_RESULTS)[number];
 export const PLAYOFF_RESULTS = ["missed", "wc_loss", "div_loss", "conf_loss", "sb_loss", "champion"] as const;
 export type PlayoffResult = (typeof PLAYOFF_RESULTS)[number];
 
+export function isPlayoffResult(value: string): value is PlayoffResult {
+  return (PLAYOFF_RESULTS as readonly string[]).includes(value);
+}
+
 export const PLAYOFF_RESULT_LABELS: Record<PlayoffResult, string> = {
   missed: "Missed playoffs",
   wc_loss: "Lost Wild Card",

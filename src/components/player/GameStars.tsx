@@ -11,6 +11,8 @@ export type StarView = {
   position: string | null;
   headshotUrl: string | null;
   caption: string | null;
+  /** The star's numbers in the game, from its box score; null when it has none for them. */
+  statLine: string | null;
   /** The side the star played for, when known. */
   teamId: string | null;
 };
@@ -26,8 +28,9 @@ type GameStarsProps = {
 };
 
 /**
- * The stars of a game in the order they were picked, as many as the owner chose. Each links
- * to the player's page when the star is a player in the app.
+ * The stars of a game in the order they were picked, as many as the owner chose, each with
+ * their numbers from the box score. Each links to the player's page when the star is a player
+ * in the app.
  */
 export function GameStars({ stars, team, opponent, layout = "list" }: GameStarsProps) {
   if (stars.length === 0) {
@@ -40,6 +43,16 @@ export function GameStars({ stars, team, opponent, layout = "list" }: GameStarsP
     );
   }
   const teamOf = (star: StarView) => (opponent && star.teamId === opponent._id ? opponent : team);
+  // The list shows the numbers and the owner's caption; a chip has room for the numbers only.
+  const captionOf = (star: StarView, size: "sm" | "md") =>
+    size === "sm" ? (
+      star.statLine && <span className="num">{star.statLine}</span>
+    ) : star.statLine || star.caption ? (
+      <>
+        {star.statLine && <span className="num block truncate text-foreground/80">{star.statLine}</span>}
+        {star.caption && <span className="block truncate">{star.caption}</span>}
+      </>
+    ) : undefined;
   const entry = (star: StarView, size: "sm" | "md") => {
     const chip = (
       <PlayerChip
@@ -51,7 +64,7 @@ export function GameStars({ stars, team, opponent, layout = "list" }: GameStarsP
           team: teamOf(star),
         }}
         showPosition={star.position !== null}
-        caption={size === "md" ? star.caption : undefined}
+        caption={captionOf(star, size)}
       />
     );
     return star.playerId ? (
@@ -74,7 +87,7 @@ export function GameStars({ stars, team, opponent, layout = "list" }: GameStarsP
           <li
             key={`${star.name}-${i}`}
             className="flex min-w-0 items-center gap-1.5"
-            title={star.caption ?? undefined}
+            title={[star.statLine, star.caption].filter(Boolean).join(" · ") || undefined}
           >
             <span className="num text-xs font-semibold text-primary">{i + 1}</span>
             {entry(star, "sm")}

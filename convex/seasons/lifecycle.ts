@@ -9,6 +9,7 @@ import { mutation } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { invalid } from "../lib/errors";
 import { ownSeason, seasonByYear, seasonGames } from "../lib/reports";
+import { carryRostersOver } from "../players/carryOver";
 
 /**
  * Marks the Super Bowl week done for a season the user team is out of (or that ended without a
@@ -34,8 +35,8 @@ export const finish = mutation({
 });
 
 /**
- * Starts the next season after a finished one: same staff to begin with, no games, and a
- * pre-season report due. Returns the existing season when it was already added.
+ * Starts the next season after a finished one: same staff and every team's roster to begin with,
+ * no games, and a pre-season report due. Returns the existing season when it was already added.
  */
 export const advance = mutation({
   args: { seasonId: v.id("seasons") },
@@ -59,6 +60,7 @@ export const advance = mutation({
       prompts: NEW_PROMPTS,
       needs: [],
     });
+    await carryRostersOver(ctx, franchise, seasonId, nextId);
     return nextId;
   },
 });

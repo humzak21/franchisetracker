@@ -210,4 +210,46 @@ describe("league schedule", () => {
     );
     await expect(t.query(api.leagueGames.scores.weeks, { seasonId })).rejects.toThrow(/Sign in required/);
   });
+
+  test("a whole week without the user team is its bye, until its game turns up", async () => {
+    const { t, owner, seasonId } = await setup();
+    const teams = (await t.run((ctx) => ctx.db.query("teams").take(40))).map((team) => team.abbr);
+    const others = teams.filter((abbr) => abbr !== "NE");
+    const enter = async (matchups: [string, string][]) => {
+      const draftId = await owner.mutation(api.ingestion.manual.create, {
+        targetKey: "league_schedule",
+        seasonId,
+        weekKey: "w9",
+      });
+      const entry = (await owner.query(api.ingestion.manual.get, { draftId }))!;
+      if (!("rows" in entry.draft)) throw new Error("not a row draft");
+      const draft = entry.draft;
+      const rows = matchups.map(([awayTeam, homeTeam]) => {
+        const row = emptyRow(rowTarget("league_schedule").spec, draft);
+        return { ...row, values: { ...row.values, awayTeam, homeTeam } };
+      });
+      await owner.mutation(api.ingestion.manualCommit.commit, {
+        draftId,
+        draft: { ...draft, meta: { week: null }, rows },
+      });
+    };
+    const userWeek = () =>
+      t.run((ctx) =>
+        ctx.db
+          .query("games")
+          .withIndex("by_seasonId_and_weekKey", (q) => q.eq("seasonId", seasonId).eq("weekKey", "w9"))
+          .take(2),
+      );
+    const pairs = (count: number) =>
+      Array.from({ length: count }, (_, i) => [others[2 * i]!, others[2 * i + 1]!] as [string, string]);
+
+    // Twelve games could be part of a sixteen-game week, so they say nothing about a bye.
+    await enter(pairs(12));
+    expect(await userWeek()).toEqual([]);
+    await enter(pairs(13));
+    expect(await userWeek()).toMatchObject([{ status: "bye" }]);
+
+    await enter([["NE", others[26]!]]);
+    expect(await userWeek()).toMatchObject([{ status: "scheduled", userIsHome: false }]);
+  });
 });

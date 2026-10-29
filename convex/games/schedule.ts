@@ -13,7 +13,7 @@ import { mutation, query, type QueryCtx } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { invalid, must } from "../lib/errors";
 import { ownGame } from "./access";
-import { activeFranchise, teamsById } from "../lib/franchise";
+import { activeFranchise, teamsById, MAX_SEASONS } from "../lib/franchise";
 import {
   vGameRow,
   vLineScore,
@@ -30,7 +30,6 @@ import schema from "../schema";
 const MAX_GAMES_PER_SEASON = 40;
 /** Every meeting with one opponent across the franchise's lifetime. */
 const MAX_HEAD_TO_HEAD = 100;
-const MAX_SEASONS = 100;
 
 async function seasonGames(ctx: QueryCtx, seasonId: Id<"seasons">) {
   const games = await ctx.db

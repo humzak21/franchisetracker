@@ -2,13 +2,22 @@ import { describe, expect, it } from "vitest";
 import { draftFromStars, matching, starsInput } from "./starDraft";
 
 const stars = [
-  { playerId: "p1", name: "Drake Maye", position: "QB", headshotUrl: null, caption: "3 TD", teamId: "t1" },
+  {
+    playerId: "p1",
+    name: "Drake Maye",
+    position: "QB",
+    headshotUrl: null,
+    caption: "3 TD",
+    statLine: null,
+    teamId: "t1",
+  },
   {
     playerId: null,
     name: "Opponent standout",
     position: null,
     headshotUrl: null,
     caption: null,
+    statLine: null,
     teamId: null,
   },
 ];

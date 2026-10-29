@@ -14,6 +14,7 @@ import {
 import { leagueTeamStatsSpec } from "./leagueTeamSpec";
 import { recordsListSpec } from "./recordsSpec";
 import { leagueScheduleSpec } from "./scheduleSpec";
+import { teamHistorySpec } from "./teamHistorySpec";
 import { leagueLeadersSpec, seasonPlayerStatsSpec, standingsSpec, teamSeasonStatsSpec } from "./statSpecs";
 import type { RowSpec } from "./types";
 
@@ -67,6 +68,18 @@ export const ROW_TARGETS = {
       "This is a list of real NFL records from a website or book, not a Madden screen: players ranked in one stat. Set `book` (league for an NFL-wide list, team for one franchise's), `scope` (game, season or career, from the title), `split` (postseason only for a playoff list) and `stat`. Return one row per player with the rank, the player's name, the team (for a career, the team named, else the one he is best known with), the season (for a career, the last season) and the number.",
     spec: recordsListSpec,
   }),
+  team_history: rows({
+    label: "Team history",
+    goesTo: "History → the decade grids and trophy room",
+    description:
+      "Your team's season-by-season results before the franchise: record, division finish, seed, playoff result, coach",
+    // Each row names its season; the set is filed under one like any season screen and commits without it.
+    scope: "season",
+    multiImage: true,
+    instructions:
+      "This is your team's year-by-year history from a website, book or spreadsheet, not a Madden screen: one line per season with the record and how it ended. Return one row per season with the season year (the year it kicked off), wins, losses, ties, division finish, playoff seed, playoff result (missed, the round lost in, or champion), head coach, points for and against, and any note. Use null for anything not shown.",
+    spec: teamHistorySpec,
+  }),
   team_season_stats: rows({
     label: "Team season stats",
     goesTo: "Stats → Team",
@@ -105,7 +118,7 @@ export const ROW_TARGETS = {
   }),
   league_schedule: rows({
     label: "Schedule / scores",
-    goesTo: "League → Season → Scores",
+    goesTo: "Schedule (your games and bye) and League → Season → Scores",
     description: "A week's games across the league (or several weeks at once), with final scores once played",
     scope: "week",
     multiImage: true,
