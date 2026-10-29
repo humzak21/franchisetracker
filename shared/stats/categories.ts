@@ -1,6 +1,8 @@
 /** Which stats a table shows: the ones with data, and the few that stay visible on a phone. */
+import type { PositionGroup } from "../domain/positions";
 import { statValue } from "./aggregate";
 import {
+  CATEGORY_GROUPS,
   isRawStatKey,
   STAT_REGISTRY,
   statsInCategory,
@@ -20,6 +22,38 @@ export const CATEGORY_PRIMARY: Record<StatCategory, StatKey[]> = {
   returns: ["kickReturnYds", "puntReturnYds"],
   fantasy: ["fantasyPts"],
 };
+
+/**
+ * The skill positions' main stats, in the order their tables lead with: a receiver's catches
+ * before his carries, a back's carries before his catches. Fantasy points follow the first.
+ */
+const MAIN_CATEGORIES: Partial<Record<PositionGroup, readonly StatCategory[]>> = {
+  QB: ["passing", "rushing"],
+  RB: ["rushing", "receiving"],
+  WR: ["receiving", "rushing"],
+  TE: ["receiving", "rushing"],
+};
+
+/**
+ * Categories in the order a player's tables show them: his position's main stats first (a QB's
+ * passing, a back's rushing, a receiver's receiving), then the rest of his own categories, then
+ * everything else, each group in the order given. Fantasy points come right after the main
+ * stats for a QB, RB, WR or TE and last for everyone else; it is only placed if it was given.
+ */
+export function categoriesForPosition(
+  group: PositionGroup,
+  categories: readonly StatCategory[],
+): StatCategory[] {
+  const given = new Set(categories);
+  const main = (MAIN_CATEGORIES[group] ?? []).filter((c) => given.has(c));
+  const others = categories.filter((c) => c !== "fantasy" && !main.includes(c));
+  const own = others.filter((c) => CATEGORY_GROUPS[c].includes(group));
+  const rest = others.filter((c) => !own.includes(c));
+  const fantasy: StatCategory[] = given.has("fantasy") ? ["fantasy"] : [];
+  return main.length > 0
+    ? [main[0]!, ...fantasy, ...main.slice(1), ...own, ...rest]
+    : [...own, ...rest, ...fantasy];
+}
 
 type Row = { line: StatLine; games?: number };
 

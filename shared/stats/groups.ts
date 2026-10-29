@@ -4,6 +4,7 @@
  * keeps in the table.
  */
 import type { PositionGroup } from "../domain/positions";
+import { categoriesForPosition } from "./categories";
 import type { StatCategory, StatKey } from "./registry";
 import type { GameThresholdKey } from "./thresholds";
 
@@ -26,7 +27,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     id: "qb",
     label: "QB",
     positions: ["QB"],
-    categories: ["passing", "rushing", "fantasy"],
+    categories: categoriesForPosition("QB", ["passing", "rushing", "fantasy"]),
     phone: ["passCmp", "passAtt", "passYds", "passTd", "passInt", "passRating"],
     lead: "passYds",
     counts: ["pass300", "pass3td", "perfectRating", "rush100"],
@@ -35,7 +36,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     id: "rb",
     label: "RB",
     positions: ["RB"],
-    categories: ["rushing", "receiving", "fantasy"],
+    categories: categoriesForPosition("RB", ["rushing", "receiving", "fantasy"]),
     phone: ["rushAtt", "rushYds", "rushTd", "rushAvg", "fantasyPts"],
     lead: "rushYds",
     counts: ["rush100", "rec100", "rec5", "scrimmage2td"],
@@ -44,7 +45,7 @@ export const STAT_GROUPS: readonly StatGroup[] = [
     id: "wrte",
     label: "WR/TE",
     positions: ["WR", "TE"],
-    categories: ["receiving", "rushing", "fantasy"],
+    categories: categoriesForPosition("WR", ["receiving", "rushing", "fantasy"]),
     phone: ["rec", "recYds", "recTd", "recAvg", "fantasyPts"],
     lead: "recYds",
     counts: ["rec100", "rec5", "rush100", "scrimmage2td"],

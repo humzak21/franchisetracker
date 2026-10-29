@@ -1,7 +1,12 @@
 /** Compare screen math (FEATURES.md 5.4): which stats two to four careers share, and the radar. Pure. */
 import { positionGroupOf, type Position } from "../domain/positions";
 import { statValue } from "../stats/aggregate";
-import { CATEGORY_PRIMARY, categoriesPlayed, statsWithData } from "../stats/categories";
+import {
+  CATEGORY_PRIMARY,
+  categoriesForPosition,
+  categoriesPlayed,
+  statsWithData,
+} from "../stats/categories";
 import {
   CATEGORY_GROUPS,
   RAW_STAT_CATEGORIES,
@@ -18,22 +23,19 @@ const MIN_AXES = 3;
 /**
  * Stat keys for the comparison table: the categories that belong to any of the players'
  * positions and that someone played (a quarterback's stray tackle or two career punts do not
- * add a block). The first player's own categories come first, registry order within each, and
- * fantasy points last.
+ * add a block), in the first player's order (`categoriesForPosition`: his main stats first,
+ * fantasy points right after them for a QB, RB, WR or TE, else last).
  */
 export function compareStats(positions: readonly Position[], careers: readonly Career[]): StatKey[] {
   const groups = positions.map(positionGroupOf);
   const lead = groups[0];
   const relevant = RAW_STAT_CATEGORIES.filter((c) => groups.some((g) => CATEGORY_GROUPS[c].includes(g)));
-  const ordered = [
-    ...relevant.filter((c) => lead && CATEGORY_GROUPS[c].includes(lead)),
-    ...relevant.filter((c) => !lead || !CATEGORY_GROUPS[c].includes(lead)),
-  ];
-  const played = ordered.filter((c) =>
+  const played = relevant.filter((c) =>
     careers.some((career) => categoriesPlayed([c], career.totals).length > 0),
   );
+  if (played.length === 0) return [];
   return statsWithData(
-    played.length > 0 ? [...played, "fantasy"] : [],
+    lead ? categoriesForPosition(lead, [...played, "fantasy"]) : [...played, "fantasy"],
     careers.map((c) => ({ line: c.totals, games: c.games })),
   );
 }
@@ -45,7 +47,11 @@ export function compareStats(positions: readonly Position[], careers: readonly C
 export function radarAxes(stats: readonly StatKey[]): StatKey[] {
   const defining = new Set<StatKey>(Object.values(CATEGORY_PRIMARY).flat());
   const axes = stats
-    .filter((k) => defining.has(k) && STAT_REGISTRY[k].better === "higher")
+    // Fantasy points sum the other axes, so they would only repeat them.
+    .filter(
+      (k) =>
+        defining.has(k) && STAT_REGISTRY[k].better === "higher" && STAT_REGISTRY[k].category !== "fantasy",
+    )
     .slice(0, MAX_AXES);
   return axes.length >= MIN_AXES ? axes : [];
 }

@@ -23,11 +23,11 @@ for (const theme of ["dark", "light"] as const) {
 test("season stats add up from the sample box scores", async ({ page }) => {
   await openView(page, "Season");
   await page.getByRole("radio", { name: "Regular season" }).click();
-  await page.getByRole("radio", { name: "QB", exact: true }).click();
+  // Every position group's table is on the page at once, no tabs.
   const table = page.getByRole("table", { name: "QB season stats" });
   await expect(table.getByText("Drake Maye")).toBeVisible();
   await expect(table.getByText("1,403")).toBeVisible();
-  await page.getByRole("radio", { name: "RB", exact: true }).click();
+  await expect(page.getByRole("radio", { name: "RB", exact: true })).toHaveCount(0);
   await expect(
     page.getByRole("table", { name: "RB season stats" }).getByText("TreVeyon Henderson"),
   ).toBeVisible();
@@ -35,7 +35,6 @@ test("season stats add up from the sample box scores", async ({ page }) => {
 
 test("league stats put our players beside the league's, with fantasy points", async ({ page }, testInfo) => {
   await openView(page, "League");
-  await page.getByRole("radio", { name: "QB", exact: true }).click();
   const table = page.getByRole("table", { name: "QB league stats" });
   await expect(table.getByText("Drake Maye")).toBeVisible();
   await expect(table.getByText("Josh Allen")).toBeVisible();
@@ -43,6 +42,10 @@ test("league stats put our players beside the league's, with fantasy points", as
     await expect(table.getByRole("columnheader", { name: "FPTS", exact: true })).toBeVisible();
   }
   await page.getByRole("radio", { name: "Rest of league" }).click();
+  // One search narrows every group's table.
+  await page.getByLabel("Find a player or team").fill("Allen");
+  await expect(table.getByText("Josh Allen")).toBeVisible();
+  await page.getByLabel("Find a player or team").fill("");
   await expect(table.getByText("Josh Allen")).toBeVisible();
   await expect(table.getByText("Drake Maye")).toHaveCount(0);
   await page.getByRole("radio", { name: "Everyone" }).click();
@@ -51,22 +54,23 @@ test("league stats put our players beside the league's, with fantasy points", as
 
 test("any player's season stats edit in place from League stats", async ({ page }) => {
   await openView(page, "League");
-  await page.getByRole("radio", { name: "QB", exact: true }).click();
-  const table = page.getByRole("table", { name: "QB league stats" });
+  // Every table has its own Edit; use the QB one.
+  const qb = page.getByRole("region", { name: "QB", exact: true });
+  const table = qb.getByRole("table", { name: "QB league stats" });
   const allen = table.getByRole("row").filter({ hasText: "Josh Allen" });
   await expect(allen).toBeVisible();
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await qb.getByRole("button", { name: "Edit", exact: true }).click();
   const tds = allen.getByRole("textbox", { name: "Passing touchdowns" });
   const before = await tds.inputValue();
   await tds.fill("40");
   await tds.press("Tab");
-  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await qb.getByRole("button", { name: "Done", exact: true }).click();
   await expect(allen.getByRole("cell", { name: "40", exact: true })).toBeVisible();
   // Put it back for the other tests sharing this backend.
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await qb.getByRole("button", { name: "Edit", exact: true }).click();
   await allen.getByRole("textbox", { name: "Passing touchdowns" }).fill(before);
   await allen.getByRole("textbox", { name: "Passing touchdowns" }).press("Tab");
-  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await qb.getByRole("button", { name: "Done", exact: true }).click();
   await expect(allen.getByRole("cell", { name: before, exact: true }).first()).toBeVisible();
 });
 
@@ -91,7 +95,6 @@ test("league team stats: every team per Madden tab, rates computed from the coun
 test("big-game counts always show and season highs link to their game", async ({ page }, testInfo) => {
   await openView(page, "Season");
   await page.getByRole("radio", { name: "Regular season" }).click();
-  await page.getByRole("radio", { name: "QB", exact: true }).click();
   const table = page.getByRole("table", { name: "QB season stats" });
   const maye = table.getByRole("row").filter({ hasText: "Drake Maye" }).first();
   await expect(maye).toBeVisible();
@@ -157,11 +160,14 @@ test("milestones can be acknowledged from Home", async ({ page }) => {
 
 test("highlight thresholds save and restore", async ({ page }) => {
   await page.goto("/settings");
-  await expect(page.getByRole("heading", { name: "Highlights" })).toBeVisible();
-  const tier1 = page.getByLabel("Rushing yards tier 1");
+  // The season section; Game highlights under it has the same controls.
+  const heading = page.getByRole("heading", { name: "Highlights", exact: true });
+  await expect(heading).toBeVisible();
+  const section = page.locator("section").filter({ has: heading });
+  const tier1 = section.getByLabel("Rushing yards tier 1", { exact: true });
   await tier1.fill("900");
-  await page.getByRole("button", { name: "Save highlights" }).click();
-  await expect(page.getByText("Saved").first()).toBeVisible();
-  await page.getByRole("button", { name: "Restore defaults" }).click();
-  await expect(page.getByLabel("Rushing yards tier 1")).toHaveValue("1000");
+  await section.getByRole("button", { name: "Save highlights", exact: true }).click();
+  await expect(section.getByText("Saved").first()).toBeVisible();
+  await section.getByRole("button", { name: "Restore defaults" }).click();
+  await expect(section.getByLabel("Rushing yards tier 1", { exact: true })).toHaveValue("1000");
 });
