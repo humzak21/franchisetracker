@@ -2,6 +2,7 @@
 import { AWARD_INFO, isWeekKey, type AwardType, type TransactionType } from "../../shared/domain";
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
+import { ensureCoach } from "../lib/coaches";
 import { invalid } from "../lib/errors";
 import {
   boolOf,
@@ -45,7 +46,7 @@ export async function commitWeeklyAwards(ctx: MutationCtx, commit: RowCommit): P
       await ctx.db.delete("awards", old._id);
     }
     const teamId = row.teamAbbr ? (await team(row.teamAbbr))._id : undefined;
-    const player = teamId ? await rowPlayer(ctx, commit, row, teamId) : null;
+    const player = row.name || row.playerId ? await rowPlayer(ctx, commit, row, teamId) : null;
     await ctx.db.insert("awards", {
       franchiseId: commit.franchise._id,
       seasonId: commit.season._id,
@@ -70,9 +71,14 @@ export async function commitYearlyAwards(ctx: MutationCtx, commit: RowCommit): P
     const type = awardOf(row);
     if (!type) continue;
     const teamId = row.teamAbbr ? (await team(row.teamAbbr))._id : undefined;
-    const player = teamId ? await rowPlayer(ctx, commit, row, teamId) : null;
-    const conference = conferenceOf(row);
-    const position = positionOf(row) ?? undefined;
+    const coach = AWARD_INFO[type].coach;
+    if (coach && !row.name) continue;
+    // Coach of the Year names a coach: kept by name and added to the coaches, never made a player.
+    const rawName =
+      coach && row.name ? await ensureCoach(ctx, commit.franchise._id, row.name, teamId) : row.name;
+    const player = !coach && (row.name || row.playerId) ? await rowPlayer(ctx, commit, row, teamId) : null;
+    const conference = coach ? undefined : conferenceOf(row);
+    const position = coach ? undefined : (positionOf(row) ?? undefined);
     const same = await ctx.db
       .query("awards")
       .withIndex("by_seasonId_and_type", (q) => q.eq("seasonId", commit.season._id).eq("type", type))
@@ -82,7 +88,7 @@ export async function commitYearlyAwards(ctx: MutationCtx, commit: RowCommit): P
         a.weekKey === undefined &&
         a.conference === conference &&
         a.position === position &&
-        (player ? a.playerId === player._id : a.rawName === row.name),
+        (player ? a.playerId === player._id : a.rawName === rawName),
     );
     if (duplicate) continue;
     await ctx.db.insert("awards", {
@@ -93,7 +99,7 @@ export async function commitYearlyAwards(ctx: MutationCtx, commit: RowCommit): P
       conference,
       position,
       playerId: player?._id,
-      rawName: row.name ?? undefined,
+      rawName: rawName ?? undefined,
       teamId,
       statLine: textOf(row, "statLine"),
     });

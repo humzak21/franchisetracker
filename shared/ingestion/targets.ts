@@ -28,6 +28,8 @@ export type { TargetScope } from "./rows/targets";
 type GameTargetDef<D extends Draft> = {
   kind: "game";
   label: string;
+  /** Where the screen's data shows up in the app, for the capture and tag pickers. */
+  goesTo: string;
   /** One line for the tag picker and the Shortcut menu. */
   description: string;
   scope: TargetScope;
@@ -49,6 +51,7 @@ const GAME_TARGETS = {
   game_log: {
     kind: "game",
     label: "Full game log",
+    goesTo: "Schedule → the game: its box score and team stats",
     description: "Team stats and every player's stats together in one upload",
     scope: "game",
     multiImage: true,
@@ -80,6 +83,7 @@ const GAME_TARGETS = {
   game_box_score: {
     kind: "game",
     label: "Box score",
+    goesTo: "Schedule → the game's box score",
     description:
       "Final score and every player's passing, rushing, receiving, defense, kicking and return lines",
     scope: "game",
@@ -98,6 +102,7 @@ const GAME_TARGETS = {
   team_game_stats: {
     kind: "game",
     label: "Team game stats",
+    goesTo: "Schedule → the game's team stats",
     description: "First downs, yards, third downs, turnovers, penalties and possession for both teams",
     scope: "game",
     multiImage: false,

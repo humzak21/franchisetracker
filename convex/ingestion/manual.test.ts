@@ -159,6 +159,53 @@ describe("manual entry", () => {
     );
   });
 
+  test("another team's season stats go to League stats, never onto our roster", async () => {
+    const { t, owner, season, entry } = await setup();
+    const seasonId = season(SAMPLE_START_YEAR);
+    const draftId = await owner.mutation(api.ingestion.manual.create, {
+      targetKey: "season_player_stats",
+      seasonId,
+    });
+    const empty = (await entry(draftId)).draft;
+    if (!("rows" in empty)) throw new Error("not a row draft");
+    // The screen is filtered to Buffalo, so its rows print no team of their own.
+    const row = emptyRow(rowTarget("season_player_stats").spec, empty, { name: "Buffalo Newcomer" });
+    const draft = {
+      ...empty,
+      meta: { ...empty.meta, team: "BUF" },
+      rows: [{ ...row, values: { ...row.values, position: "WR", gamesPlayed: 6, rec: 30, recYds: 410 } }],
+    };
+    await owner.mutation(api.ingestion.manualCommit.commit, { draftId, draft });
+
+    const { rows, teams } = await owner.query(api.stats.league.bySeason, { seasonId });
+    const line = rows.find((r) => r.name === "Buffalo Newcomer");
+    expect(line).toMatchObject({ isUser: false, source: "reported" });
+    expect(teams.find((tm) => tm._id === line?.teamId)?.abbr).toBe("BUF");
+    const roster = await owner.query(api.players.roster.bySeason, { seasonId });
+    expect(roster.entries.some((e) => e.player.displayName === "Buffalo Newcomer")).toBe(false);
+    expect(
+      (await t.run((ctx) => ctx.db.query("reportedSeasonStats").take(100))).filter(
+        (r) => r.playerId === line?.playerId,
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("season stats rows without a team are refused until one is picked", async () => {
+    const { owner, season, entry } = await setup();
+    const seasonId = season(SAMPLE_START_YEAR);
+    const draftId = await owner.mutation(api.ingestion.manual.create, {
+      targetKey: "season_player_stats",
+      seasonId,
+    });
+    const empty = (await entry(draftId)).draft;
+    if (!("rows" in empty)) throw new Error("not a row draft");
+    const row = emptyRow(rowTarget("season_player_stats").spec, empty, { name: "Nobody's Player" });
+    const draft = { ...empty, meta: { ...empty.meta, team: null }, rows: [row] };
+    await expect(owner.mutation(api.ingestion.manualCommit.commit, { draftId, draft })).rejects.toThrow(
+      /pick the team/,
+    );
+  });
+
   test("strangers and signed-out callers are refused", async () => {
     const { t, owner, season } = await setup();
     const draftId = await owner.mutation(api.ingestion.manual.create, {

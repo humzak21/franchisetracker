@@ -15,6 +15,7 @@ export function SelectionBar({
   onToggleAll,
   onClear,
   noun = "player",
+  hint,
   children,
   className,
 }: {
@@ -24,6 +25,8 @@ export function SelectionBar({
   onToggleAll: () => void;
   onClear: () => void;
   noun?: string;
+  /** What to do while nothing is picked; a batch move by default. */
+  hint?: string;
   children?: ReactNode;
   className?: string;
 }) {
@@ -49,7 +52,9 @@ export function SelectionBar({
         {label}
       </button>
       <span className="num text-sm text-muted-foreground">
-        {count > 0 ? `${count} ${noun}${count === 1 ? "" : "s"} selected` : `Pick ${noun}s for a batch move`}
+        {count > 0
+          ? `${count} ${noun}${count === 1 ? "" : "s"} selected`
+          : (hint ?? `Pick ${noun}s for a batch move`)}
       </span>
       {count > 0 && (
         <span className="ml-auto flex flex-wrap items-center gap-2">

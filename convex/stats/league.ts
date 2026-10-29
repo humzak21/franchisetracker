@@ -4,7 +4,7 @@ import { query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { activeFranchise, playersById, teamsById } from "../lib/franchise";
 import { leagueSeasonLines } from "../lib/leagueStats";
-import { toTeamRef, vTeamRef } from "../lib/refs";
+import { headshotUrls, toTeamRef, vTeamRef } from "../lib/refs";
 import { vPosition, vStatMap } from "../lib/validators";
 
 export const bySeason = query({
@@ -16,6 +16,7 @@ export const bySeason = query({
       v.object({
         playerId: v.id("players"),
         name: v.string(),
+        headshotUrl: v.union(v.string(), v.null()),
         position: vPosition,
         teamId: v.id("teams"),
         isUser: v.boolean(),
@@ -36,9 +37,19 @@ export const bySeason = query({
       ),
       teamsById(ctx),
     ]);
+    const photos = await headshotUrls(ctx, players.values());
     const rows = lines.flatMap((line) => {
       const player = players.get(line.playerId);
-      return player ? [{ ...line, name: player.displayName, position: player.position }] : [];
+      return player
+        ? [
+            {
+              ...line,
+              name: player.displayName,
+              headshotUrl: photos.get(player._id) ?? null,
+              position: player.position,
+            },
+          ]
+        : [];
     });
     const named = new Set(rows.map((r) => r.teamId));
     return {

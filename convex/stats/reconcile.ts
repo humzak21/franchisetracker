@@ -5,6 +5,7 @@
 import { v } from "convex/values";
 import { reconcile, weeksWithoutBoxScore } from "../../shared/ingestion/reconcile";
 import type { StatLine } from "../../shared/stats";
+import type { Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { invalid, must } from "../lib/errors";
@@ -107,31 +108,43 @@ export const get = query({
   },
 });
 
-/** Settles one difference (or reopens it with `null`): the log number stands, or a game is missing. */
+/** Every difference a season can show, with headroom: a roster times the stats a screen prints. */
+const MAX_SETTLE = 2000;
+
+/**
+ * Settles differences (or reopens them with `null`): the log number stands, or a game is missing.
+ * One or many at once; each player's screen row is written once however many of their stats change.
+ */
 export const resolve = mutation({
   args: {
     seasonId: v.id("seasons"),
-    playerId: v.id("players"),
-    stat: v.string(),
+    items: v.array(v.object({ playerId: v.id("players"), stat: v.string() })),
     resolution: v.union(vReconcileResolution, v.null()),
   },
   returns: v.null(),
-  handler: async (ctx, { seasonId, playerId, stat, resolution }) => {
+  handler: async (ctx, { seasonId, items, resolution }) => {
     await requireOwner(ctx);
     const franchise = await activeFranchise(ctx);
-    const rows = await ctx.db
-      .query("reportedSeasonStats")
-      .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId).eq("seasonId", seasonId))
-      .take(10);
-    const row = must(
-      rows.find((r) => r.teamId === franchise.userTeamId),
-      "Reported season stats",
-    );
-    if (stat !== "gamesPlayed" && !(stat in row.stats)) throw invalid("That stat was not on the screen");
-    const resolved = { ...row.resolved };
-    if (resolution) resolved[stat] = resolution;
-    else delete resolved[stat];
-    await ctx.db.patch("reportedSeasonStats", row._id, { resolved });
+    if (items.length > MAX_SETTLE) throw invalid(`Settle at most ${MAX_SETTLE} differences at a time`);
+    const byPlayer = new Map<Id<"players">, string[]>();
+    for (const { playerId, stat } of items) byPlayer.set(playerId, [...(byPlayer.get(playerId) ?? []), stat]);
+    for (const [playerId, stats] of byPlayer) {
+      const rows = await ctx.db
+        .query("reportedSeasonStats")
+        .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId).eq("seasonId", seasonId))
+        .take(10);
+      const row = must(
+        rows.find((r) => r.teamId === franchise.userTeamId),
+        "Reported season stats",
+      );
+      const resolved = { ...row.resolved };
+      for (const stat of stats) {
+        if (stat !== "gamesPlayed" && !(stat in row.stats)) throw invalid("That stat was not on the screen");
+        if (resolution) resolved[stat] = resolution;
+        else delete resolved[stat];
+      }
+      await ctx.db.patch("reportedSeasonStats", row._id, { resolved });
+    }
     return null;
   },
 });

@@ -23,6 +23,8 @@ export type TargetScope = "game" | "week" | "season";
 export type RowTargetDef = {
   kind: "rows";
   label: string;
+  /** Where the screen's data shows up in the app, for the capture and tag pickers. */
+  goesTo: string;
   description: string;
   scope: TargetScope;
   multiImage: boolean;
@@ -35,16 +37,18 @@ const rows = (def: Omit<RowTargetDef, "kind">): RowTargetDef => ({ kind: "rows",
 export const ROW_TARGETS = {
   season_player_stats: rows({
     label: "Season stats",
+    goesTo: "Stats → League → Players (every team); your team's also in Stats → Reconcile",
     description:
-      "A season stats tab (passing, rushing, defense, ...) for your team or the whole league, with every player's totals",
+      "A season stats tab (passing, rushing, defense, ...) for your team, another team or the whole league, with every player's totals",
     scope: "season",
     multiImage: true,
     instructions:
-      "This is a Madden season stats screen: one tab (passing, rushing, receiving, defense, kicking, punting or returns) listing players with their season totals and games played, for one team or the whole league. Put each row in the array for the tab shown, with the player's team as printed.",
+      "This is a Madden season stats screen: one tab (passing, rushing, receiving, defense, kicking, punting or returns) listing players with their season totals and games played, for one team or the whole league. Put each row in the array for the tab shown, with the player's team as printed. When the screen lists one team's players (filtered to a team), set `team` to that team.",
     spec: seasonPlayerStatsSpec,
   }),
   league_leaders: rows({
     label: "League leaders",
+    goesTo: "Stats → Leaders and Records",
     description: "A league leaders board: the top players in one stat with rank, team and value",
     scope: "season",
     multiImage: true,
@@ -54,6 +58,7 @@ export const ROW_TARGETS = {
   }),
   records_list: rows({
     label: "Records list",
+    goesTo: "Stats → Records",
     description: "Real NFL records from any source: player, team, season and number, top to bottom",
     // Records belong to no season; the set is filed under one like any season screen and commits without it.
     scope: "season",
@@ -64,6 +69,7 @@ export const ROW_TARGETS = {
   }),
   team_season_stats: rows({
     label: "Team season stats",
+    goesTo: "Stats → Team",
     description: "One team's season stats with league ranks (27.3 · T-3rd)",
     scope: "season",
     multiImage: true,
@@ -73,6 +79,7 @@ export const ROW_TARGETS = {
   }),
   league_team_stats: rows({
     label: "League team stats",
+    goesTo: "Stats → League → Teams",
     description:
       "Every team's season numbers from the NFL team stats screen: offense, defense, conversions, red zone, turnovers",
     scope: "season",
@@ -88,6 +95,7 @@ export const ROW_TARGETS = {
   }),
   standings: rows({
     label: "Standings",
+    goesTo: "League → Season → Standings",
     description: "Division or conference standings: records, division rank, seeds and points",
     scope: "season",
     multiImage: true,
@@ -97,6 +105,7 @@ export const ROW_TARGETS = {
   }),
   league_schedule: rows({
     label: "Schedule / scores",
+    goesTo: "League → Season → Scores",
     description: "A week's games across the league (or several weeks at once), with final scores once played",
     scope: "week",
     multiImage: true,
@@ -106,6 +115,7 @@ export const ROW_TARGETS = {
   }),
   weekly_awards: rows({
     label: "Weekly awards",
+    goesTo: "Awards → Weekly",
     description: "Players of the week for the AFC and NFC",
     scope: "week",
     multiImage: true,
@@ -115,6 +125,7 @@ export const ROW_TARGETS = {
   }),
   yearly_awards: rows({
     label: "Yearly awards",
+    goesTo: "Awards → Season, All-Pro and Pro Bowl",
     description: "MVP, players of the year, All-Pro teams and Pro Bowl rosters",
     scope: "season",
     multiImage: true,
@@ -124,6 +135,7 @@ export const ROW_TARGETS = {
   }),
   draft_results: rows({
     label: "Draft results",
+    goesTo: "Draft",
     description: "Picks from the draft: round, overall pick, team, player, position, college",
     scope: "season",
     multiImage: true,
@@ -133,6 +145,7 @@ export const ROW_TARGETS = {
   }),
   roster_page: rows({
     label: "Roster page",
+    goesTo: "Roster for your team; another team's on its League page",
     description: "A team's roster: names, positions, numbers, OVR, age and dev trait",
     scope: "season",
     multiImage: true,
@@ -142,6 +155,7 @@ export const ROW_TARGETS = {
   }),
   transactions: rows({
     label: "Transactions",
+    goesTo: "Transactions",
     description: "The transaction log: signings, releases, trades, claims and IR moves",
     scope: "season",
     multiImage: true,
@@ -151,6 +165,7 @@ export const ROW_TARGETS = {
   }),
   injury_report: rows({
     label: "Injury report",
+    goesTo: "Transactions → Injuries, and the Roster",
     description: "Who is hurt this week, with the injury, length and IR status",
     scope: "week",
     multiImage: true,
@@ -160,6 +175,7 @@ export const ROW_TARGETS = {
   }),
   player_card: rows({
     label: "Player card",
+    goesTo: "The player's page",
     description: "One player's card: OVR, age, dev trait, abilities, bio and contract",
     scope: "season",
     multiImage: false,

@@ -4,6 +4,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { activeFranchise, playersById } from "../lib/franchise";
+import { headshotUrls } from "../lib/refs";
 import { vPosition, vPositionGroup, vStatMap, vStatSplit } from "../lib/validators";
 import { vSeasonHighs } from "../schema/stats";
 
@@ -12,6 +13,7 @@ const MAX_ROWS = 300;
 const vRow = v.object({
   playerId: v.id("players"),
   name: v.string(),
+  headshotUrl: v.union(v.string(), v.null()),
   position: vPosition,
   positionGroup: v.union(vPositionGroup, v.null()),
   jersey: v.union(v.number(), v.null()),
@@ -50,6 +52,7 @@ export const bySplit = query({
         byPlayer.set(row.playerId, row);
     }
     const players = await playersById(ctx, byPlayer.keys());
+    const photos = await headshotUrls(ctx, players.values());
     const entries = await ctx.db
       .query("rosterEntries")
       .withIndex("by_seasonId_and_teamId", (q) =>
@@ -78,6 +81,7 @@ export const bySplit = query({
         {
           playerId: row.playerId,
           name: player.displayName,
+          headshotUrl: photos.get(player._id) ?? null,
           position: row.position ?? player.position,
           positionGroup: row.positionGroup ?? null,
           jersey: jerseys.get(row.playerId) ?? null,

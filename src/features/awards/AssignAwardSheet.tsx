@@ -3,36 +3,36 @@ import { Search } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { AWARD_INFO, type AwardType } from "@shared/domain";
+import { AWARD_INFO } from "@shared/domain";
 import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { PositionBadge } from "@/components/player/PositionBadge";
 import { Input } from "@/components/ui/input";
 import { useQuery } from "@/lib/convex/useQuery";
 import { errorMessage } from "@/lib/errors";
-import type { CountedAward } from "./types";
+import type { CountedAward, SlotKey } from "./types";
 
 type AssignAwardSheetProps = {
   seasonId: Id<"seasons">;
-  /** The award being assigned; null keeps the sheet closed. */
-  type: AwardType | null;
+  /** The award (and conference) being assigned; null keeps the sheet closed. */
+  slot: SlotKey | null;
   /** The leaders the stats counted, offered first with their stat lines. */
   contenders: CountedAward["contenders"];
   onClose: () => void;
 };
 
 /** Assigns a season award to any player: a leader from the count, or anyone found by name. */
-export function AssignAwardSheet({ seasonId, type, contenders, onClose }: AssignAwardSheetProps) {
+export function AssignAwardSheet({ seasonId, slot, contenders, onClose }: AssignAwardSheetProps) {
   const assign = useMutation(api.awards.assign.assign);
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const open = type !== null;
+  const open = slot !== null;
   const results = useQuery(api.players.search.byName, open && text.trim().length >= 2 ? { text } : "skip");
 
   const pick = async (playerId: Id<"players">, statLine?: string) => {
-    if (!type) return;
+    if (!slot) return;
     setError(null);
     try {
-      await assign({ seasonId, type, playerId, statLine });
+      await assign({ seasonId, ...slot, playerId, statLine });
       setText("");
       onClose();
     } catch (err) {
@@ -57,7 +57,11 @@ export function AssignAwardSheet({ seasonId, type, contenders, onClose }: Assign
     <BottomSheet
       open={open}
       onOpenChange={(o) => !o && onClose()}
-      title={type ? `Assign ${AWARD_INFO[type].label}` : "Assign award"}
+      title={
+        slot
+          ? ["Assign", slot.conference, AWARD_INFO[slot.type].label].filter(Boolean).join(" ")
+          : "Assign award"
+      }
       description="The winner you choose replaces the imported or counted one for this season."
     >
       <div className="space-y-4">

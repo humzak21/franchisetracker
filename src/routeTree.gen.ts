@@ -24,6 +24,7 @@ import { Route as HistoryHallOfFameRouteImport } from './routes/history.hall-of-
 import { Route as HistoryTimelineRouteImport } from './routes/history.timeline'
 import { Route as InboxIndexRouteImport } from './routes/inbox.index'
 import { Route as InboxSetKeyRouteImport } from './routes/inbox.$setKey'
+import { Route as InboxWeeklyAwardsRouteImport } from './routes/inbox.weekly-awards'
 import { Route as LeagueIndexRouteImport } from './routes/league.index'
 import { Route as PlayersIndexRouteImport } from './routes/players.index'
 import { Route as PlayersPlayerIdRouteImport } from './routes/players.$playerId'
@@ -111,6 +112,11 @@ const InboxSetKeyRoute = InboxSetKeyRouteImport.update({
   path: '/inbox/$setKey',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InboxWeeklyAwardsRoute = InboxWeeklyAwardsRouteImport.update({
+  id: '/inbox/weekly-awards',
+  path: '/inbox/weekly-awards',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LeagueIndexRoute = LeagueIndexRouteImport.update({
   id: '/league/',
   path: '/league/',
@@ -181,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/history/hall-of-fame': typeof HistoryHallOfFameRoute
   '/history/timeline': typeof HistoryTimelineRoute
   '/inbox/$setKey': typeof InboxSetKeyRoute
+  '/inbox/weekly-awards': typeof InboxWeeklyAwardsRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/players/compare': typeof PlayersCompareRoute
   '/stats/reconcile': typeof StatsReconcileRoute
@@ -209,6 +216,7 @@ export interface FileRoutesByTo {
   '/history/hall-of-fame': typeof HistoryHallOfFameRoute
   '/history/timeline': typeof HistoryTimelineRoute
   '/inbox/$setKey': typeof InboxSetKeyRoute
+  '/inbox/weekly-awards': typeof InboxWeeklyAwardsRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/players/compare': typeof PlayersCompareRoute
   '/stats/reconcile': typeof StatsReconcileRoute
@@ -238,6 +246,7 @@ export interface FileRoutesById {
   '/history/hall-of-fame': typeof HistoryHallOfFameRoute
   '/history/timeline': typeof HistoryTimelineRoute
   '/inbox/$setKey': typeof InboxSetKeyRoute
+  '/inbox/weekly-awards': typeof InboxWeeklyAwardsRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/players/compare': typeof PlayersCompareRoute
   '/stats/reconcile': typeof StatsReconcileRoute
@@ -268,6 +277,7 @@ export interface FileRouteTypes {
     | '/history/hall-of-fame'
     | '/history/timeline'
     | '/inbox/$setKey'
+    | '/inbox/weekly-awards'
     | '/players/$playerId'
     | '/players/compare'
     | '/stats/reconcile'
@@ -296,6 +306,7 @@ export interface FileRouteTypes {
     | '/history/hall-of-fame'
     | '/history/timeline'
     | '/inbox/$setKey'
+    | '/inbox/weekly-awards'
     | '/players/$playerId'
     | '/players/compare'
     | '/stats/reconcile'
@@ -324,6 +335,7 @@ export interface FileRouteTypes {
     | '/history/hall-of-fame'
     | '/history/timeline'
     | '/inbox/$setKey'
+    | '/inbox/weekly-awards'
     | '/players/$playerId'
     | '/players/compare'
     | '/stats/reconcile'
@@ -353,6 +365,7 @@ export interface RootRouteChildren {
   HistoryHallOfFameRoute: typeof HistoryHallOfFameRoute
   HistoryTimelineRoute: typeof HistoryTimelineRoute
   InboxSetKeyRoute: typeof InboxSetKeyRoute
+  InboxWeeklyAwardsRoute: typeof InboxWeeklyAwardsRoute
   PlayersPlayerIdRoute: typeof PlayersPlayerIdRoute
   PlayersCompareRoute: typeof PlayersCompareRoute
   StatsReconcileRoute: typeof StatsReconcileRoute
@@ -475,6 +488,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InboxSetKeyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inbox/weekly-awards': {
+      id: '/inbox/weekly-awards'
+      path: '/inbox/weekly-awards'
+      fullPath: '/inbox/weekly-awards'
+      preLoaderRoute: typeof InboxWeeklyAwardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/league/': {
       id: '/league/'
       path: '/league'
@@ -569,6 +589,7 @@ const rootRouteChildren: RootRouteChildren = {
   HistoryHallOfFameRoute: HistoryHallOfFameRoute,
   HistoryTimelineRoute: HistoryTimelineRoute,
   InboxSetKeyRoute: InboxSetKeyRoute,
+  InboxWeeklyAwardsRoute: InboxWeeklyAwardsRoute,
   PlayersPlayerIdRoute: PlayersPlayerIdRoute,
   PlayersCompareRoute: PlayersCompareRoute,
   StatsReconcileRoute: StatsReconcileRoute,

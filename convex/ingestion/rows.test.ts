@@ -169,14 +169,23 @@ describe("row targets", () => {
     expect(view.differences.some((d) => d.stat === "gamesPlayed" && d.delta === 1)).toBe(true);
     await owner.mutation(api.stats.reconcile.resolve, {
       seasonId,
-      playerId: maye.playerId,
-      stat: "passYds",
+      items: [{ playerId: maye.playerId, stat: "passYds" }],
       resolution: "logs",
     });
     const after = await owner.query(api.stats.reconcile.get, { seasonId });
     expect(
       after.differences.find((d) => d.playerId === maye.playerId && d.stat === "passYds")?.resolution,
     ).toBe("logs");
+    // Everything else at once, then all of it reopened at once.
+    const rest = after.differences
+      .filter((d) => d.resolution === null)
+      .map((d) => ({ playerId: d.playerId, stat: d.stat }));
+    await owner.mutation(api.stats.reconcile.resolve, { seasonId, items: rest, resolution: "missing" });
+    const all = await owner.query(api.stats.reconcile.get, { seasonId });
+    expect(all.differences.filter((d) => d.resolution === null)).toEqual([]);
+    await owner.mutation(api.stats.reconcile.resolve, { seasonId, items: rest, resolution: null });
+    const back = await owner.query(api.stats.reconcile.get, { seasonId });
+    expect(back.differences.filter((d) => d.resolution === null)).toHaveLength(rest.length);
     // Reading the same numbers again keeps the settlement; a changed number reopens it.
     await commit("season_player_stats");
     const kept = await owner.query(api.stats.reconcile.get, { seasonId });

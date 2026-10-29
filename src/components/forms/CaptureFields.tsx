@@ -1,3 +1,4 @@
+import { MapPin } from "lucide-react";
 import { WEEK_KEYS, weekLabel, type WeekKey } from "@shared/domain";
 import { INGESTION_TARGETS, SCOPE_LABELS, TARGET_KEYS, type TargetKey } from "@shared/ingestion/targets";
 import { Select } from "@/components/ui/select";
@@ -71,6 +72,14 @@ export function CaptureFields<S extends string>({
             ? INGESTION_TARGETS[value.targetKey].description
             : "Upload now, pick what it is from the inbox later."}
         </p>
+        {value.targetKey && (
+          <p className="flex items-start gap-1.5 text-xs">
+            <MapPin className="mt-px size-3.5 shrink-0 text-primary" />
+            <span>
+              <span className="font-medium">Goes to</span> {INGESTION_TARGETS[value.targetKey].goesTo}
+            </span>
+          </p>
+        )}
       </div>
       {game ? (
         <p className="rounded-lg bg-surface-2 px-3 py-2 text-sm">

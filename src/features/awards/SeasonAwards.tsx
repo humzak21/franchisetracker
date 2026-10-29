@@ -1,86 +1,29 @@
 import { useMutation } from "convex/react";
-import { MoreHorizontal, RotateCcw, UserRoundCheck } from "lucide-react";
+import { Medal } from "lucide-react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { COUNTED_AWARDS, countedWinners } from "@shared/awards/counted";
-import { cabinet, CABINET_AWARDS } from "@shared/awards/groups";
-import { AWARD_INFO, type AwardType } from "@shared/domain";
+import { AWARD_INFO } from "@shared/domain";
+import { EmptyState } from "@/components/data/EmptyState";
 import { Section } from "@/components/layout/Section";
-import { ActionMenu } from "@/components/ui/ActionMenu";
-import { Button } from "@/components/ui/button";
 import { AssignAwardSheet } from "./AssignAwardSheet";
-import { AwardCard } from "./AwardCard";
-import type { AwardWinner, CountedAward, SeasonAward } from "./types";
+import { AwardRow } from "./AwardRow";
+import { CoachSheet } from "./CoachSheet";
+import { ConferenceHeading } from "./ConferenceHeading";
+import { HeroAward } from "./HeroAward";
+import { seasonBoard, type ResolvedSlot } from "./seasonSlots";
+import { SlotMenu } from "./SlotMenu";
+import type { CountedAward, SeasonAward, SlotKey } from "./types";
+import { UnfilledSlots } from "./UnfilledSlots";
 
-const grid = "grid gap-2 @tablet:grid-cols-2 @desktop:grid-cols-3";
-
-/** One award: its winners (ties share the slot), or an empty slot waiting for one. */
-function AwardSlot({
-  type,
-  winners,
-  assigned,
-  onAssign,
-  onClear,
-}: {
-  type: AwardType;
-  winners: readonly AwardWinner[];
-  /** A winner is stored for the season, so clearing it is possible. */
-  assigned: boolean;
-  onAssign: () => void;
-  onClear: () => void;
-}) {
-  const label = AWARD_INFO[type].label;
-  const counted = AWARD_INFO[type].cadence === "counted";
-  const menu = (
-    <ActionMenu
-      label={`${label} actions`}
-      trigger={
-        <Button size="icon-sm" variant="ghost" aria-label={`${label} actions`}>
-          <MoreHorizontal />
-        </Button>
-      }
-      items={[
-        { id: "assign", label: "Assign winner", icon: UserRoundCheck, onSelect: onAssign },
-        ...(assigned
-          ? [
-              {
-                id: "clear",
-                label: counted ? "Back to the count" : "Remove winner",
-                icon: RotateCcw,
-                onSelect: onClear,
-              },
-            ]
-          : []),
-      ]}
-    />
-  );
-  if (winners.length === 0) {
-    return (
-      <li className="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-dashed border-border p-3">
-        <span className="min-w-0">
-          <span className="block truncate text-[11px] font-semibold tracking-[0.08em] text-subtle-foreground uppercase">
-            {label}
-          </span>
-          <span className="text-sm text-muted-foreground">No winner yet</span>
-        </span>
-        {menu}
-      </li>
-    );
-  }
-  return (
-    <li className="min-w-0 space-y-2">
-      {winners.map((w, i) => (
-        <AwardCard key={`${w.name}-${i}`} award={w} action={menu} />
-      ))}
-    </li>
-  );
-}
+const list = "divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface";
+const slotKey = (s: SlotKey) => ({ type: s.type, conference: s.conference });
 
 /**
- * The season's awards (FEATURES.md 5.8): Madden's yearly awards as imported, then the awards
- * counted live from league stats and weekly awards. Any slot can be assigned by hand, which
- * overrides the import or the count.
+ * The season's awards (FEATURES.md 5.8): the league-wide awards up top, the per-conference awards
+ * in an AFC and an NFC column, then the awards counted live from league stats and weekly awards.
+ * Only awards with a winner show; the rest wait in "Not awarded yet". Any award can be assigned
+ * by hand, which overrides the import or the count.
  */
 export function SeasonAwards({
   seasonId,
@@ -92,47 +35,105 @@ export function SeasonAwards({
   counted: CountedAward[] | undefined;
 }) {
   const clear = useMutation(api.awards.assign.clear);
-  const [assigning, setAssigning] = useState<AwardType | null>(null);
-  const countedFor = (type: AwardType) => counted?.find((c) => c.type === type)?.contenders ?? [];
+  const [assigning, setAssigning] = useState<SlotKey | null>(null);
+  const board = seasonBoard(awards, counted);
 
-  const slot = ({ type, winners }: { type: AwardType; winners: SeasonAward[] }) => (
-    <AwardSlot
-      key={type}
-      type={type}
-      assigned={winners.length > 0}
-      winners={winners.length > 0 ? winners : countedWinners(countedFor(type)).map((c) => ({ ...c, type }))}
-      onAssign={() => setAssigning(type)}
-      onClear={() => void clear({ seasonId, type })}
+  const menu = (slot: ResolvedSlot) => (
+    <SlotMenu
+      type={slot.type}
+      label={`${slot.conference ?? ""} ${AWARD_INFO[slot.type].label}`.trim()}
+      assigned={slot.assigned}
+      onAssign={() => setAssigning(slotKey(slot))}
+      onClear={() => void clear({ seasonId, ...slotKey(slot) })}
     />
   );
+  const rows = (slots: ResolvedSlot[]) =>
+    slots.flatMap((slot) =>
+      slot.winners.map((w, i) => (
+        <AwardRow
+          key={`${slot.type}-${i}`}
+          award={w}
+          label={AWARD_INFO[slot.type].short ?? AWARD_INFO[slot.type].label}
+          action={menu(slot)}
+        />
+      )),
+    );
 
-  const madden = cabinet(awards, CABINET_AWARDS);
-  const sections = [
+  const hasLeague = board.league.filled.length > 0 || board.unplaced.length > 0;
+  const hasConference = board.conferences.some((c) => c.filled.length > 0);
+  const madden = hasLeague || hasConference;
+  const stats = board.stats.filled.length > 0 && (
     <Section
-      key="madden"
-      title="Madden awards"
-      description="From the end-of-season awards screens, or assigned here."
-    >
-      <ul className={grid}>{madden.map(slot)}</ul>
-    </Section>,
-    <Section
-      key="counted"
+      key="stats"
       title="From the stats"
       description="League leaders across league stats and weekly awards, counted live until you assign a winner."
     >
-      <ul className={grid}>{cabinet(awards, COUNTED_AWARDS).map(slot)}</ul>
-    </Section>,
-  ];
-  // Madden names its winners after the season; until then the live count is the news.
-  const maddenFirst = madden.some((s) => s.winners.length > 0);
+      <ul className={list}>{rows(board.stats.filled)}</ul>
+    </Section>
+  );
 
   return (
-    <div className="space-y-6">
-      {maddenFirst ? sections : sections.reverse()}
+    <div className="space-y-8">
+      {/* Madden names its winners after the season; until then the live count is the news. */}
+      {!madden && stats}
+      {hasLeague && (
+        <Section title="League awards" description="Won once across the league, whatever the conference.">
+          <div className="grid gap-3 @tablet:grid-cols-2 @desktop:grid-cols-3">
+            {board.league.filled.flatMap((slot) =>
+              slot.winners.map((w, i) => (
+                <HeroAward key={`${slot.type}-${i}`} award={w} action={menu(slot)} />
+              )),
+            )}
+            {board.unplaced.map((w) => (
+              <HeroAward key={w._id} award={w} />
+            ))}
+          </div>
+        </Section>
+      )}
+      {hasConference && (
+        <Section title="Conference awards" description="One winner in each conference.">
+          <div className="grid gap-6 @desktop:grid-cols-2">
+            {board.conferences.map(({ conference, filled }) => (
+              <div key={conference} className="space-y-2">
+                <ConferenceHeading
+                  conference={conference}
+                  detail={`${filled.length} award${filled.length === 1 ? "" : "s"}`}
+                />
+                {filled.length > 0 ? (
+                  <ul className={list}>{rows(filled)}</ul>
+                ) : (
+                  <p className="py-3 text-sm text-muted-foreground">No {conference} winners yet.</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+      {madden && stats}
+      {!madden && !stats && (
+        <EmptyState
+          icon={Medal}
+          title="No season awards yet"
+          description="Capture the end-of-season awards screens, or assign a winner from the list below."
+        />
+      )}
+      <UnfilledSlots
+        groups={[
+          { title: "League", slots: board.league.empty.map(slotKey) },
+          ...board.conferences.map((c) => ({ title: c.conference, slots: c.empty.map(slotKey) })),
+          { title: "From the stats", slots: board.stats.empty.map(slotKey) },
+        ]}
+        onAssign={setAssigning}
+      />
       <AssignAwardSheet
         seasonId={seasonId}
-        type={assigning}
-        contenders={assigning ? countedFor(assigning) : []}
+        slot={assigning && !AWARD_INFO[assigning.type].coach ? assigning : null}
+        contenders={assigning ? board.contenders(assigning.type) : []}
+        onClose={() => setAssigning(null)}
+      />
+      <CoachSheet
+        seasonId={seasonId}
+        open={assigning !== null && AWARD_INFO[assigning.type].coach === true}
         onClose={() => setAssigning(null)}
       />
     </div>

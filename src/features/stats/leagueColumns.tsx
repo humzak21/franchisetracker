@@ -34,7 +34,12 @@ export function leagueColumns(
       <Link to="/players/$playerId" params={{ playerId: r.playerId }} className="hover:underline">
         <PlayerChip
           size="sm"
-          player={{ displayName: r.name, position: r.position, team: r.team ?? undefined }}
+          player={{
+            displayName: r.name,
+            position: r.position,
+            headshotUrl: r.headshotUrl,
+            team: r.team ?? undefined,
+          }}
         />
       </Link>
     ),

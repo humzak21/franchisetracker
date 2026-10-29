@@ -19,6 +19,7 @@ export type Row = {
   id: string;
   playerId: string | null;
   name: string;
+  headshotUrl: string | null;
   position: string;
   jersey: number | null;
   games: number | null;
@@ -42,6 +43,7 @@ export function groupRows(rows: readonly SeasonStatRow[], group: StatGroup): Row
       id: r.playerId,
       playerId: r.playerId,
       name: r.name,
+      headshotUrl: r.headshotUrl,
       position: r.position,
       jersey: r.jersey,
       games: r.gamesPlayed,
@@ -57,6 +59,7 @@ export function totalsRow(rows: readonly Row[]): Row {
     id: "totals",
     playerId: null,
     name: "Team",
+    headshotUrl: null,
     position: "",
     jersey: null,
     // The team played as many games as its busiest player, so per-game rates stay meaningful.

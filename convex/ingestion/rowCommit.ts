@@ -45,12 +45,15 @@ export function teamCache(ctx: MutationCtx) {
   };
 }
 
-/** The row's player (chosen in review or created) and their roster entry for the row's team. */
+/**
+ * The row's player (chosen in review, or created when the name is new) and their roster entry
+ * for the row's team. A row with no team still brings a new player into the database, without an entry.
+ */
 export async function rowPlayer(
   ctx: MutationCtx,
   commit: RowCommit,
   row: StoredRow,
-  teamId: Id<"teams">,
+  teamId: Id<"teams"> | undefined,
   options: { fields?: Parameters<typeof ensureRosterEntry>[1]["fields"]; complete?: boolean } = {},
 ): Promise<Doc<"players">> {
   const player = await playerFor(ctx, commit.franchise._id, {
@@ -58,8 +61,9 @@ export async function rowPlayer(
     playerId: row.playerId,
     position: positionOf(row),
     seasonId: commit.season._id,
-    teamAbbr: (await ctx.db.get("teams", teamId))?.abbr,
+    teamAbbr: teamId ? (await ctx.db.get("teams", teamId))?.abbr : undefined,
   });
+  if (!teamId) return player;
   await ensureRosterEntry(ctx, {
     player,
     seasonId: commit.season._id,

@@ -1,4 +1,5 @@
-import { Camera, Medal } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Camera, Medal, Upload } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { useCapture } from "@/app/capture/CaptureProvider";
 import { useSeason } from "@/app/season";
@@ -11,6 +12,7 @@ import { Skeleton } from "@/components/ui/misc";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import { AllPro, ProBowl } from "./HonorViews";
 import { SeasonAwards } from "./SeasonAwards";
+import { seasonBoard } from "./seasonSlots";
 import { TeamAwards } from "./TeamAwards";
 import type { CountedAward, SeasonAward } from "./types";
 import { WeeklyAwards } from "./WeeklyAwards";
@@ -43,9 +45,9 @@ const VIEWS: {
 
 /** Season awards with a winner: stored, or counted from the stats for an award not assigned yet. */
 function seasonCount(awards: SeasonAward[], counted: CountedAward[] | undefined) {
-  const stored = new Set(awards.filter(VIEWS[1]!.has).map((a) => a.type));
-  const fromStats = (counted ?? []).filter((c) => !stored.has(c.type) && c.contenders.length > 0);
-  return stored.size + fromStats.length;
+  const board = seasonBoard(awards, counted);
+  const filled = [board.league, board.stats, ...board.conferences].map((g) => g.filled.length);
+  return filled.reduce((a, b) => a + b, board.unplaced.length);
 }
 
 /**
@@ -64,7 +66,17 @@ export function AwardsScreen() {
   // Team awards have their own form; every league award can be typed in like its screenshot.
   const addAward =
     season && view !== "team" ? (
-      <ManualEntryLink target={current.target} seasonId={season._id} label="Add award" />
+      <>
+        {/* On a phone the weekly view carries this link itself, so the title keeps its room. */}
+        {view === "weekly" && (
+          <Button asChild size="sm" variant="ghost" className="hidden @tablet:inline-flex">
+            <Link to="/inbox/weekly-awards">
+              <Upload /> Upload weeks
+            </Link>
+          </Button>
+        )}
+        <ManualEntryLink target={current.target} seasonId={season._id} label="Add award" />
+      </>
     ) : undefined;
 
   return (
@@ -92,11 +104,23 @@ export function AwardsScreen() {
           <EmptyState
             icon={Medal}
             title={`No ${current.label.toLowerCase()} awards for ${season.year}`}
-            description="Capture the awards screens or type them in, and they fill in here."
+            description={
+              view === "weekly"
+                ? "Upload the season's weekly awards screens together, then match each to its week."
+                : "Capture the awards screens or type them in, and they fill in here."
+            }
             action={
-              <Button variant="primary" onClick={() => capture.open({ targetKey: current.target })}>
-                <Camera /> Capture awards
-              </Button>
+              view === "weekly" ? (
+                <Button asChild variant="primary">
+                  <Link to="/inbox/weekly-awards">
+                    <Upload /> Upload weekly awards
+                  </Link>
+                </Button>
+              ) : (
+                <Button variant="primary" onClick={() => capture.open({ targetKey: current.target })}>
+                  <Camera /> Capture awards
+                </Button>
+              )
             }
           />
         ) : view === "weekly" ? (

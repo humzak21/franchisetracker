@@ -14,12 +14,17 @@ const MAX_ROWS = 400;
 
 /**
  * Season stats are a check, never a source: they land in `reportedSeasonStats` for the
- * reconciliation view. A stat whose reported value changed loses the way its difference was settled.
+ * reconciliation view (the user's team) and League stats (everyone). A stat whose reported value changed loses the way its difference was settled.
  */
 export async function commitSeasonStats(ctx: MutationCtx, commit: RowCommit): Promise<RowCommitResult> {
   const team = teamCache(ctx);
+  const shown = typeof commit.meta.team === "string" ? commit.meta.team : null;
   for (const row of commit.rows) {
-    const teamId = row.teamAbbr ? (await team(row.teamAbbr))._id : commit.franchise.userTeamId;
+    // The row's team, else the team the screen shows. Never the user's team by default: another
+    // team's season stats belong in League stats, not on our roster.
+    const abbr = row.teamAbbr ?? shown;
+    if (!abbr) throw invalid(`${row.name ?? "A row"}: pick the team`);
+    const teamId = (await team(abbr))._id;
     const player = await rowPlayer(ctx, commit, row, teamId);
     const stats = Object.fromEntries(
       Object.entries(row.values).filter(
@@ -73,7 +78,7 @@ export async function commitLeagueLeaders(ctx: MutationCtx, commit: RowCommit): 
   const values = commit.rows.map((r) => numberOf(r, "value"));
   for (const [i, row] of commit.rows.entries()) {
     const teamId = row.teamAbbr ? (await team(row.teamAbbr))._id : undefined;
-    const player = teamId ? await rowPlayer(ctx, commit, row, teamId) : null;
+    const player = row.name || row.playerId ? await rowPlayer(ctx, commit, row, teamId) : null;
     const value = values[i] ?? 0;
     await ctx.db.insert("leagueLeaders", {
       franchiseId: commit.franchise._id,

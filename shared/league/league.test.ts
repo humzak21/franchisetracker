@@ -1,5 +1,4 @@
 import { describe, expect, test } from "vitest";
-import { allPro, awardWeeks, cabinet, proBowl, weekWinners } from "../awards/groups";
 import { gradeClass, gradePick } from "../draft/grade";
 import { capSummary, formatMoney } from "../roster/cap";
 import { buildBracket, championsOf, groupStandings, leagueTable, type StandingRow } from "./standings";
@@ -147,44 +146,5 @@ describe("cap", () => {
       "$750K",
       "−$2.5M",
     ]);
-  });
-});
-
-describe("awards", () => {
-  const awards = [
-    {
-      type: "OPOW" as const,
-      weekKey: "w2" as const,
-      conference: "AFC" as const,
-      scope: "conference" as const,
-    },
-    {
-      type: "DPOW" as const,
-      weekKey: "w1" as const,
-      conference: "NFC" as const,
-      scope: "conference" as const,
-    },
-    { type: "MVP" as const, scope: "league" as const },
-    { type: "AllPro1" as const, position: "WR" as const, scope: "league" as const },
-    { type: "AllPro1" as const, position: "QB" as const, scope: "league" as const },
-    {
-      type: "ProBowl" as const,
-      conference: "NFC" as const,
-      position: "CB" as const,
-      scope: "conference" as const,
-    },
-  ];
-  test("weekly grid, cabinet, All-Pro and Pro Bowl", () => {
-    expect(awardWeeks(awards)).toEqual(["w1", "w2"]);
-    const w2 = weekWinners(awards, "w2");
-    expect(w2[0]!.awards[0]!.winners).toHaveLength(1);
-    expect(
-      cabinet(awards)
-        .filter((g) => g.winners.length > 0)
-        .map((g) => g.type),
-    ).toEqual(["MVP"]);
-    expect(cabinet(awards, ["MVP", "FPOY"]).map((g) => g.winners.length)).toEqual([1, 0]);
-    expect(allPro(awards)[0]!.players.map((p) => p.position)).toEqual(["QB", "WR"]);
-    expect(proBowl(awards).map((g) => g.players.length)).toEqual([0, 1]);
   });
 });

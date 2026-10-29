@@ -4,7 +4,7 @@
  */
 
 const PRESEASON = ["pre1", "pre2", "pre3"] as const;
-const REGULAR = [
+export const REGULAR_WEEKS = [
   "w1",
   "w2",
   "w3",
@@ -26,7 +26,7 @@ const REGULAR = [
 ] as const;
 export const PLAYOFF_ROUNDS = ["wc", "div", "conf", "sb"] as const;
 
-export const WEEK_KEYS = [...PRESEASON, ...REGULAR, ...PLAYOFF_ROUNDS, "probowl"] as const;
+export const WEEK_KEYS = [...PRESEASON, ...REGULAR_WEEKS, ...PLAYOFF_ROUNDS, "probowl"] as const;
 export type WeekKey = (typeof WEEK_KEYS)[number];
 export type PlayoffRound = (typeof PLAYOFF_ROUNDS)[number];
 export type WeekPhase = "preseason" | "regular" | "postseason" | "allstar";

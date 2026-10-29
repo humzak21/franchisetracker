@@ -5,26 +5,15 @@
 import { v } from "convex/values";
 import { deriveDraft } from "../../shared/ingestion/normalize";
 import { rememberPlayer } from "./playerAssignments";
-import { diffDrafts } from "../../shared/ingestion/diff";
-import { mutation, query, type QueryCtx } from "../_generated/server";
+import { mutation, query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
-import { vDraft, vDraftWarning, vFieldConfidence, type StoredDraft } from "../lib/draftValidators";
-import { invalid, must } from "../lib/errors";
+import { vDraft, vDraftWarning, vFieldConfidence } from "../lib/draftValidators";
+import { must } from "../lib/errors";
 import { activeFranchise } from "../lib/franchise";
 import { vUploadStatus, vWeekKey } from "../lib/validators";
-import { commitDraft, existingGame, vExistingGame } from "./commitDraft";
+import { existingGame, vExistingGame } from "./commitDraft";
+import { commitSet, latestExtraction, requireExtraction } from "./commitSet";
 import { requireSet, setStatus } from "./sets";
-
-/** Corrections stored per commit; a full re-key of a box score is still well under this. */
-const MAX_CORRECTIONS = 300;
-
-async function latestExtraction(ctx: QueryCtx, setKey: string) {
-  return await ctx.db
-    .query("extractions")
-    .withIndex("by_setKey", (q) => q.eq("setKey", setKey))
-    .order("desc")
-    .first();
-}
 
 export const get = query({
   args: { setKey: v.string() },
@@ -91,12 +80,6 @@ export const get = query({
   },
 });
 
-async function requireExtraction(ctx: QueryCtx, setKey: string, draft: StoredDraft) {
-  const extraction = must(await latestExtraction(ctx, setKey), "Extraction");
-  if (extraction.targetKey !== draft.target) throw invalid("The draft does not match this extraction");
-  return extraction;
-}
-
 /** Saves review edits as they are made, so a review survives a reload or a switch of device. */
 export const saveDraft = mutation({
   args: { setKey: v.string(), draft: vDraft },
@@ -146,37 +129,10 @@ export const commit = mutation({
     /** The next set waiting for review, so an end-of-season pass moves straight on. */
     nextSetKey: v.optional(v.string()),
   }),
-  handler: async (ctx, { setKey, draft: submitted }) => {
-    const draft = deriveDraft(submitted);
+  handler: async (ctx, { setKey, draft }) => {
     await requireOwner(ctx);
     const franchise = await activeFranchise(ctx);
-    const uploads = await requireSet(ctx, franchise._id, setKey);
-    if (uploads.some((u) => u.status === "committed")) throw invalid("This set is already committed");
-    if (uploads.some((u) => u.status === "extracting")) throw invalid("Wait for extraction to finish");
-    const extraction = await requireExtraction(ctx, setKey, draft);
-    const lead = [...uploads].sort((a, b) => a._creationTime - b._creationTime)[0]!;
-    const result = await commitDraft(ctx, franchise, lead, draft);
-
-    for (const change of diffDrafts(extraction.draft, draft).slice(0, MAX_CORRECTIONS)) {
-      await ctx.db.insert("corrections", {
-        franchiseId: franchise._id,
-        targetKey: extraction.targetKey,
-        fieldPath: change.path,
-        extractedValue: change.from,
-        correctedValue: change.to,
-        uploadId: lead._id,
-        extractionId: extraction._id,
-        usedAsExample: true,
-      });
-    }
-    await ctx.db.patch("extractions", extraction._id, { reviewDraft: draft });
-    for (const upload of uploads) {
-      await ctx.db.patch("uploads", upload._id, {
-        status: "committed",
-        error: undefined,
-        ...(result.gameId ? { gameId: result.gameId } : {}),
-      });
-    }
+    const result = await commitSet(ctx, franchise, setKey, draft);
     const next = await ctx.db
       .query("uploads")
       .withIndex("by_franchiseId_and_status", (q) =>

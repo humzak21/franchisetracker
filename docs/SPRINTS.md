@@ -327,6 +327,29 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 ---
 
+## Sprint 13 — Coach of the Year, awards layout, weekly awards in bulk (S)
+
+**Goal:** the awards page reads at a glance, Coach of the Year names a coach, and a season's weekly awards go in at once.
+
+- A bank of every NFL head coach since 2015 plus coaches created in the franchise; Coach of the Year picks from them.
+- Awards: league awards (MVP, Coach of the Year, Super Bowl MVP) apart from an AFC and an NFC column; empty awards and uncaptured weeks tucked away.
+- Weekly awards batch: upload every week's screen together, match each to its week, read and commit together.
+- Any player a committed screen names who is not in the database is added, team or no team.
+- Released and traded-away players leave the roster page; reconciliation settles or reopens every picked difference at once; season and league stats tables show player photos.
+
+**Done when:** a season's 18 weekly awards screens go from upload to committed on one page, Coach of the Year can go to a bank or a created coach, and the awards page shows only what has been won, on phone and desktop.
+
+**As built:**
+
+- `awards/coaches` lists, creates and deletes created coaches (`coaches` table, unique per `coachKey` spelling); `awards/assign:assignCoach` stores Coach of the Year as a name and team, creating an unknown coach. The yearly awards import does the same for a COY row and never makes the coach a player.
+- Conference awards (`CONFERENCE_AWARDS` in `shared/awards/groups.ts`) are assigned and cleared per conference; a winner stored without a conference counts in their team's.
+- `ingestion/weeklyAwards` serves the batch page (`/inbox/weekly-awards`): `create` makes one set per screenshot, `setWeek` matches a set to its week until it is committed, `readAll` reads every matched set, `commitReady` commits the sets that need no review through the same `commitSet` review uses.
+- `rowPlayer` creates a new player for rows without a team (awards, leaders), with no roster entry.
+- Season stats rows take their team from the row, else the screen's Team shown; they no longer default to the user's team, which had put other teams' players on the user's roster. Each ingestion target declares `goesTo`, shown under the screen picker.
+- `stats/reconcile:resolve` takes a list of differences, writing each player's screen row once. `stats/season:bySplit` and `stats/league:bySeason` return each player's headshot URL.
+
+---
+
 ## Later (not scheduled)
 
 - Scoring plays and drive charts if a Madden screen provides them cleanly.

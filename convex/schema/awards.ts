@@ -30,4 +30,16 @@ export const awardTables = {
     .index("by_seasonId_and_type", ["seasonId", "type"])
     .index("by_seasonId_and_weekKey", ["seasonId", "weekKey"])
     .index("by_playerId", ["playerId"]),
+
+  /**
+   * Coaches created in this franchise for Coach of the Year: a fictional coach, or anyone the
+   * bank of real head coaches (`shared/domain/coaches.ts`) does not have.
+   */
+  coaches: defineTable({
+    franchiseId: v.id("franchises"),
+    name: v.string(),
+    /** `coachKey(name)`: one coach per spelling, however it is typed. */
+    key: v.string(),
+    teamId: v.optional(v.id("teams")),
+  }).index("by_franchiseId_and_key", ["franchiseId", "key"]),
 };

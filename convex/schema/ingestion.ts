@@ -52,6 +52,7 @@ export const ingestionTables = {
     .index("by_franchiseId", ["franchiseId"])
     .index("by_franchiseId_and_status", ["franchiseId", "status"])
     .index("by_franchiseId_and_setKey", ["franchiseId", "setKey"])
+    .index("by_seasonId_and_targetKey", ["seasonId", "targetKey"])
     .index("by_gameId", ["gameId"]),
 
   extractions: defineTable({

@@ -8,6 +8,7 @@ import { MAX_IMAGE_BYTES, TOO_LARGE } from "@shared/ingestion/limits";
 import type { TargetKey } from "@shared/ingestion/targets";
 import { blobQueue } from "@/lib/blobQueue";
 import { prepareImage } from "@/lib/image";
+import { storeFiles } from "@/lib/storeFiles";
 import { useReportError } from "../errors/useReportError";
 
 export type UploadContext = {
@@ -41,18 +42,7 @@ export function useUploader() {
 
   const send = useCallback(
     async (blobs: Blob[], meta: QueuedMeta): Promise<string[]> => {
-      const storageIds: Id<"_storage">[] = [];
-      for (const blob of blobs) {
-        const url = await generateUploadUrl();
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": blob.type },
-          body: blob,
-        });
-        if (!response.ok) throw new Error(`Upload failed (${response.status})`);
-        const { storageId } = (await response.json()) as { storageId: Id<"_storage"> };
-        storageIds.push(storageId);
-      }
+      const storageIds = await storeFiles<Id<"_storage">>(blobs, () => generateUploadUrl());
       const { sizes, ...context } = meta;
       return await create({ storageIds, sizes, ...context });
     },

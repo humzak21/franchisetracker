@@ -2,6 +2,7 @@ import { AWARD_INFO } from "@shared/domain";
 import { allPro, proBowl } from "@shared/awards/groups";
 import { Section } from "@/components/layout/Section";
 import { AwardCard } from "./AwardCard";
+import { ConferenceHeading } from "./ConferenceHeading";
 import type { SeasonAward } from "./types";
 
 const grid = "grid gap-2 @tablet:grid-cols-2 @desktop:grid-cols-3";
@@ -27,12 +28,13 @@ export function AllPro({ awards }: { awards: SeasonAward[] }) {
   );
 }
 
-/** Pro Bowl rosters, AFC then NFC. */
+/** Pro Bowl rosters, AFC then NFC, each under its conference's mark. */
 export function ProBowl({ awards }: { awards: SeasonAward[] }) {
   return (
     <div className="grid gap-6 @desktop:grid-cols-2">
       {proBowl(awards).map(({ conference, players }) => (
-        <Section key={conference} title={`${conference} Pro Bowl`} description={`${players.length} players`}>
+        <section key={conference} className="space-y-2">
+          <ConferenceHeading conference={conference} detail={`${players.length} Pro Bowlers`} />
           <ul className="grid gap-2 @tablet:grid-cols-2">
             {players.map((p) => (
               <li key={p._id}>
@@ -40,7 +42,7 @@ export function ProBowl({ awards }: { awards: SeasonAward[] }) {
               </li>
             ))}
           </ul>
-        </Section>
+        </section>
       ))}
     </div>
   );

@@ -175,5 +175,6 @@ test("a player's awards and moves are on their page, and injuries on the roster"
     .first()
     .click();
   await expect(page.getByRole("heading", { name: "Awards and moves" })).toBeVisible();
-  await expect(page.getByText("Offensive Player of the Week")).toBeVisible();
+  // Other tests commit weekly awards to the same backend, so he may have won it more than once.
+  await expect(page.getByText("Offensive Player of the Week").first()).toBeVisible();
 });

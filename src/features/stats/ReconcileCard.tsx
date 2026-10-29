@@ -6,6 +6,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { GAMES_KEY } from "@shared/ingestion/reconcile";
 import { formatSigned, formatStat, isStatKey, STAT_REGISTRY } from "@shared/stats";
 import { PlayerChip } from "@/components/player/PlayerChip";
+import { SelectBox } from "@/components/ui/SelectBox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
@@ -24,19 +25,33 @@ const show = (stat: string, value: number) =>
 export function ReconcileCard({
   seasonId,
   difference: d,
+  selected,
+  onToggle,
 }: {
   seasonId: Id<"seasons">;
   difference: Difference;
+  /** Picked for a batch settle. */
+  selected: boolean;
+  onToggle: () => void;
 }) {
   const resolve = useMutation(api.stats.reconcile.resolve);
   const settle = (resolution: "logs" | "missing" | null) =>
-    void resolve({ seasonId, playerId: d.playerId, stat: d.stat, resolution });
+    void resolve({ seasonId, items: [{ playerId: d.playerId, stat: d.stat }], resolution });
   const open = d.resolution === null;
   return (
     <article
-      className={cn("rounded-xl border bg-surface p-3", open ? "border-warn/50" : "border-border opacity-80")}
+      className={cn(
+        "rounded-xl border bg-surface p-3",
+        selected ? "border-primary" : open ? "border-warn/50" : "border-border opacity-80",
+      )}
     >
       <div className="flex items-start gap-3">
+        <SelectBox
+          checked={selected}
+          onChange={onToggle}
+          label={`Pick ${d.player.displayName} ${statName(d.stat)}`}
+          className="mt-1"
+        />
         <PlayerChip player={d.player} size="sm" caption={statName(d.stat)} className="min-w-0 flex-1" />
         {d.resolution === "logs" && <Badge tone="win">Logs accepted</Badge>}
         {d.resolution === "missing" && <Badge tone="warn">Missing game</Badge>}
