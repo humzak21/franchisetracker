@@ -11,7 +11,7 @@ type PickedStarsProps = {
   sideOf: (star: DraftStar) => string | null;
 };
 
-/** The picked stars in order: move up or down, caption, remove. */
+/** The picked stars in order, each with their line for the game: move up or down, caption, remove. */
 export function PickedStars({ stars, onChange, sideOf }: PickedStarsProps) {
   if (stars.length === 0) {
     return <p className="py-3 text-center text-sm text-muted-foreground">No stars yet. Add players below.</p>;
@@ -30,6 +30,9 @@ export function PickedStars({ stars, onChange, sideOf }: PickedStarsProps) {
                 <span className="block text-xs text-subtle-foreground">
                   {[star.position, side, star.playerId ? null : "typed name"].filter(Boolean).join(" · ")}
                 </span>
+                {star.statLine && (
+                  <span className="num block text-xs text-muted-foreground">{star.statLine}</span>
+                )}
               </span>
               <Button
                 size="icon-sm"

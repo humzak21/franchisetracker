@@ -23,7 +23,10 @@ type StarCandidatesProps = {
   opponent: Side | null;
 };
 
-/** Players to add as stars: this game's box score, then the roster, then any typed name. */
+/**
+ * Players to add as stars: this game's box score (each with the line a star shows), then the
+ * roster, then any typed name.
+ */
 export function StarCandidates({ candidates, picked, onAdd, user, opponent }: StarCandidatesProps) {
   const [search, setSearch] = useState("");
   const [side, setSide] = useState<Id<"teams">>(user._id);
@@ -61,7 +64,7 @@ export function StarCandidates({ candidates, picked, onAdd, user, opponent }: St
             size="sm"
             variant="outline"
             onClick={() => {
-              onAdd({ playerId: null, name: typed, position: null, teamId: side });
+              onAdd({ playerId: null, name: typed, position: null, teamId: side, statLine: null });
               setSearch("");
             }}
           >
@@ -87,7 +90,13 @@ export function StarCandidates({ candidates, picked, onAdd, user, opponent }: St
                 type="button"
                 aria-label={`Add ${c.name}`}
                 onClick={() =>
-                  onAdd({ playerId: c.playerId, name: c.name, position: c.position, teamId: c.teamId })
+                  onAdd({
+                    playerId: c.playerId,
+                    name: c.name,
+                    position: c.position,
+                    teamId: c.teamId,
+                    statLine: c.statLine,
+                  })
                 }
                 className="flex min-h-12 w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-2"
               >
@@ -99,6 +108,13 @@ export function StarCandidates({ candidates, picked, onAdd, user, opponent }: St
                     headshotUrl: c.headshotUrl,
                     team: teamOf(c.teamId),
                   }}
+                  caption={
+                    c.statLine ? (
+                      <>
+                        {c.position} · <span className="num">{c.statLine}</span>
+                      </>
+                    ) : undefined
+                  }
                   className="flex-1"
                 />
                 <span className="shrink-0 text-xs text-subtle-foreground">

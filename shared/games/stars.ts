@@ -48,6 +48,19 @@ export function cleanStars<P extends string, T extends string>(
   return { ok: true, value: out };
 }
 
+/**
+ * The stars with one player toggled, for the box score's one-click star: a star is taken out
+ * (the rest keep their order); anyone else joins at the end. Null when the list is full.
+ */
+export function toggleStar<S extends { playerId?: string }>(
+  stars: readonly S[],
+  playerId: string,
+  star: S,
+): S[] | null {
+  if (stars.some((s) => s.playerId === playerId)) return stars.filter((s) => s.playerId !== playerId);
+  return stars.length >= MAX_STARS ? null : [...stars, star];
+}
+
 /** The list with one item moved to a new position (reordering stars). Out-of-range moves are no-ops. */
 export function moveItem<T>(list: readonly T[], from: number, to: number): T[] {
   if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return [...list];

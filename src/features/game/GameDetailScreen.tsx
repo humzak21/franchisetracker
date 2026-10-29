@@ -165,7 +165,7 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
                 </Button>
               }
             >
-              <BoxScore gameId={game._id} onImport={() => importScreenshot()} />
+              <BoxScore gameId={game._id} stars={data.stars} onImport={() => importScreenshot()} />
             </Section>
           </>
         )}

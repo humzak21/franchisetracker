@@ -14,6 +14,7 @@ import { editableStat, statColumn, type DataColumn } from "@/components/data/Dat
 import { PlayerChip } from "@/components/player/PlayerChip";
 import type { TeamLike } from "@/components/team/TeamLogo";
 import { Badge } from "@/components/ui/misc";
+import { StarToggle } from "./StarToggle";
 
 export type BoxTeam = FunctionReturnType<typeof api.games.boxScore.get>["teams"][number];
 
@@ -56,14 +57,25 @@ export function totalsRow(rows: readonly BoxRow[]): BoxRow {
   };
 }
 
-/** The player column carries the game's threshold highlights (300-yard passer, 2 sacks) as badges. */
-export function boxColumns(stats: readonly StatKey[], team: TeamLike): DataColumn<BoxRow>[] {
+/** Which box score players are stars of the game, and the one-click toggle. */
+export type BoxStars = {
+  isStar: (playerId: string) => boolean;
+  /** The player being starred or unstarred right now. */
+  pending: string | null;
+  toggle: (row: BoxRow) => void;
+};
+
+/**
+ * The player column carries the one-click star and the game's threshold highlights (300-yard
+ * passer, 2 sacks) as badges.
+ */
+export function boxColumns(stats: readonly StatKey[], team: TeamLike, stars: BoxStars): DataColumn<BoxRow>[] {
   const player: DataColumn<BoxRow> = {
     id: "player",
     header: "Player",
     value: (r) => r.name,
     sortable: false,
-    minWidth: 170,
+    minWidth: 200,
     cell: (r) => {
       if (r.id === "totals") return <span className="font-semibold">Team</span>;
       const chip = (
@@ -80,14 +92,19 @@ export function boxColumns(stats: readonly StatKey[], team: TeamLike): DataColum
         />
       );
       const marks = gameHighlights(r.line);
+      const playerId = r.playerId;
       return (
         <span className="flex min-w-0 items-center gap-1.5">
-          {r.playerId ? (
-            <Link
-              to="/players/$playerId"
-              params={{ playerId: r.playerId }}
-              className="min-w-0 hover:underline"
-            >
+          {playerId && (
+            <StarToggle
+              name={r.name}
+              starred={stars.isStar(playerId)}
+              busy={stars.pending === playerId}
+              onToggle={() => stars.toggle(r)}
+            />
+          )}
+          {playerId ? (
+            <Link to="/players/$playerId" params={{ playerId }} className="min-w-0 hover:underline">
               {chip}
             </Link>
           ) : (

@@ -1,7 +1,12 @@
-/** Stars of the game, picked by hand: who can be picked, and saving the ordered list. */
+/**
+ * Stars of the game, picked by hand: who can be picked (with their line for the game), saving
+ * the ordered list, and the box score's one-click star.
+ */
 import { v } from "convex/values";
-import { cleanStars } from "../../shared/games/stars";
-import type { Id } from "../_generated/dataModel";
+import { starStatLine } from "../../shared/games/starLine";
+import { cleanStars, MAX_STARS, toggleStar } from "../../shared/games/stars";
+import type { StatLine } from "../../shared/stats";
+import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { invalid, must } from "../lib/errors";
@@ -15,8 +20,8 @@ const MAX_LINES_PER_TEAM = 100;
 const MAX_ROSTER = 150;
 
 /**
- * Players with a stat line in this game (both teams, the user's first), then the rest of the
- * user team's roster that season. Anyone else is typed in by name.
+ * Players with a stat line in this game (both teams, the user's first), each with the line a
+ * star shows, then the rest of the user team's roster that season. Anyone else is typed in by name.
  */
 export const candidates = query({
   args: { gameId: v.id("games") },
@@ -28,6 +33,7 @@ export const candidates = query({
       headshotUrl: v.union(v.string(), v.null()),
       teamId: v.id("teams"),
       inGame: v.boolean(),
+      statLine: v.union(v.string(), v.null()),
     }),
   ),
   handler: async (ctx, { gameId }) => {
@@ -37,13 +43,18 @@ export const candidates = query({
     const sides = [game.homeTeamId, game.awayTeamId]
       .filter((id): id is Id<"teams"> => id !== undefined)
       .sort((a, b) => Number(b === userTeamId) - Number(a === userTeamId));
-    const picks: { playerId: Id<"players">; teamId: Id<"teams">; inGame: boolean }[] = [];
+    const picks: {
+      playerId: Id<"players">;
+      teamId: Id<"teams">;
+      inGame: boolean;
+      line?: Doc<"gameStatLines">;
+    }[] = [];
     for (const teamId of sides) {
       const lines = await ctx.db
         .query("gameStatLines")
         .withIndex("by_gameId_and_teamId", (q) => q.eq("gameId", gameId).eq("teamId", teamId))
         .take(MAX_LINES_PER_TEAM);
-      picks.push(...lines.map((l) => ({ playerId: l.playerId, teamId, inGame: true })));
+      picks.push(...lines.map((line) => ({ playerId: line.playerId, teamId, inGame: true, line })));
     }
     const roster = await ctx.db
       .query("rosterEntries")
@@ -60,7 +71,7 @@ export const candidates = query({
       picks.map((p) => p.playerId),
     );
     const headshots = await headshotUrls(ctx, players.values());
-    const out = picks.flatMap((pick) => {
+    const out = picks.flatMap(({ line, ...pick }) => {
       const player = players.get(pick.playerId);
       return player
         ? [
@@ -69,6 +80,7 @@ export const candidates = query({
               name: player.displayName,
               position: player.position,
               headshotUrl: headshots.get(player._id) ?? null,
+              statLine: line ? starStatLine(line.position ?? player.position, line.stats as StatLine) : null,
             },
           ]
         : [];
@@ -106,5 +118,28 @@ export const setStars = mutation({
     }
     await ctx.db.patch("games", gameId, { stars: checked.value.length > 0 ? checked.value : undefined });
     return null;
+  },
+});
+
+/**
+ * The box score's one-click star: makes a player in this game a star (last in the order) or, if
+ * he already is one, takes him out. Returns whether he is a star now.
+ */
+export const toggle = mutation({
+  args: { gameId: v.id("games"), playerId: v.id("players"), teamId: v.id("teams") },
+  returns: v.boolean(),
+  handler: async (ctx, { gameId, playerId, teamId }) => {
+    await requireOwner(ctx);
+    const { franchise, game } = await ownGame(ctx, gameId);
+    const player = must(await ctx.db.get("players", playerId), "Player");
+    if (player.franchiseId !== franchise._id) throw invalid("That player belongs to another franchise");
+    if (teamId !== game.homeTeamId && teamId !== game.awayTeamId) {
+      throw invalid("That team did not play in this game");
+    }
+    const stars = game.stars ?? [];
+    const next = toggleStar(stars, playerId, { playerId, teamId });
+    if (!next) throw invalid(`Pick at most ${MAX_STARS} stars`);
+    await ctx.db.patch("games", gameId, { stars: next.length > 0 ? next : undefined });
+    return next.length > stars.length;
   },
 });

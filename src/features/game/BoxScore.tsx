@@ -1,6 +1,6 @@
 import { useMutation } from "convex/react";
 import { ImageUp, ListPlus } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import {
@@ -14,25 +14,43 @@ import {
 } from "@shared/stats";
 import { DataTable } from "@/components/data/DataTable";
 import { EmptyState } from "@/components/data/EmptyState";
+import type { StarView } from "@/components/player/GameStars";
 import { Button } from "@/components/ui/button";
 import { TeamChip } from "@/components/team/TeamChip";
 import { Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import { useQuery } from "@/lib/convex/useQuery";
+import { errorMessage } from "@/lib/errors";
 import { useRevealOnChange } from "@/lib/hooks/useRevealOnChange";
 import { BoxLinesSheet } from "./BoxLinesSheet";
-import { boxColumns, boxRows, totalsRow, type BoxTeam } from "./boxScoreColumns";
+import { boxColumns, boxRows, totalsRow, type BoxRow, type BoxStars, type BoxTeam } from "./boxScoreColumns";
 
-type BoxScoreProps = { gameId: Id<"games">; onImport: () => void };
+type BoxScoreProps = { gameId: Id<"games">; stars: readonly StarView[]; onImport: () => void };
 
 /**
  * Game detail v2 box score: one category at a time, either team or both, with threshold
  * highlights. Phone tables keep each category's defining stats and fold the rest into the
  * tap-to-expand card. Edit turns recorded stats into inputs; Player lines adds or removes lines.
+ * The star beside each player makes him a star of the game in one click, and a second click undoes it.
  */
-export function BoxScore({ gameId, onImport }: BoxScoreProps) {
+export function BoxScore({ gameId, stars, onImport }: BoxScoreProps) {
   const data = useQuery(api.games.boxScore.get, { gameId });
   const setStat = useMutation(api.games.statLines.setStat);
+  const toggleStar = useMutation(api.games.stars.toggle);
+  const [pending, setPending] = useState<string | null>(null);
+  const [starError, setStarError] = useState<string | null>(null);
+  const starIds = useMemo(() => new Set(stars.flatMap((s) => (s.playerId ? [s.playerId] : []))), [stars]);
+  const toggle = useCallback(
+    (row: BoxRow, teamId: Id<"teams">) => {
+      if (!row.playerId) return;
+      setPending(row.playerId);
+      setStarError(null);
+      toggleStar({ gameId, playerId: row.playerId as Id<"players">, teamId })
+        .catch((err: unknown) => setStarError(errorMessage(err, "Could not change the stars.")))
+        .finally(() => setPending(null));
+    },
+    [gameId, toggleStar],
+  );
   const [side, setSide] = useState<string>("both");
   const [picked, setPicked] = useState<StatCategory | null>(null);
   const [linesOpen, setLinesOpen] = useState(false);
@@ -113,8 +131,18 @@ export function BoxScore({ gameId, onImport }: BoxScoreProps) {
           {addLines}
         </div>
       </div>
+      {starError && (
+        <p role="alert" className="text-sm text-loss">
+          {starError}
+        </p>
+      )}
       {shown.map((team) => {
         const rows = boxRows(team, stats);
+        const teamStars: BoxStars = {
+          isStar: (id) => starIds.has(id),
+          pending,
+          toggle: (row) => toggle(row, team.team._id),
+        };
         return (
           <section key={`${team.team._id}-${category}`} className="space-y-2">
             <TeamChip team={team.team} label="full" size="xs" className="text-sm" />
@@ -122,7 +150,7 @@ export function BoxScore({ gameId, onImport }: BoxScoreProps) {
               id={`box-${category}`}
               caption={`${team.team.abbr} ${STAT_CATEGORY_LABELS[category].toLowerCase()}`}
               data={rows}
-              columns={boxColumns(stats, team.team)}
+              columns={boxColumns(stats, team.team, teamStars)}
               getRowId={(r) => r.id}
               identityColumn="player"
               primaryColumns={CATEGORY_PRIMARY[category]}
