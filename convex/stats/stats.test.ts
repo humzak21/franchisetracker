@@ -208,6 +208,14 @@ describe("thresholds", () => {
     await expect(
       owner.mutation(api.franchise.settings.setThresholds, { overrides: { nonsense: { tier1: 1 } } }),
     ).rejects.toThrow(/Unknown stat/);
+    // The single-game scale is saved beside the season one and leaves it alone.
+    await owner.mutation(api.franchise.settings.setThresholds, {
+      scale: "game",
+      overrides: { passYds: { tier1: 350, tier2: 450 } },
+    });
+    const after = await t.run((ctx) => ctx.db.query("franchises").first());
+    expect(after?.settings.gameThresholdOverrides).toEqual({ passYds: { tier1: 350, tier2: 450 } });
+    expect(after?.settings.thresholdOverrides).toEqual({ rushYds: { tier1: 800, tier2: 1200 } });
   });
 
   test("strangers are refused", async () => {

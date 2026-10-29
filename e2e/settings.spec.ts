@@ -29,3 +29,14 @@ for (const theme of ["dark", "light"] as const) {
     });
   });
 }
+
+test("game highlights sit under the season highlights with their own defaults", async ({ page }) => {
+  await page.goto("/settings");
+  const season = page.getByRole("heading", { name: "Highlights", exact: true });
+  const game = page.getByRole("heading", { name: "Game highlights" });
+  await expect(game).toBeVisible();
+  const [seasonBox, gameBox] = await Promise.all([season.boundingBox(), game.boundingBox()]);
+  expect(gameBox!.y).toBeGreaterThan(seasonBox!.y);
+  await expect(page.getByLabel("Single-game Passing yards tier 1")).toHaveValue("300");
+  await expect(page.getByLabel("Single-game Passing yards tier 2")).toHaveValue("500");
+});

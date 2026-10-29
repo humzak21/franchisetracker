@@ -49,7 +49,8 @@ export function SettingsScreen() {
         <FranchiseSettings />
         <HistorySettings />
         <IdentitySettings />
-        <HighlightSettings />
+        <HighlightSettings scale="season" />
+        <HighlightSettings scale="game" />
         <ExtractionSettings />
         <ShortcutSettings />
         {/* Below the Shortcut: their lists load late and would push everything under them down. */}

@@ -5,7 +5,9 @@ import {
   statsWithData,
   type StatCategory,
   type StatLine,
+  type ThresholdOverrides,
 } from "@shared/stats";
+import { useFranchise } from "@/app/franchise";
 import { DataTable, type EditValue } from "@/components/data/DataTable";
 import { TeamChip } from "@/components/team/TeamChip";
 import { boxColumns, boxRows, totalsRow, type BoxRow, type BoxStars, type BoxTeam } from "./boxScoreColumns";
@@ -28,6 +30,8 @@ export function BoxTeamTables({ team, allTeams, categories, stars, onEdit }: Box
       return { category, stats, rows: boxRows(team, stats) };
     })
     .filter((t) => t.rows.length > 0);
+  const thresholds = useFranchise()?.franchise.settings.gameThresholdOverrides as
+    ThresholdOverrides | undefined;
   const teamStars: BoxStars = { ...stars, toggle: (row) => stars.toggle(row, team.team._id) };
   const name = `${team.team.city} ${team.team.name}`;
   return (
@@ -47,7 +51,7 @@ export function BoxTeamTables({ team, allTeams, categories, stars, onEdit }: Box
               id={`box-${category}`}
               caption={`${team.team.abbr} ${label.toLowerCase()}`}
               data={rows}
-              columns={boxColumns(stats, team.team, teamStars)}
+              columns={boxColumns(stats, team.team, teamStars, thresholds)}
               getRowId={(r) => r.id}
               identityColumn="player"
               primaryColumns={CATEGORY_PRIMARY[category]}

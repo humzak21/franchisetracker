@@ -4,17 +4,19 @@ import { mutation } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { invalid } from "../lib/errors";
 import { activeFranchise } from "../lib/franchise";
+import { literals } from "../lib/validators";
 
 const vTier = v.object({ tier1: v.number(), tier2: v.optional(v.number()) });
 
 /**
- * Replaces the elite highlight overrides (Settings → Highlights). Only stats that differ from
- * the registry defaults are sent; an empty record restores every default.
+ * Replaces the elite highlight overrides (Settings → Highlights) on the season scale, or with
+ * `scale: "game"` the single-game scale (Settings → Game highlights). Only stats that differ from
+ * the defaults are sent; an empty record restores every default.
  */
 export const setThresholds = mutation({
-  args: { overrides: v.record(v.string(), vTier) },
+  args: { overrides: v.record(v.string(), vTier), scale: v.optional(literals(["season", "game"])) },
   returns: v.null(),
-  handler: async (ctx, { overrides }) => {
+  handler: async (ctx, { overrides, scale = "season" }) => {
     await requireOwner(ctx);
     for (const [key, { tier1, tier2 }] of Object.entries(overrides)) {
       if (!isStatKey(key)) throw invalid(`Unknown stat "${key}"`);
@@ -30,7 +32,10 @@ export const setThresholds = mutation({
     }
     const franchise = await activeFranchise(ctx);
     await ctx.db.patch("franchises", franchise._id, {
-      settings: { ...franchise.settings, thresholdOverrides: overrides },
+      settings: {
+        ...franchise.settings,
+        ...(scale === "game" ? { gameThresholdOverrides: overrides } : { thresholdOverrides: overrides }),
+      },
     });
     return null;
   },
