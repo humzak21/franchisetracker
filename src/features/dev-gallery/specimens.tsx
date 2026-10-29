@@ -80,12 +80,9 @@ export const SPECIMENS: Specimen[] = [
   {
     id: "statcell",
     name: "StatCell · Highlight",
-    note: "Registry formatting and two elite tiers driven by team colors.",
+    note: "Registry formatting and two elite tiers driven by team colors, on the season scale or one game's.",
     render: () => (
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">
-        <span>
-          Plain <StatCell stat="recYds" value={935} highlight />
-        </span>
         <span>
           Tier 1 <StatCell stat="recYds" value={1054} highlight />
         </span>
@@ -97,6 +94,9 @@ export const SPECIMENS: Specimen[] = [
         </span>
         <span>
           Rating <StatCell stat="passRating" value={statValue("passRating", MAYE_2025)} highlight />
+        </span>
+        <span>
+          One game <StatCell stat="passYds" value={512} highlight="game" />
         </span>
         <span>
           Half sacks <StatCell stat="sacks" value={3.5} />

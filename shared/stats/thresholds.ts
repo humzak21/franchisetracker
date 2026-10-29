@@ -1,5 +1,5 @@
 /**
- * Elite highlight thresholds (season level, two tiers) and threshold games (game level).
+ * Elite highlight thresholds (two tiers, for a season and for one game) and threshold games.
  * Defaults come from FEATURES.md 5.5; franchises override season tiers in settings.
  */
 import { PERFECT_PASSER_RATING } from "./math";
@@ -26,18 +26,46 @@ export const DEFAULT_SEASON_THRESHOLDS: ThresholdOverrides = {
   fgPct: { tier1: 90, tier2: 95 },
 };
 
-/** Highlight tier for a value. Respects the stat's `better` direction. */
+/**
+ * The same two tiers for one game's line (box scores and game logs): a 300-yard passing game is
+ * tier 1, a 500-yard one tier 2. Counting stats only; a rate in one game needs volume to mean much.
+ */
+export const DEFAULT_GAME_TIERS: ThresholdOverrides = {
+  passYds: { tier1: 300, tier2: 500 },
+  passTd: { tier1: 3, tier2: 5 },
+  rushYds: { tier1: 100, tier2: 200 },
+  rushTd: { tier1: 2, tier2: 3 },
+  rec: { tier1: 8, tier2: 12 },
+  recYds: { tier1: 100, tier2: 200 },
+  recTd: { tier1: 2, tier2: 3 },
+  tackles: { tier1: 10, tier2: 15 },
+  tacklesForLoss: { tier1: 2, tier2: 4 },
+  sacks: { tier1: 2, tier2: 3 },
+  defInt: { tier1: 2, tier2: 3 },
+  forcedFumbles: { tier1: 1, tier2: 2 },
+  defTd: { tier1: 1, tier2: 2 },
+  fgLong: { tier1: 50, tier2: 55 },
+};
+
+function tierOf(key: StatKey, value: number | null | undefined, threshold: TierThreshold | undefined): Tier {
+  if (value === null || value === undefined || !threshold) return 0;
+  const meets = (limit: number) => (STAT_REGISTRY[key].better === "higher" ? value >= limit : value <= limit);
+  if (threshold.tier2 !== undefined && meets(threshold.tier2)) return 2;
+  return meets(threshold.tier1) ? 1 : 0;
+}
+
+/** Highlight tier for a season value. Respects the stat's `better` direction. */
 export function eliteTier(
   key: StatKey,
   value: number | null | undefined,
   overrides?: ThresholdOverrides,
 ): Tier {
-  if (value === null || value === undefined) return 0;
-  const threshold = overrides?.[key] ?? DEFAULT_SEASON_THRESHOLDS[key];
-  if (!threshold) return 0;
-  const meets = (limit: number) => (STAT_REGISTRY[key].better === "higher" ? value >= limit : value <= limit);
-  if (threshold.tier2 !== undefined && meets(threshold.tier2)) return 2;
-  return meets(threshold.tier1) ? 1 : 0;
+  return tierOf(key, value, overrides?.[key] ?? DEFAULT_SEASON_THRESHOLDS[key]);
+}
+
+/** Highlight tier for one game's value (`DEFAULT_GAME_TIERS`); stats without game tiers are 0. */
+export function gameTier(key: StatKey, value: number | null | undefined): Tier {
+  return tierOf(key, value, DEFAULT_GAME_TIERS[key]);
 }
 
 export type GameThreshold = {

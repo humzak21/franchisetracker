@@ -93,8 +93,8 @@ function columns(position: Position, rows: readonly Row[]): { cols: DataColumn<R
     ...stats.map((key) => {
       const column = statColumn<Row>(key, (r) => statValue(key, r.stats as StatLine), {
         group: STAT_CATEGORY_LABELS[STAT_REGISTRY[key].category],
-        // Per-game cells skip season elite tiers; threshold badges mark the big games instead.
-        highlight: false,
+        // Per-game cells use the single-game tiers, not the season ones.
+        highlight: "game",
       });
       // Recorded stats edit in place (the same save as the box score); rates are worked out.
       return isRawStatKey(key)
