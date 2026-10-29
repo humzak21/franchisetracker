@@ -71,7 +71,9 @@ test("the draft screen links to manual entry with the target preset", async ({ p
   await expectNoHorizontalOverflow(page);
 });
 
-test("a draft pick works out its overall number and takes a typed name for a new player", async ({ page }) => {
+test("a draft pick works out its overall number and takes a typed name for a new player", async ({
+  page,
+}) => {
   await start(page, "draft_results");
   await page.getByRole("button", { name: "Add row" }).click();
   const add = page.getByRole("dialog", { name: "Add a row" });
