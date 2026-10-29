@@ -36,6 +36,8 @@ describe("compare", () => {
   test("radar axes are defining, higher-is-better stats; too few means no radar", () => {
     const axes = radarAxes(compareStats(["QB", "QB"], [maye, brady]));
     expect(axes).toEqual(["passCmp", "passAtt", "passYds", "passTd", "rushAtt", "rushYds"]);
+    // The table puts fantasy points right after passing; the radar leaves them out.
+    expect(compareStats(["QB", "QB"], [maye, brady])).toContain("fantasyPts");
     expect(radarAxes(["passYds", "passInt"])).toEqual([]);
   });
 

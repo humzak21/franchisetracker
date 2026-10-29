@@ -7,7 +7,7 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { positionGroupOf, weekIndex, weekLabel, type Position } from "@shared/domain";
 import {
-  CATEGORY_GROUPS,
+  categoriesForPosition,
   gameHighlights,
   isRawStatKey,
   RAW_STAT_CATEGORIES,
@@ -36,11 +36,9 @@ function columns(
   rows: readonly Row[],
   thresholds: ThresholdOverrides | undefined,
 ): { cols: DataColumn<Row>[]; primary: string[] } {
-  const group = positionGroupOf(position);
-  const own = RAW_STAT_CATEGORIES.filter((c) => CATEGORY_GROUPS[c].includes(group));
-  const rest = RAW_STAT_CATEGORIES.filter((c) => !own.includes(c));
+  // The position's main stats lead (a receiver's catches, a back's carries), fantasy right after.
   const stats = statsWithData(
-    [...own, ...rest, "fantasy"],
+    categoriesForPosition(positionGroupOf(position), [...RAW_STAT_CATEGORIES, "fantasy"]),
     rows.map((r) => ({ line: r.stats as StatLine })),
     { singleGame: true },
   );
