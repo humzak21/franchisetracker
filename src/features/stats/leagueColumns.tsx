@@ -9,7 +9,7 @@ import {
   type StatKey,
   type ThresholdOverrides,
 } from "@shared/stats";
-import { statColumn, type DataColumn } from "@/components/data/DataTable";
+import { editableStat, statColumn, type DataColumn } from "@/components/data/DataTable";
 import { PlayerChip } from "@/components/player/PlayerChip";
 import { TeamChip } from "@/components/team/TeamChip";
 import type { LeagueRow } from "./leagueRows";
@@ -66,12 +66,17 @@ export function leagueColumns(
     align: "right",
     sortDescFirst: true,
     value: (r) => r.games,
+    edit: { kind: "number", get: (r) => r.games, min: 0, max: 25 },
   };
   const statCols = stats.map((key) =>
-    statColumn<LeagueRow>(key, (r) => statValue(key, r.line, { games: r.games || 1 }), {
-      group: STAT_CATEGORY_LABELS[STAT_REGISTRY[key].category],
-      thresholds,
-    }),
+    editableStat(
+      statColumn<LeagueRow>(key, (r) => statValue(key, r.line, { games: r.games || 1 }), {
+        group: STAT_CATEGORY_LABELS[STAT_REGISTRY[key].category],
+        thresholds,
+      }),
+      key,
+      (r) => r.line,
+    ),
   );
   return { columns: [player, team, games, ...statCols], stats };
 }

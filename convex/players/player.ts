@@ -8,6 +8,7 @@ import { activeFranchise, teamsById } from "../lib/franchise";
 import { headshotUrl } from "../lib/media";
 import { seasonYears, toTeamRef, vTeamRef } from "../lib/refs";
 import schema from "../schema";
+import { vStatMap, vStatSplit } from "../lib/validators";
 import { vPlayerPatch } from "./patches";
 
 /** Twenty-plus real seasons before the franchise, two splits each, then the franchise run. */
@@ -29,7 +30,15 @@ export const get = query({
       v.object({
         year: v.number(),
         team: vTeamRef,
-        stats: schema.doc("seasonPlayerStats"),
+        /** Logs and imports are season rows; `reported` is a captured line with no season row (another team's player). */
+        stats: v.object({
+          seasonId: v.id("seasons"),
+          teamId: v.id("teams"),
+          source: v.union(v.literal("logs"), v.literal("import"), v.literal("reported")),
+          split: vStatSplit,
+          gamesPlayed: v.number(),
+          totals: vStatMap,
+        }),
         /** Stats showing the season screen's number because a game's box score is missing. */
         overridden: v.array(v.string()),
       }),
@@ -55,7 +64,7 @@ export const get = query({
     const [years, teams, franchise] = await Promise.all([
       seasonYears(
         ctx,
-        [...entries, ...stats].map((row) => row.seasonId),
+        [...entries, ...stats, ...reported].map((row) => row.seasonId),
       ),
       teamsById(ctx),
       activeFranchise(ctx),
@@ -76,8 +85,34 @@ export const get = query({
           ? reported.find((r) => r.seasonId === row.seasonId && r.teamId === row.teamId)
           : undefined;
       const { gamesPlayed, totals, overridden } = withMissingGames(row, screen);
-      return [{ year, team: toTeamRef(team), stats: { ...row, gamesPlayed, totals }, overridden }];
+      const shown = {
+        seasonId: row.seasonId,
+        teamId: row.teamId,
+        source: row.source as "logs" | "import" | "reported",
+        split: row.split,
+      };
+      return [{ year, team: toTeamRef(team), stats: { ...shown, gamesPlayed, totals }, overridden }];
     });
+    // A season captured from a stats screen with no season row of his own: League stats' line.
+    for (const line of reported) {
+      const year = years.get(line.seasonId);
+      const team = teams.get(line.teamId);
+      const covered = stats.some((r) => r.seasonId === line.seasonId && r.teamId === line.teamId);
+      if (year === undefined || !team || covered) continue;
+      seasons.push({
+        year,
+        team: toTeamRef(team),
+        stats: {
+          seasonId: line.seasonId,
+          teamId: line.teamId,
+          source: "reported",
+          split: "regular",
+          gamesPlayed: line.gamesPlayed ?? 0,
+          totals: line.stats,
+        },
+        overridden: [],
+      });
+    }
     history.sort((a, b) => a.year - b.year);
     seasons.sort((a, b) => a.year - b.year);
     return {

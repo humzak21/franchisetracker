@@ -5,13 +5,12 @@ import type { api } from "@convex/_generated/api";
 import {
   aggregateLines,
   gameHighlights,
-  isRawStatKey,
   STAT_REGISTRY,
   statValue,
   type StatKey,
   type StatLine,
 } from "@shared/stats";
-import { statColumn, type DataColumn } from "@/components/data/DataTable";
+import { editableStat, statColumn, type DataColumn } from "@/components/data/DataTable";
 import { PlayerChip } from "@/components/player/PlayerChip";
 import type { TeamLike } from "@/components/team/TeamLogo";
 import { Badge } from "@/components/ui/misc";
@@ -107,11 +106,12 @@ export function boxColumns(stats: readonly StatKey[], team: TeamLike): DataColum
   // Recorded stats edit in place; rates (CMP%, AVG) are worked out from them.
   return [
     player,
-    ...stats.map((key) => {
-      const column = statColumn<BoxRow>(key, (r) => statValue(key, r.line), { highlight: false });
-      return isRawStatKey(key)
-        ? { ...column, edit: { kind: "number" as const, get: (r: BoxRow) => r.line[key] } }
-        : column;
-    }),
+    ...stats.map((key) =>
+      editableStat(
+        statColumn<BoxRow>(key, (r) => statValue(key, r.line), { highlight: false }),
+        key,
+        (r) => r.line,
+      ),
+    ),
   ];
 }

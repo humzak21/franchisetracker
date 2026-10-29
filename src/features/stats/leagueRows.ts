@@ -1,6 +1,7 @@
 /** Rows of one position group's league stats table, mapped from the league query. */
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 import { positionGroupOf, type Position } from "@shared/domain";
 import { isRawStatKey, statsInCategory, statValue, type StatGroup, type StatLine } from "@shared/stats";
 
@@ -12,7 +13,8 @@ export type LeagueScope = "all" | "ours" | "others";
 
 export type LeagueRow = {
   id: string;
-  playerId: string;
+  playerId: Id<"players">;
+  teamId: Id<"teams">;
   name: string;
   headshotUrl: string | null;
   position: Position;
@@ -37,6 +39,7 @@ export function leagueRows(data: LeagueData, group: StatGroup, scope: LeagueScop
     .map((r) => ({
       id: `${r.playerId}|${r.teamId}`,
       playerId: r.playerId,
+      teamId: r.teamId,
       name: r.name,
       headshotUrl: r.headshotUrl,
       position: r.position,

@@ -1,8 +1,9 @@
+import { useMutation } from "convex/react";
 import { BarChart3, History } from "lucide-react";
 import { useMemo } from "react";
 import { api } from "@convex/_generated/api";
 import { isPreFranchise } from "@shared/history/nflverse";
-import { STAT_GROUPS, statGroup, type ThresholdOverrides } from "@shared/stats";
+import { GAMES_EDIT_KEY, STAT_GROUPS, statGroup, type ThresholdOverrides } from "@shared/stats";
 import { useFranchise } from "@/app/franchise";
 import { useSeason } from "@/app/season";
 import { MISSING_GAME_NOTE } from "@shared/ingestion/reconcile";
@@ -25,6 +26,7 @@ export function SeasonStats({ split }: { split: Split }) {
   const [groupId, setGroupId] = useLocalStorage("ft.stats-group", STAT_GROUPS[0]!.id);
   const group = statGroup(groupId);
   const thresholds = active?.franchise.settings.thresholdOverrides as ThresholdOverrides | undefined;
+  const setStat = useMutation(api.stats.edit.setStat);
 
   const table = useMemo(() => {
     if (!data || !active) return undefined;
@@ -72,6 +74,20 @@ export function SeasonStats({ split }: { split: Split }) {
           }
           searchable
           searchPlaceholder="Find a player"
+          onEdit={(row, columnId, value) =>
+            season && active && row.playerId
+              ? setStat({
+                  playerId: row.playerId,
+                  seasonId: season._id,
+                  teamId: active.userTeam._id,
+                  split,
+                  stat: columnId === "gp" ? GAMES_EDIT_KEY : columnId,
+                  value: typeof value === "number" ? value : null,
+                })
+              : undefined
+          }
+          // Playoff totals from the logs change only through their games; the team row is a sum.
+          canEditRow={(row) => row.playerId !== null && (split === "regular" || row.source === "import")}
           emptyState={
             <EmptyState
               icon={BarChart3}

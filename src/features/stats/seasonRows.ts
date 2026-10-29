@@ -17,7 +17,9 @@ export type SeasonStatRow = FunctionReturnType<typeof api.stats.season.bySplit>[
 
 export type Row = {
   id: string;
-  playerId: string | null;
+  playerId: Id<"players"> | null;
+  /** Logs or imported real-NFL totals; null on the team totals row. */
+  source: SeasonStatRow["source"] | null;
   name: string;
   headshotUrl: string | null;
   position: string;
@@ -42,6 +44,7 @@ export function groupRows(rows: readonly SeasonStatRow[], group: StatGroup): Row
     .map((r) => ({
       id: r.playerId,
       playerId: r.playerId,
+      source: r.source,
       name: r.name,
       headshotUrl: r.headshotUrl,
       position: r.position,
@@ -58,6 +61,7 @@ export function totalsRow(rows: readonly Row[]): Row {
   return {
     id: "totals",
     playerId: null,
+    source: null,
     name: "Team",
     headshotUrl: null,
     position: "",
