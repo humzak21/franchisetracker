@@ -70,6 +70,7 @@ import type * as ingestion_commitSet from "../ingestion/commitSet.js";
 import type * as ingestion_commitTeamStats from "../ingestion/commitTeamStats.js";
 import type * as ingestion_corrections from "../ingestion/corrections.js";
 import type * as ingestion_extract from "../ingestion/extract.js";
+import type * as ingestion_fixMisreads from "../ingestion/fixMisreads.js";
 import type * as ingestion_fixture from "../ingestion/fixture.js";
 import type * as ingestion_fixtureLeagueTeams from "../ingestion/fixtureLeagueTeams.js";
 import type * as ingestion_fixtureRows from "../ingestion/fixtureRows.js";
@@ -256,6 +257,7 @@ declare const fullApi: ApiFromModules<{
   "ingestion/commitTeamStats": typeof ingestion_commitTeamStats;
   "ingestion/corrections": typeof ingestion_corrections;
   "ingestion/extract": typeof ingestion_extract;
+  "ingestion/fixMisreads": typeof ingestion_fixMisreads;
   "ingestion/fixture": typeof ingestion_fixture;
   "ingestion/fixtureLeagueTeams": typeof ingestion_fixtureLeagueTeams;
   "ingestion/fixtureRows": typeof ingestion_fixtureRows;

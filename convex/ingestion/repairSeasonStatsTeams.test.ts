@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { SAMPLE_START_YEAR } from "../dev/fixtures";
@@ -89,6 +89,10 @@ async function setup() {
   return { t, ne, team, misfile, player, linesFor };
 }
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe("season stats team repair", () => {
   test("moves misfiled lines to the real team, leaves our own players, and runs once", async () => {
     const { t, ne, team, misfile, player, linesFor } = await setup();
@@ -130,18 +134,18 @@ describe("season stats team repair", () => {
       { name: "Nobody Here", into: "Josh Jacobs", teamAbbr: "GB" },
     ];
 
-    const dry = await t.mutation(internal.ingestion.repairSeasonStatsTeams.fixMisreads, {
+    const dry = await t.mutation(internal.ingestion.fixMisreads.run, {
       dryRun: true,
       year: SAMPLE_START_YEAR,
       fixes,
     });
-    expect(dry.map((r) => [r.name, r.targets.map((m) => m.teams), r.done, r.skipped])).toEqual([
-      ["John Jacobs", [["GB"]], false, null],
-      ["Najee Harris", [], false, null],
-      ["Nobody Here", [["GB"]], false, "0 players named Nobody Here"],
+    expect(dry.map((r) => [r.name, r.targets.map((m) => m.teams), r.mode, r.done, r.skipped])).toEqual([
+      ["John Jacobs", [["GB"]], "merge", false, null],
+      ["Najee Harris", [], "place", false, null],
+      ["Nobody Here", [["GB"]], null, false, "0 players named Nobody Here"],
     ]);
 
-    await t.mutation(internal.ingestion.repairSeasonStatsTeams.fixMisreads, {
+    await t.mutation(internal.ingestion.fixMisreads.run, {
       dryRun: false,
       year: SAMPLE_START_YEAR,
       fixes,
@@ -152,5 +156,28 @@ describe("season stats team repair", () => {
     expect(await linesFor(najee)).toEqual({ reported: [ind], roster: [ind] });
     const merged = await t.run((ctx) => ctx.db.get("players", josh));
     expect(merged?.aliases).toContain("John Jacobs");
+  });
+
+  test("a real player matched by mistake keeps his career; only the season's line moves", async () => {
+    vi.useFakeTimers();
+    const { t, team, misfile, player, linesFor } = await setup();
+    const gb = await team("GB");
+    const josh = await player("Josh Jacobs", { teamId: gb });
+    // An old player from the history import, there long before the season stats were read.
+    const oldJohn = await player("John Jacobs");
+    vi.setSystemTime(Date.now() + 60 * 60_000);
+    await misfile(oldJohn);
+    const fixes = [{ name: "John Jacobs", into: "Josh Jacobs", teamAbbr: "GB" }];
+
+    const [dry] = await t.mutation(internal.ingestion.fixMisreads.run, {
+      dryRun: true,
+      year: SAMPLE_START_YEAR,
+      fixes,
+    });
+    expect(dry?.mode).toBe("move");
+    await t.mutation(internal.ingestion.fixMisreads.run, { dryRun: false, year: SAMPLE_START_YEAR, fixes });
+    expect(await t.run((ctx) => ctx.db.get("players", oldJohn))).not.toBeNull();
+    expect(await linesFor(oldJohn)).toEqual({ reported: [], roster: [] });
+    expect(await linesFor(josh)).toEqual({ reported: [gb], roster: [gb] });
   });
 });
