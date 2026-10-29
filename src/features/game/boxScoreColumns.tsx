@@ -11,6 +11,7 @@ import {
   type StatLine,
 } from "@shared/stats";
 import { editableStat, statColumn, type DataColumn } from "@/components/data/DataTable";
+import { StatCell } from "@/components/data/StatCell";
 import { PlayerChip } from "@/components/player/PlayerChip";
 import type { TeamLike } from "@/components/team/TeamLogo";
 import { Badge } from "@/components/ui/misc";
@@ -119,16 +120,22 @@ export function boxColumns(stats: readonly StatKey[], team: TeamLike, stars: Box
       );
     },
   };
-  // Per-game cells skip season elite tiers; threshold badges mark the big games instead.
+  // Player cells use the single-game tiers (300 passing yards, 500 for the big highlight); the
+  // team totals row is a sum, not one player's game, so it stays plain.
   // Recorded stats edit in place; rates (CMP%, AVG) are worked out from them.
   return [
     player,
-    ...stats.map((key) =>
-      editableStat(
-        statColumn<BoxRow>(key, (r) => statValue(key, r.line), { highlight: false }),
+    ...stats.map((key) => {
+      const value = (r: BoxRow) => statValue(key, r.line);
+      const column = statColumn<BoxRow>(key, value, { highlight: "game" });
+      return editableStat(
+        {
+          ...column,
+          cell: (r) => (r.id === "totals" ? <StatCell stat={key} value={value(r)} /> : column.cell?.(r)),
+        },
         key,
         (r) => r.line,
-      ),
-    ),
+      );
+    }),
   ];
 }

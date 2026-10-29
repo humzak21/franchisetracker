@@ -5,6 +5,7 @@ import {
   STAT_REGISTRY,
   aggregateLines,
   eliteTier,
+  gameTier,
   extractionField,
   formatRank,
   formatRecord,
@@ -80,6 +81,14 @@ describe("thresholds", () => {
   });
   it("respects overrides", () => {
     expect(eliteTier("recYds", 1100, { recYds: { tier1: 1200 } })).toBe(0);
+  });
+  it("marks single games on their own scale", () => {
+    expect(gameTier("passYds", 299)).toBe(0);
+    expect(gameTier("passYds", 300)).toBe(1);
+    expect(gameTier("passYds", 500)).toBe(2);
+    expect(gameTier("sacks", 2.5)).toBe(1);
+    // A season-only tier (completion rate) never marks a game.
+    expect(gameTier("passCmpPct", 90)).toBe(0);
   });
   it("detects threshold games", () => {
     const keys = gameHighlights({ passCmp: 20, passAtt: 26, passYds: 320, passTd: 3, passInt: 0 }).map(

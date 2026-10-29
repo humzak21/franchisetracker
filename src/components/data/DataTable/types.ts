@@ -74,6 +74,7 @@ export type DataTableProps<T> = {
 };
 
 export type StatColumnOptions = Partial<Omit<DataColumn<never>, "value" | "cell" | "edit">> & {
-  highlight?: boolean;
+  /** Elite highlighting on the season scale (`true`, the default) or one game's (`"game"`). */
+  highlight?: boolean | "game";
 };
-export type StatColumnMeta = { stat: StatKey; highlight: boolean };
+export type StatColumnMeta = { stat: StatKey; highlight: boolean | "game" };
