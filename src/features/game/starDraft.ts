@@ -9,6 +9,8 @@ export type DraftStar = {
   name: string;
   position: string | null;
   teamId: Id<"teams"> | null;
+  /** The player's line for the game, shown while picking; never saved. */
+  statLine: string | null;
   caption: string;
 };
 
@@ -19,6 +21,7 @@ export function draftFromStars(stars: readonly StarView[]): DraftStar[] {
     name: star.name,
     position: star.position,
     teamId: star.teamId as Id<"teams"> | null,
+    statLine: star.statLine,
     caption: star.caption ?? "",
   }));
 }

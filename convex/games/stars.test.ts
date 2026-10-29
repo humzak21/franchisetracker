@@ -105,6 +105,41 @@ describe("games/stars", () => {
     expect(await t.mutation(internal.games.clearTypedStarLines.run, {})).toEqual([]);
   });
 
+  test("one click in the box score makes a player a star, a second click takes him out", async () => {
+    const { owner, week1 } = await setup();
+    const candidates = await owner.query(api.games.stars.candidates, { gameId: week1._id });
+    const diggs = candidates.find((c) => c.name === "Stefon Diggs")!;
+    const maye = candidates.find((c) => c.name === "Drake Maye")!;
+    const stars = async () => (await owner.query(api.games.schedule.get, { gameId: week1._id }))!.stars;
+    await owner.mutation(api.games.stars.setStars, {
+      gameId: week1._id,
+      stars: [{ playerId: maye.playerId, caption: "Note" }, { rawName: "Maxx Crosby" }],
+    });
+
+    const toggle = () =>
+      owner.mutation(api.games.stars.toggle, {
+        gameId: week1._id,
+        playerId: diggs.playerId,
+        teamId: diggs.teamId,
+      });
+    expect(await toggle()).toBe(true);
+    expect((await stars()).map((s) => [s.name, s.caption])).toEqual([
+      ["Drake Maye", "Note"],
+      ["Maxx Crosby", null],
+      ["Stefon Diggs", null],
+    ]);
+    expect((await stars())[2]?.statLine).toBe(diggs.statLine);
+    expect(await toggle()).toBe(false);
+    expect((await stars()).map((s) => s.name)).toEqual(["Drake Maye", "Maxx Crosby"]);
+  });
+
+  test("candidates in the box score carry the line a star shows; roster-only players have none", async () => {
+    const { owner, week1 } = await setup();
+    const candidates = await owner.query(api.games.stars.candidates, { gameId: week1._id });
+    expect(candidates.find((c) => c.name === "Drake Maye")?.statLine).toMatch(/^\d+\/\d+, [\d.]+%, \d+ yds/);
+    expect(candidates.filter((c) => !c.inGame).every((c) => c.statLine === null)).toBe(true);
+  });
+
   test("refuses blank or duplicate stars", async () => {
     const { owner, week1 } = await setup();
     await expect(
@@ -122,6 +157,13 @@ describe("games/stars", () => {
   test("strangers and signed-out callers are refused", async () => {
     const { t, week1 } = await setup();
     const stranger = await asStranger(t);
+    await expect(
+      stranger.mutation(api.games.stars.toggle, {
+        gameId: week1._id,
+        playerId: (await t.run((ctx) => ctx.db.query("players").first()))!._id,
+        teamId: week1.opponent!._id,
+      }),
+    ).rejects.toThrow(/Not the owner/);
     await expect(
       stranger.mutation(api.games.stars.setStars, { gameId: week1._id, stars: [] }),
     ).rejects.toThrow(/Not the owner/);

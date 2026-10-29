@@ -78,6 +78,35 @@ test("the stars picker opens with the game's players and saves", async ({ page }
   await expect(sheet).toBeHidden();
 });
 
+test("a box score player becomes a star in one click and stops being one in another", async ({
+  page,
+}, info) => {
+  const gameIndex = ["desktop", "phone", "phone-large"].indexOf(info.project.name);
+  await openSchedule(page);
+  await page.locator('a[href^="/games/"]').nth(Math.max(gameIndex, 0)).click();
+  await page.getByRole("radio", { name: "Receiving" }).click();
+  const make = page.getByRole("button", { name: /^Make .+ a star$/ }).first();
+  const name = (await make.getAttribute("aria-label"))!.replace(/^Make | a star$/g, "");
+  await make.click();
+  const remove = page.getByRole("button", { name: `Remove ${name} from the stars` });
+  await expect(remove).toHaveAttribute("aria-pressed", "true");
+  // The star editor shows each player's line for the game.
+  await page.getByRole("button", { name: "Edit stars" }).click();
+  const sheet = page.getByRole("dialog", { name: "Stars of the game" });
+  await expect(
+    sheet
+      .getByRole("list", { name: "Picked stars" })
+      .getByText(/\d+ rec, \d+ yds/)
+      .first(),
+  ).toBeVisible();
+  await sheet.getByRole("button", { name: "Cancel" }).click();
+  await remove.click();
+  await expect(page.getByRole("button", { name: `Make ${name} a star` })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+});
+
 /** Each project adds its own week so parallel runs never collide. */
 const ADD_WEEK: Record<string, number> = { desktop: 15, phone: 16, "phone-large": 17 };
 
