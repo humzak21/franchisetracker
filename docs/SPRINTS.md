@@ -345,6 +345,7 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 - Conference awards (`CONFERENCE_AWARDS` in `shared/awards/groups.ts`) are assigned and cleared per conference; a winner stored without a conference counts in their team's.
 - `ingestion/weeklyAwards` serves the batch page (`/inbox/weekly-awards`): `create` makes one set per screenshot, `setWeek` matches a set to its week until it is committed, `readAll` reads every matched set, `commitReady` commits the sets that need no review through the same `commitSet` review uses.
 - `rowPlayer` creates a new player for rows without a team (awards, leaders), with no roster entry.
+- Season stats rows take their team from the row, else the screen's Team shown; they no longer default to the user's team, which had put other teams' players on the user's roster. Each ingestion target declares `goesTo`, shown under the screen picker.
 - `stats/reconcile:resolve` takes a list of differences, writing each player's screen row once. `stats/season:bySplit` and `stats/league:bySeason` return each player's headshot URL.
 
 ---

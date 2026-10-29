@@ -31,7 +31,14 @@ const DEFINING = new Set<string>(Object.values(CATEGORY_PRIMARY).flat());
 export const seasonPlayerStatsSpec: RowSpec = {
   player: true,
   rowTeam: true,
-  meta: [],
+  meta: [
+    {
+      key: "team",
+      label: "Team shown",
+      type: "team",
+      hint: "The team the screen is filtered to when it lists one team's players; null when it lists the whole league",
+    },
+  ],
   fields: (draft) => {
     const present = new Set(draft?.rows.flatMap((r) => Object.keys(r.values)) ?? []);
     const stats = draft ? ALL_STATS.filter((f) => present.has(f.key)) : ALL_STATS;
@@ -54,6 +61,21 @@ export const seasonPlayerStatsSpec: RowSpec = {
       }),
     ),
   readRows: (raw: Obj) => RAW_STAT_CATEGORIES.flatMap((category) => rowList(raw[category])),
+  // A row's team decides whose roster and league line it lands on, so it is never guessed.
+  rules: (draft) =>
+    draft.meta.team
+      ? []
+      : draft.rows.flatMap((r) =>
+          r.accepted && !r.teamAbbr
+            ? [
+                {
+                  path: `rows.${r.id}.teamAbbr`,
+                  message: `${r.name ?? "A row"}: pick the team, or the team the screen shows`,
+                  severity: "error" as const,
+                },
+              ]
+            : [],
+        ),
 };
 
 /** The stats Madden's league leaders screen ranks. */
