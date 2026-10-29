@@ -17,14 +17,19 @@ test("schedule lists weeks with results, a bye and a season summary", async ({ p
   await expectNoHorizontalOverflow(page);
 });
 
-test("the box score shows every category for both teams on one page", async ({ page }) => {
+test("the box score shows every table for the franchise's team, then the opponent's", async ({ page }) => {
   await openSchedule(page);
   await page.locator('a[href^="/games/"]').first().click();
-  for (const category of ["Passing", "Rushing", "Receiving", "Defense"]) {
-    await expect(page.getByRole("region", { name: category })).toBeVisible();
+  const ours = page.getByRole("region", { name: "New England Patriots" });
+  for (const category of ["passing", "rushing", "receiving", "defense"]) {
+    await expect(ours.getByRole("table", { name: `NE ${category}` })).toBeVisible();
   }
-  await expect(page.getByRole("table", { name: "NE passing" })).toBeVisible();
-  await expect(page.getByRole("table", { name: "NE receiving" })).toBeVisible();
+  // The opponent's section (week 1 is against the Raiders) comes after the franchise's.
+  await expect(page.getByRole("region", { name: "Las Vegas Raiders" })).toBeVisible();
+  const order = await page
+    .locator("section[aria-label]")
+    .evaluateAll((els) => els.map((el) => el.getAttribute("aria-label")));
+  expect(order.indexOf("New England Patriots")).toBeLessThan(order.indexOf("Las Vegas Raiders"));
   await expect(page.getByRole("radio", { name: "Receiving" })).toHaveCount(0);
 });
 
@@ -94,8 +99,8 @@ test("a box score player becomes a star in one click and stops being one in anot
   // Week 5 (the fourth link is the week 4 bye): no other test saves stars on it, and the picker
   // test re-saves its own copy of the list.
   await page.locator('a[href^="/games/"]').nth(4).click();
-  // Every category is on the page at once; star someone from the receiving tables.
-  const receiving = page.getByRole("region", { name: "Receiving" });
+  // Every table is on the page at once; star someone from the receiving table.
+  const receiving = page.getByRole("table", { name: "NE receiving" });
   const make = receiving.getByRole("button", { name: /^Make .+ a star$/ }).first();
   const name = (await make.getAttribute("aria-label"))!.replace(/^Make | a star$/g, "");
   await make.click();
