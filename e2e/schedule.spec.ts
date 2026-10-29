@@ -17,6 +17,17 @@ test("schedule lists weeks with results, a bye and a season summary", async ({ p
   await expectNoHorizontalOverflow(page);
 });
 
+test("the box score shows every category for both teams on one page", async ({ page }) => {
+  await openSchedule(page);
+  await page.locator('a[href^="/games/"]').first().click();
+  for (const category of ["Passing", "Rushing", "Receiving", "Defense"]) {
+    await expect(page.getByRole("region", { name: category })).toBeVisible();
+  }
+  await expect(page.getByRole("table", { name: "NE passing" })).toBeVisible();
+  await expect(page.getByRole("table", { name: "NE receiving" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Receiving" })).toHaveCount(0);
+});
+
 test("game detail shows the score bug, stars and saves notes", async ({ page }, info) => {
   // Each project edits a different game so parallel runs never overwrite each other's note.
   const gameIndex = ["desktop", "phone", "phone-large"].indexOf(info.project.name);
@@ -78,17 +89,17 @@ test("the stars picker opens with the game's players and saves", async ({ page }
   await expect(sheet).toBeHidden();
 });
 
-test("a box score player becomes a star in one click and stops being one in another", async ({
-  page,
-}, info) => {
-  const gameIndex = ["desktop", "phone", "phone-large"].indexOf(info.project.name);
+test("a box score player becomes a star in one click and stops being one in another", async ({ page }) => {
   await openSchedule(page);
-  await page.locator('a[href^="/games/"]').nth(Math.max(gameIndex, 0)).click();
-  await page.getByRole("radio", { name: "Receiving" }).click();
-  const make = page.getByRole("button", { name: /^Make .+ a star$/ }).first();
+  // Week 5 (the fourth link is the week 4 bye): no other test saves stars on it, and the picker
+  // test re-saves its own copy of the list.
+  await page.locator('a[href^="/games/"]').nth(4).click();
+  // Every category is on the page at once; star someone from the receiving tables.
+  const receiving = page.getByRole("region", { name: "Receiving" });
+  const make = receiving.getByRole("button", { name: /^Make .+ a star$/ }).first();
   const name = (await make.getAttribute("aria-label"))!.replace(/^Make | a star$/g, "");
   await make.click();
-  const remove = page.getByRole("button", { name: `Remove ${name} from the stars` });
+  const remove = receiving.getByRole("button", { name: `Remove ${name} from the stars` });
   await expect(remove).toHaveAttribute("aria-pressed", "true");
   // The star editor shows each player's line for the game.
   await page.getByRole("button", { name: "Edit stars" }).click();
@@ -101,7 +112,7 @@ test("a box score player becomes a star in one click and stops being one in anot
   ).toBeVisible();
   await sheet.getByRole("button", { name: "Cancel" }).click();
   await remove.click();
-  await expect(page.getByRole("button", { name: `Make ${name} a star` })).toHaveAttribute(
+  await expect(receiving.getByRole("button", { name: `Make ${name} a star` })).toHaveAttribute(
     "aria-pressed",
     "false",
   );
