@@ -121,7 +121,8 @@ export function DataTable<T extends object>(props: DataTableProps<T>) {
         </div>
       )}
 
-      <div className="relative overflow-hidden rounded-xl border border-border bg-surface">
+      {/* Isolated: the sticky header, totals and first column stack inside the table, never over page bars. */}
+      <div className="relative isolate overflow-hidden rounded-xl border border-border bg-surface">
         <div
           ref={scroller}
           data-swipe-ignore
