@@ -135,7 +135,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 
 ### 4.4 Games
 
-- `games`: season, weekKey, date label, homeTeamId, awayTeamId, userIsHome, scores, overtime, result for user team, opponent record at kickoff, playoffRound, stadium or neutral flag, weather, notes (narrative), stars[] (any number, ordered, picked by hand: playerId or typed name, team, optional caption), status (`scheduled`, `played`, `bye`).
+- `games`: season, weekKey, date label, homeTeamId, awayTeamId, userIsHome, scores, overtime, result for user team, opponent record at kickoff, playoffRound, stadium or neutral flag, weather, notes (narrative), stars[] (any number, ordered, picked by hand: playerId or typed name, team, optional note; the stat line is read from the box score, never stored), status (`scheduled`, `played`, `bye`).
 - `gameStatLines`: per game per player per team: a flat map of stat keys from the registry (pass, rush, rec, def, kick, punt, return). One row per player per game. This is the source of truth for everything downstream.
 - `gameTeamStats`: per game per team: first downs, total yards, pass yards, rush yards, turnovers, penalties, time of possession, third down, fourth down, red zone, sacks, etc.
 - `scoringPlays` (optional, phase 2): quarter, clock, team, description, score after.
@@ -204,12 +204,13 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 
 ### 5.2 Schedule
 
-- Week list for the selected season: week, opponent with logo and record at kickoff, home/away, score, result color, overtime tag, every star as player chips, and the notes in full (the row grows to fit). Byes and playoff rounds shown as their own row types.
+- Week list for the selected season: week, opponent with logo and record at kickoff, home/away, score, result color, overtime tag, every star as a player chip with their stat line, and the notes in full (the row grows to fit).
+- A star's stat line is never typed: it is read from the game's box score whenever the star is shown (`shared/games/starLine.ts`), so a corrected box score corrects it and stars picked before lines existed have them. By position: quarterbacks `22/35, 62.9%, 452 yds, 3 TD, 1 INT, 2 ATT, 12 yds, 1 TD` (interceptions and rushing only when there are any); running backs `19 ATT, 123 yds, 2 TD, 1 rec, 4 yds`; receivers and tight ends `4 rec, 121 yds, 1 TD, 1 ATT, 7 yds` (a rushing or receiving TD only when scored); defenders `6 TKLs, 4 TFLs, 1.5 sacks, 1 INT, 1 PDEF, 1 FF, 1 FR, 1 TD` with every zero left out (tackles are combined); kickers, punters and returners get their own. A star with no box score line (a typed name, a lineman) shows none. Byes and playoff rounds shown as their own row types.
 - Calendar view: the season laid out by week with game day emphasis; playoff rounds and offseason markers.
 - Season-by-season navigation and a season summary strip (W-L, points, streaks).
 - Add a game (or a bye) by hand; the user team is always one side. Edit or delete it from game detail; records, stats and standings refresh as after a box score commit.
 - **Game detail**, split pane:
-  - Top: score bug with the scoring by quarter under it (captured from the game log, or typed in; overtime periods add as columns, and the quarters must add up to the final), team game stats side by side (away team left, home right, like the score bug) with bar comparisons in colors that never clash (the opponent falls back to its other color when both teams' accents look alike), stars of the game (picked by hand, any number, ordered, with captions), and the narrative notes editor on the right.
+  - Top: score bug with the scoring by quarter under it (captured from the game log, or typed in; overtime periods add as columns, and the quarters must add up to the final), team game stats side by side (away team left, home right, like the score bug) with bar comparisons in colors that never clash (the opponent falls back to its other color when both teams' accents look alike), stars of the game (picked by hand, any number, ordered, each with their stat line from the box score and an optional note), and the narrative notes editor on the right.
   - Bottom: full box score grouped by passing, rushing, receiving, defense, kicking, punting, returns. Dropdown for user team, opponent, or both. Switching category or team scrolls just enough to show the whole box score, since categories differ a lot in length. Highlighted performances by registry thresholds (300-yard passer, 100-yard rusher or receiver, 3 TDs, 2 sacks, 2 INTs, perfect passer rating) and career-high markers.
   - "Import screenshot" affordance on every game that opens the inbox pre-tagged with that game, and can attach screenshots already waiting in the inbox.
   - The box score, team stats and every player game log edit inline (Edit); player lines can be added and removed by hand.

@@ -50,7 +50,8 @@ const GALLERY_STARS: StarView[] = [
     name: "Drake Maye",
     position: "QB",
     headshotUrl: null,
-    caption: "24/31, 301 yds, 3 TD",
+    statLine: "24/31, 77.4%, 301 yds, 3 TD",
+    caption: "Game-winning drive in the fourth",
     teamId: "ne",
   },
   {
@@ -58,7 +59,8 @@ const GALLERY_STARS: StarView[] = [
     name: "Stefon Diggs",
     position: "WR",
     headshotUrl: null,
-    caption: "9 rec, 131 yds, 1 TD",
+    statLine: "9 rec, 131 yds, 1 TD",
+    caption: null,
     teamId: "ne",
   },
   {
@@ -66,7 +68,8 @@ const GALLERY_STARS: StarView[] = [
     name: "Josh Allen",
     position: "QB",
     headshotUrl: null,
-    caption: "2 rush TD",
+    statLine: "19/30, 63.3%, 244 yds, 1 TD, 6 ATT, 41 yds, 2 TD",
+    caption: null,
     teamId: "buf",
   },
   {
@@ -74,7 +77,8 @@ const GALLERY_STARS: StarView[] = [
     name: "Christian Gonzalez",
     position: "CB",
     headshotUrl: null,
-    caption: "INT, 3 PD",
+    statLine: "4 TKLs, 1 INT, 3 PDEF",
+    caption: null,
     teamId: "ne",
   },
 ];

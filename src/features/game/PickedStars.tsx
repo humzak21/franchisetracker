@@ -60,7 +60,7 @@ export function PickedStars({ stars, onChange, sideOf }: PickedStarsProps) {
             </div>
             <Input
               aria-label={`Caption for ${star.name}`}
-              placeholder="Caption (optional): 22/30, 284 yds, 3 TD"
+              placeholder="Note (optional); the stat line comes from the box score"
               value={star.caption}
               maxLength={120}
               onChange={(e) =>

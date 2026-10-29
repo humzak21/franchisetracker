@@ -16,6 +16,8 @@ export const vStarView = v.object({
   position: nullable(v.string()),
   headshotUrl: nullable(v.string()),
   caption: nullable(v.string()),
+  /** The star's numbers in this game, from its box score ("19 ATT, 123 yds, 2 TD"). */
+  statLine: nullable(v.string()),
   teamId: nullable(v.id("teams")),
 });
 

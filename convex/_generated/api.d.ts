@@ -36,6 +36,7 @@ import type * as franchise_settings from "../franchise/settings.js";
 import type * as franchise_setup from "../franchise/setup.js";
 import type * as games_access from "../games/access.js";
 import type * as games_boxScore from "../games/boxScore.js";
+import type * as games_clearTypedStarLines from "../games/clearTypedStarLines.js";
 import type * as games_directory from "../games/directory.js";
 import type * as games_manage from "../games/manage.js";
 import type * as games_refreshGame from "../games/refreshGame.js";
@@ -227,6 +228,7 @@ declare const fullApi: ApiFromModules<{
   "franchise/setup": typeof franchise_setup;
   "games/access": typeof games_access;
   "games/boxScore": typeof games_boxScore;
+  "games/clearTypedStarLines": typeof games_clearTypedStarLines;
   "games/directory": typeof games_directory;
   "games/manage": typeof games_manage;
   "games/refreshGame": typeof games_refreshGame;
