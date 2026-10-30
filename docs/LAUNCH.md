@@ -42,6 +42,8 @@ request; the rest is a short list of things to run by hand before shipping to pr
   to the restored copy, check it, and delete whichever copy you no longer want.
 - Backups leave out the screenshots in the inbox and the Shortcut tokens. For a snapshot of the
   whole deployment including file storage, use `npx convex export` (Convex's own export).
+- For a scrubbed local copy of production to test against, see `docs/PROD-COPY.md`. It is not a
+  backup: sign-in data and tokens are removed from it.
 
 ## Not done, on purpose
 

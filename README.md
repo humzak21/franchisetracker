@@ -17,7 +17,7 @@ npm run use:local  # local Convex backend on this machine, pushed and seeded
 npm run dev        # Convex + Vite on http://localhost:5173
 ```
 
-`npm run use:cloud` switches to the shared cloud dev deployment (for trying the app on a phone). Open `/dev/components` for the component gallery.
+`npm run use:cloud` switches to the shared cloud dev deployment (for trying the app on a phone). `npm run use:prod-copy` loads a scrubbed local copy of production to work against ([docs/PROD-COPY.md](docs/PROD-COPY.md)). Open `/dev/components` for the component gallery.
 
 Reading screenshots needs an OpenRouter key on the Convex deployment: `npx convex env set OPENROUTER_API_KEY sk-or-...`. Without one, a local backend answers every extraction with a built-in sample box score so the whole capture, review and commit loop still works; a cloud deployment marks the upload as failed and says why. The Apple Shortcut is set up from Settings and [docs/SHORTCUT.md](docs/SHORTCUT.md).
 
