@@ -6,6 +6,7 @@ import { isRawStatKey, getStat } from "@shared/stats";
 import { isTeamStatKey, TEAM_STATS } from "@shared/stats/teamRegistry";
 import { CHECK_BELOW, ROW_CHECK_BELOW, deriveDraft } from "@shared/ingestion/normalize";
 import { isRowDraft, rowTarget } from "@shared/ingestion/targets";
+import { needsDecision } from "@shared/ingestion/validate";
 import type { Position } from "@shared/domain";
 import { PROSPECT_ESPN_ID } from "@shared/ingestion/rows/peopleSpecs";
 import { scoringPlaysSpec } from "@shared/ingestion/rows/scoringSpec";
@@ -157,6 +158,7 @@ export function parseStat(text: string): number | undefined | null {
 /**
  * Who a printed name is, as review decides it: a franchise player, a new player (named as printed
  * or as typed), or a college prospect found on ESPN, who joins as a new player with his ESPN id.
+ * Choosing a new player is what lets a game commit a line with no player.
  */
 export type PlayerChoice =
   | { kind: "player"; _id: string; name: string }
@@ -171,14 +173,16 @@ export function choosePlayerAt<D extends Draft>(draft: D, base: string, choice: 
   const match = getAt(draft, `${base}.match`) as PlayerMatch | null;
   const others = (id?: string) => match?.candidates.filter((c) => c.playerId !== id) ?? [];
   if (choice.kind === "player") {
-    return setAt(setAt(draft, `${base}.playerId`, choice._id), `${base}.match`, {
+    const picked = setAt(setAt(draft, `${base}.playerId`, choice._id), `${base}.match`, {
       status: "matched",
       candidates: [{ playerId: choice._id, name: choice.name, score: 1 }, ...others(choice._id)],
     });
+    return setAt(picked, `${base}.confirmedNew`, undefined);
   }
   let next = setAt(draft, `${base}.playerId`, null);
   next = setAt(next, `${base}.match`, { status: "new", candidates: others() });
   next = setAt(next, `${base}.name`, choice.name);
+  next = setAt(next, `${base}.confirmedNew`, true);
   const values = getAt(next, `${base}.values`) as Record<string, unknown> | undefined;
   if (!values) return next;
   if (choice.kind === "new") {
@@ -192,4 +196,33 @@ export function choosePlayerAt<D extends Draft>(draft: D, base: string, choice: 
     next = setAt(next, `${base}.values.position`, choice.position);
   }
   return next;
+}
+
+/** Lines the rosters found nobody for, still waiting to be called new. */
+export const undecidedNewLines = (draft: Draft) =>
+  "lines" in draft ? draft.lines.filter((l) => needsDecision(l) && l.match.status === "new") : [];
+
+/** Every name the rosters found nobody for becomes a new player; unsettled names still need a pick. */
+export function confirmNewLines<D extends Draft>(draft: D): D {
+  if (!("lines" in draft)) return draft;
+  const undecided = new Set(undecidedNewLines(draft).map((l) => l.id));
+  return {
+    ...draft,
+    lines: draft.lines.map((l) => (undecided.has(l.id) ? { ...l, confirmedNew: true } : l)),
+  };
+}
+
+/** The team and position a printed name sits under, for offering that team's known players. */
+export function pickerContext(
+  draft: Draft,
+  base: string,
+): { teamAbbr: string | null; position: string | null } {
+  const text = (path: string) => {
+    const value = getAt(draft, path);
+    return typeof value === "string" && value !== "" ? value : null;
+  };
+  return {
+    teamAbbr: text(`${base}.teamAbbr`) ?? text("meta.team"),
+    position: text(`${base}.position`) ?? text(`${base}.values.position`),
+  };
 }

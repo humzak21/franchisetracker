@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { SAMPLE_START_YEAR } from "../dev/fixtures";
+import { confirmNew } from "../lib/testDraft";
 import { asOwner, asStranger } from "../lib/testOwner";
 import schema from "../schema";
 
@@ -60,7 +61,10 @@ describe("full game logs and remembered players", () => {
     expect(draft.teams).toHaveLength(2);
     draft.teams[0]!.stats.passYds = 300;
     draft.teams[0]!.stats.totalYds = 999;
-    const { gameId } = await owner.mutation(api.ingestion.review.commit, { setKey, draft });
+    const { gameId } = await owner.mutation(api.ingestion.review.commit, {
+      setKey,
+      draft: confirmNew(draft),
+    });
     const box = await owner.query(api.games.boxScore.get, { gameId: gameId! });
     expect(box.teams[0]!.stats).toMatchObject({ totalYds: 428, passYds: 300, rushYds: 128 });
     expect(box.teams[0]!.lines.length).toBeGreaterThan(0);
@@ -75,8 +79,12 @@ describe("full game logs and remembered players", () => {
     const next = await owner.query(api.ingestion.review.get, { setKey: again });
     expect(next.game).toMatchObject({ hasBoxScore: true, hasTeamStats: true });
     expect(
-      (await owner.mutation(api.ingestion.review.commit, { setKey: again, draft: next.extraction!.draft }))
-        .gameId,
+      (
+        await owner.mutation(api.ingestion.review.commit, {
+          setKey: again,
+          draft: confirmNew(next.extraction!.draft),
+        })
+      ).gameId,
     ).toBe(gameId);
     const replaced = await owner.query(api.games.boxScore.get, { gameId: gameId! });
     expect(replaced.teams[0]!.stats?.totalYds).toBe(412);
@@ -107,7 +115,13 @@ describe("full game logs and remembered players", () => {
       { name: "D. Maye", teamAbbr: "MIA" },
     ];
     expect(await t.query(internal.ingestion.candidates.assignments, { seasonId, names })).toEqual([
-      { normalizedName: "d maye", teamAbbr: "NE", playerId: alternative, name: "Stefon Diggs" },
+      {
+        normalizedName: "d maye",
+        teamAbbr: "NE",
+        playerId: alternative,
+        name: "Stefon Diggs",
+        carried: false,
+      },
     ]);
     expect(
       await t.query(internal.ingestion.candidates.assignments, {
@@ -135,7 +149,10 @@ describe("full game logs and remembered players", () => {
     line.name = "X. Unlisted";
     line.playerId = null;
     line.match = { status: "new", candidates: [] };
-    const { gameId } = await owner.mutation(api.ingestion.review.commit, { setKey, draft });
+    const { gameId } = await owner.mutation(api.ingestion.review.commit, {
+      setKey,
+      draft: confirmNew(draft),
+    });
     const saved = await t.query(internal.ingestion.candidates.assignments, {
       seasonId,
       names: [{ name: line.name, teamAbbr: line.teamAbbr }],
@@ -173,7 +190,10 @@ describe("a full game log with its scoring summary", () => {
     const draft = (await owner.query(api.ingestion.review.get, { setKey })).extraction!.draft;
     if (draft.target !== "game_log") throw new Error("wrong target");
     expect(draft.plays?.length).toBeGreaterThan(0);
-    const { gameId } = await owner.mutation(api.ingestion.review.commit, { setKey, draft });
+    const { gameId } = await owner.mutation(api.ingestion.review.commit, {
+      setKey,
+      draft: confirmNew(draft),
+    });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     const rows = await plays(t, gameId!);
     expect(rows).toHaveLength(draft.plays!.length);
@@ -206,7 +226,10 @@ describe("a full game log with its scoring summary", () => {
         p.id === named.id ? { ...p, name: "Brand Newguy", playerId: null } : p,
       ),
     };
-    const { gameId } = await owner.mutation(api.ingestion.review.commit, { setKey, draft: edited });
+    const { gameId } = await owner.mutation(api.ingestion.review.commit, {
+      setKey,
+      draft: confirmNew(edited),
+    });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     const play = (await plays(t, gameId!)).find((p) => p.rawName === "Brand Newguy");
     const player = await t.run((ctx) => ctx.db.get("players", play!.playerId!));
@@ -218,7 +241,10 @@ describe("a full game log with its scoring summary", () => {
     const seasonId = season(SAMPLE_START_YEAR + 1);
     const first = await capture({ targetKey: "game_log", seasonId, weekKey: "w1" });
     const draft = (await owner.query(api.ingestion.review.get, { setKey: first })).extraction!.draft;
-    const { gameId } = await owner.mutation(api.ingestion.review.commit, { setKey: first, draft });
+    const { gameId } = await owner.mutation(api.ingestion.review.commit, {
+      setKey: first,
+      draft: confirmNew(draft),
+    });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     const before = await plays(t, gameId!);
 
@@ -226,7 +252,7 @@ describe("a full game log with its scoring summary", () => {
     const second = (await owner.query(api.ingestion.review.get, { setKey: again })).extraction!.draft;
     if (second.target !== "game_log") throw new Error("wrong target");
     const none = { ...second, plays: second.plays!.map((p) => ({ ...p, accepted: false })) };
-    await owner.mutation(api.ingestion.review.commit, { setKey: again, draft: none });
+    await owner.mutation(api.ingestion.review.commit, { setKey: again, draft: confirmNew(none) });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect((await plays(t, gameId!)).map((p) => p.order)).toEqual(before.map((p) => p.order));
   });
@@ -241,9 +267,9 @@ describe("a full game log with its scoring summary", () => {
     const draft = (await owner.query(api.ingestion.review.get, { setKey })).extraction!.draft;
     if (draft.target !== "game_log") throw new Error("wrong target");
     const short = { ...draft, plays: draft.plays!.slice(0, -1) };
-    await expect(owner.mutation(api.ingestion.review.commit, { setKey, draft: short })).rejects.toThrow(
-      "the game's final is",
-    );
+    await expect(
+      owner.mutation(api.ingestion.review.commit, { setKey, draft: confirmNew(short) }),
+    ).rejects.toThrow("the game's final is");
   });
 
   test("a stored draft from before plays were part of a log still commits", async () => {
@@ -256,7 +282,10 @@ describe("a full game log with its scoring summary", () => {
     const draft = (await owner.query(api.ingestion.review.get, { setKey })).extraction!.draft;
     if (draft.target !== "game_log") throw new Error("wrong target");
     const { plays: _plays, ...older } = draft;
-    const { gameId } = await owner.mutation(api.ingestion.review.commit, { setKey, draft: older });
+    const { gameId } = await owner.mutation(api.ingestion.review.commit, {
+      setKey,
+      draft: confirmNew(older),
+    });
     expect(gameId).toBeDefined();
   });
 });

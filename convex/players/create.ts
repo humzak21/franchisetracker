@@ -44,6 +44,8 @@ export const create = mutation({
       displayName: player.fields.displayName ?? displayName,
       position,
       isReal,
+      origin: "manual",
+      createdSeasonId: season?._id,
       retired: player.fields.retired ?? false,
       aliases: [],
       // An age on the roster entry is the only age known: anchor it so later seasons count up.

@@ -22,6 +22,7 @@ import { PlayerEditActions } from "./PlayerEditActions";
 import { PlayerHero } from "./PlayerHero";
 import { PlayerHighlights } from "./PlayerHighlights";
 import { PlayerStatCards } from "./PlayerStatCards";
+import { PossibleDuplicate } from "./PossibleDuplicate";
 import { RatingsSheet } from "./RatingsSheet";
 import { RosterHistoryTable } from "./RosterHistoryTable";
 import { useQuery } from "@/lib/convex/useQuery";
@@ -107,6 +108,7 @@ export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
               </>
             }
           />
+          <PossibleDuplicate playerId={playerId} />
           <JumpLinks links={SECTIONS} />
           <Section id="stats" title="Stats">
             <PlayerStatCards page={page} />

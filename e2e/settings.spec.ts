@@ -7,6 +7,12 @@ for (const theme of ["dark", "light"] as const) {
   test.describe(`${theme} theme`, () => {
     test.use({ theme });
 
+    test("player identity lists duplicates and tidying without overflow", async ({ page }) => {
+      await page.goto("/settings");
+      await expect(page.getByRole("heading", { name: "Player identity" })).toBeVisible({ timeout: 20_000 });
+      await expectNoHorizontalOverflow(page);
+    });
+
     test("deleting the active franchise asks twice before anything goes", async ({ page }) => {
       await page.goto("/settings");
       await page.getByRole("button", { name: `Delete ${SAMPLE_FRANCHISE}` }).click({ timeout: 20_000 });

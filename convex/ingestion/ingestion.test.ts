@@ -5,6 +5,7 @@ import { MAX_IMAGE_BYTES, TOO_LARGE } from "../../shared/ingestion/limits";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { SAMPLE_START_YEAR } from "../dev/fixtures";
+import { confirmNew } from "../lib/testDraft";
 import { asOwner, asStranger } from "../lib/testOwner";
 import schema from "../schema";
 import { fixtureAnswer } from "./fixture";
@@ -68,7 +69,7 @@ describe("ingestion", () => {
     maye.stats.passYds = 290;
     const diggs = draft.lines.find((l) => l.name === "S. Diggs")!;
     diggs.stats.recYds = 137;
-    const committed = await owner.mutation(api.ingestion.review.commit, { setKey, draft });
+    const committed = await owner.mutation(api.ingestion.review.commit, { setKey, draft: confirmNew(draft) });
     const gameId = committed.gameId!;
 
     const game = await t.run((ctx) => ctx.db.get("games", gameId));
@@ -110,9 +111,9 @@ describe("ingestion", () => {
     const seasonDoc = await t.run((ctx) => ctx.db.get("seasons", seasonId));
     expect(seasonDoc?.userRecord).toMatchObject({ w: 1, l: 0, t: 0 });
     // New opponent players get partial roster entries; nothing is committed twice.
-    await expect(owner.mutation(api.ingestion.review.commit, { setKey, draft })).rejects.toThrow(
-      /already committed/,
-    );
+    await expect(
+      owner.mutation(api.ingestion.review.commit, { setKey, draft: confirmNew(draft) }),
+    ).rejects.toThrow(/already committed/);
   });
 
   test("recommitting a game replaces its lines instead of adding to them", async () => {
@@ -123,7 +124,10 @@ describe("ingestion", () => {
       const review = await owner.query(api.ingestion.review.get, { setKey });
       return {
         review,
-        ...(await owner.mutation(api.ingestion.review.commit, { setKey, draft: review.extraction!.draft })),
+        ...(await owner.mutation(api.ingestion.review.commit, {
+          setKey,
+          draft: confirmNew(review.extraction!.draft),
+        })),
       };
     };
     const first = await commitOnce();
@@ -146,7 +150,10 @@ describe("ingestion", () => {
       weekKey: "w1",
       game: { _id: week1._id, opponentAbbr: "LV", hasTeamStats: false },
     });
-    await owner.mutation(api.ingestion.review.commit, { setKey, draft: review.extraction!.draft });
+    await owner.mutation(api.ingestion.review.commit, {
+      setKey,
+      draft: confirmNew(review.extraction!.draft),
+    });
     const box = await owner.query(api.games.boxScore.get, { gameId: week1._id });
     expect(box.teams[0]!.stats).toMatchObject({ totalYds: 412, possessionSec: 32 * 60 + 14 });
   });
@@ -161,7 +168,9 @@ describe("ingestion", () => {
     const draft = (await owner.query(api.ingestion.review.get, { setKey })).extraction!.draft;
     if (draft.target !== "game_box_score") throw new Error("wrong target");
     draft.lines[0]!.stats.passCmp = 99;
-    await expect(owner.mutation(api.ingestion.review.commit, { setKey, draft })).rejects.toThrow(/exceed/);
+    await expect(
+      owner.mutation(api.ingestion.review.commit, { setKey, draft: confirmNew(draft) }),
+    ).rejects.toThrow(/exceed/);
   });
 
   test("untagged uploads wait in the inbox until tagged", async () => {

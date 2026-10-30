@@ -1,11 +1,11 @@
-import { CircleAlert, Info, TriangleAlert } from "lucide-react";
+import { CircleAlert, Info, TriangleAlert, UserPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Id } from "@convex/_generated/dataModel";
 import { isRowDraft, rowTarget } from "@shared/ingestion/targets";
 import type { DraftWarning, PlayerMatch } from "@shared/ingestion/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { attentionItems, choosePlayerAt, getAt } from "./draftEdit";
+import { attentionItems, choosePlayerAt, confirmNewLines, getAt, undecidedNewLines } from "./draftEdit";
 import { NumberField } from "./NumberField";
 import { PlayerPickerSheet } from "./PlayerPickerSheet";
 import { useReviewDraft } from "./reviewDraft";
@@ -35,9 +35,10 @@ export function AttentionList() {
   );
   const confirm = (path: string) => setConfirmed((c) => new Set(c).add(path));
   const general = warnings.filter((w) => !w.path && w.severity !== "info");
+  const undecided = undecidedNewLines(draft).length;
   const newPlayers =
     "lines" in draft
-      ? draft.lines.filter((l) => l.playerId === null && l.match.status === "new").length
+      ? draft.lines.filter((l) => l.playerId === null && l.confirmedNew).length
       : isRowDraft(draft) && !rowTarget(draft.target).spec.optionalPlayer
         ? draft.rows.filter((r) => r.accepted && r.playerId === null && r.match?.status === "new").length
         : 0;
@@ -48,6 +49,10 @@ export function AttentionList() {
     });
   const noNewPlayers = (base: string) =>
     base.startsWith("plays.") || (isRowDraft(draft) && rowTarget(draft.target).spec.optionalPlayer);
+  const createAsNew = (base: string) => {
+    update((d) => choosePlayerAt(d, base, { kind: "new", name: String(getAt(d, `${base}.name`)) }));
+    confirm(`${base}.name`);
+  };
   const pickedMatch = picking ? (matchOf(picking) ?? (noNewPlayers(picking) ? NO_CANDIDATES : null)) : null;
   if (items.length === 0 && general.length === 0 && !picking) return null;
 
@@ -60,6 +65,16 @@ export function AttentionList() {
             <Note key={`${w.message}-${i}`} warning={w} />
           ))}
         </ul>
+      )}
+      {undecided > 1 && (
+        <Button
+          size="sm"
+          variant="outline"
+          aria-label={`Create all ${undecided} as new players`}
+          onClick={() => update(confirmNewLines)}
+        >
+          <UserPlus /> Create all {undecided} as new
+        </Button>
       )}
       {items.length > 0 && (
         <ul className="divide-y divide-border">
@@ -129,6 +144,16 @@ export function AttentionList() {
                       {playerId || candidate ? "Change player" : "Choose player"}
                     </Button>
                   )}
+                  {match && item.warning?.severity === "error" && !noNewPlayers(base) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      aria-label={`Create ${item.label} as new`}
+                      onClick={() => createAsNew(base)}
+                    >
+                      Create as new
+                    </Button>
+                  )}
                   {item.warning?.severity !== "error" && !candidate && (
                     <Button
                       variant="ghost"
@@ -154,6 +179,7 @@ export function AttentionList() {
           onOpenChange={(open) => {
             if (!open) setPicking(null);
           }}
+          base={picking}
           printedName={String(getAt(draft, `${picking}.name`) ?? "Which player?")}
           match={pickedMatch}
           value={getAt(draft, `${picking}.playerId`) as Id<"players"> | null}

@@ -12,6 +12,21 @@ export const ACQUISITION_LABELS: Record<AcquisitionType, string> = {
   resign: "Re-signed",
 };
 
+/**
+ * How a player entered the franchise: the NFL history import (or the sample's real players), a
+ * draft class, another captured screen, or typed in by hand. Absent until Settings has tidied a
+ * player from before this was recorded.
+ */
+export const PLAYER_ORIGINS = ["import", "draft", "screenshot", "manual"] as const;
+export type PlayerOrigin = (typeof PLAYER_ORIGINS)[number];
+
+export const PLAYER_ORIGIN_LABELS: Record<PlayerOrigin, string> = {
+  import: "NFL history import",
+  draft: "Draft class",
+  screenshot: "Captured from a screen",
+  manual: "Typed in by hand",
+};
+
 export const ROSTER_STATUSES = ["active", "ir", "practice_squad", "released", "traded"] as const;
 export type RosterStatus = (typeof ROSTER_STATUSES)[number];
 

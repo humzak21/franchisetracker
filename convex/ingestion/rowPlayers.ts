@@ -1,19 +1,15 @@
 /** Players and roster entries for committed screens: box score lines and every row target. */
+import { positionGroupOf, type PlayerOrigin } from "../../shared/domain";
 import { inferPosition } from "../../shared/ingestion/normalize";
+import { aliasFields, mergeAliases, newPlayerName, upgradedName } from "../../shared/players/identity";
+import { applyPlayerPatch } from "../../shared/players/playerPatch";
 import type { StatLine } from "../../shared/stats";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { invalid, must } from "../lib/errors";
+import { provenanceOf } from "../players/provenance";
 
 import { rememberPlayer } from "./playerAssignments";
-
-const MAX_ALIASES = 20;
-
-function splitName(printed: string): { firstName: string; lastName: string } {
-  const parts = printed.trim().split(/\s+/);
-  const lastName = parts.pop() ?? printed;
-  return { firstName: parts.join(" "), lastName };
-}
 
 type Printed = {
   name: string;
@@ -23,7 +19,20 @@ type Printed = {
   stats?: StatLine;
   seasonId?: Id<"seasons">;
   teamAbbr?: string;
+  /** How a new player came in; a screen unless the caller knows better. */
+  origin?: PlayerOrigin;
 };
+
+/** A fuller source teaches a one-initial player their full name; the old name stays an alias. */
+async function upgrade(ctx: MutationCtx, player: Doc<"players">, printed: Printed) {
+  const name = upgradedName(player.displayName, printed.name);
+  const fits = !printed.position || positionGroupOf(printed.position) === positionGroupOf(player.position);
+  if (!name || !fits) return null;
+  const result = applyPlayerPatch(player, { displayName: name });
+  if (!result.ok) return null;
+  await ctx.db.patch("players", player._id, result.fields);
+  return must(await ctx.db.get("players", player._id), "Player");
+}
 
 /** The player a row commits to: the one review chose, or a new player named as printed. */
 export async function playerFor(
@@ -45,22 +54,21 @@ export async function playerFor(
   if (printed.playerId) {
     const player = must(await ctx.db.get("players", printed.playerId), `Player for ${printed.name}`);
     if (player.franchiseId !== franchiseId) throw invalid("Player must belong to this franchise");
+    const upgraded = await upgrade(ctx, player, printed);
+    if (upgraded) return await remember(upgraded);
     // Remember how this screen prints the name so the next extraction resolves it outright.
-    const known = [player.displayName, ...player.aliases].map((n) => n.toLowerCase());
-    if (!known.includes(printed.name.toLowerCase()) && player.aliases.length < MAX_ALIASES) {
-      await ctx.db.patch("players", player._id, { aliases: [...player.aliases, printed.name] });
+    const aliases = mergeAliases(player.displayName, player.aliases, [printed.name]);
+    if (aliases.length !== player.aliases.length) {
+      await ctx.db.patch("players", player._id, aliasFields(aliases));
     }
     return await remember(player);
   }
   const id = await ctx.db.insert("players", {
     franchiseId,
-    ...splitName(printed.name),
-    displayName: printed.name,
+    ...newPlayerName(printed.name),
     position: printed.position ?? inferPosition(printed.stats ?? {}),
-    // Franchises start from real NFL rosters; a player who turns out fictional is marked from their page.
-    isReal: true,
+    ...(await provenanceOf(ctx, franchiseId, printed.seasonId, printed.origin ?? "screenshot")),
     retired: false,
-    aliases: [],
   });
   return await remember(must(await ctx.db.get("players", id), "New player"));
 }

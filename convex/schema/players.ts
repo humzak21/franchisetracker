@@ -5,6 +5,7 @@ import {
   vContract,
   vDevTrait,
   vEspnLeague,
+  vPlayerOrigin,
   vPosition,
   vRosterStatus,
   vWeekKey,
@@ -33,7 +34,12 @@ export const playerTables = {
       }),
     ),
     undrafted: v.optional(v.boolean()),
+    /** Worked out on creation (`shared/players/provenance.ts`); the owner can override it. */
     isReal: v.boolean(),
+    /** How they entered the franchise; absent until Settings tidies a player from before it was kept. */
+    origin: v.optional(vPlayerOrigin),
+    /** The season they first appeared in. Imported players predate the franchise and have none. */
+    createdSeasonId: v.optional(v.id("seasons")),
     /** nflverse `gsis_id` for players from the real NFL history import; the import's upsert key. */
     nflverseId: v.optional(v.string()),
     espnId: v.optional(v.number()),
@@ -43,6 +49,8 @@ export const playerTables = {
     retired: v.boolean(),
     /** Name variants for resolution ("D. Maye", typos); a few per player. */
     aliases: v.array(v.string()),
+    /** `aliases` as one string for `search_aliases`; written with them (`aliasFields`). */
+    aliasesText: v.optional(v.string()),
     notes: v.optional(v.string()),
   })
     .index("by_franchiseId_and_lastName", ["franchiseId", "lastName"])
@@ -50,7 +58,25 @@ export const playerTables = {
     .index("by_franchiseId_and_position", ["franchiseId", "position"])
     .index("by_franchiseId_and_nflverseId", ["franchiseId", "nflverseId"])
     .index("by_espnId", ["espnId"])
-    .searchIndex("search_displayName", { searchField: "displayName", filterFields: ["franchiseId"] }),
+    .index("by_franchiseId_and_origin", ["franchiseId", "origin"])
+    .index("by_createdSeasonId", ["createdSeasonId"])
+    .searchIndex("search_displayName", {
+      searchField: "displayName",
+      filterFields: ["franchiseId", "retired"],
+    })
+    .searchIndex("search_aliases", { searchField: "aliasesText", filterFields: ["franchiseId", "retired"] }),
+
+  /** The Settings job that gives players from before provenance their origin and proper names. */
+  identityTidies: defineTable({
+    franchiseId: v.id("franchises"),
+    status: v.union(v.literal("running"), v.literal("done")),
+    checked: v.number(),
+    /** Players it marked fictional, and names it repaired. */
+    fictional: v.number(),
+    renamed: v.number(),
+    startedAt: v.number(),
+    finishedAt: v.optional(v.number()),
+  }).index("by_franchiseId", ["franchiseId"]),
 
   /** One per season per team per player. */
   rosterEntries: defineTable({

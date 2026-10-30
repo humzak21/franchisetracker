@@ -26,6 +26,7 @@ export const SWEEP_TABLES = [
   "recordBoards",
   "recordPlacements",
   "recordBuilds",
+  "identityTidies",
   "scoringBoards",
   "playerMarks",
   "spanBoards",

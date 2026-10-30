@@ -4,6 +4,7 @@
  * (upload statuses and corrections for screenshots, the entry's status for manual entry).
  */
 import { v } from "convex/values";
+import type { PlayerOrigin } from "../../shared/domain";
 import { deriveDraft } from "../../shared/ingestion/normalize";
 import { blocksCommit } from "../../shared/ingestion/validate";
 import { INGESTION_TARGETS, isRowDraft, validateDraft } from "../../shared/ingestion/targets";
@@ -51,12 +52,13 @@ async function commitGameDraft(
   franchise: Doc<"franchises">,
   context: DraftContext,
   draft: Exclude<StoredDraft, StoredRowsDraft>,
+  origin: PlayerOrigin,
 ) {
   const game = await upsertGame(ctx, franchise, context, draft.game);
   let playerIds: Id<"players">[] = [];
   switch (draft.target) {
     case "game_log":
-      if (draft.lines.length > 0) playerIds = await commitBoxScore(ctx, franchise, game, draft);
+      if (draft.lines.length > 0) playerIds = await commitBoxScore(ctx, franchise, game, draft, origin);
       await commitTeamStats(ctx, franchise, game, draft);
       // After the box score, so a name reaches the players it just added.
       await commitPlays(
@@ -67,7 +69,7 @@ async function commitGameDraft(
       );
       break;
     case "game_box_score":
-      playerIds = await commitBoxScore(ctx, franchise, game, draft);
+      playerIds = await commitBoxScore(ctx, franchise, game, draft, origin);
       break;
     case "team_game_stats":
       await commitTeamStats(ctx, franchise, game, draft);
@@ -84,6 +86,8 @@ export async function commitDraft(
   franchise: Doc<"franchises">,
   context: DraftContext,
   submitted: StoredDraft,
+  /** How any player this creates came in: a screen, unless the entry was typed by hand. */
+  origin: PlayerOrigin = "screenshot",
 ): Promise<DraftCommitResult> {
   const draft = deriveDraft(submitted);
   if (!finite(draft)) throw invalid("A number in the draft is out of range");
@@ -96,8 +100,8 @@ export async function commitDraft(
   const errors = validateDraft(draft, game).filter((w) => w.severity === "error");
   if (blocksCommit(errors)) throw invalid(errors[0]!.message);
   return isRowDraft(draft)
-    ? await commitRows(ctx, franchise, context, draft)
-    : { gameId: await commitGameDraft(ctx, franchise, context, draft) };
+    ? await commitRows(ctx, franchise, context, draft, origin)
+    : { gameId: await commitGameDraft(ctx, franchise, context, draft, origin) };
 }
 
 export const vExistingGame = v.union(

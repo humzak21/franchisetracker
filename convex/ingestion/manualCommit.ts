@@ -38,7 +38,7 @@ export const commit = mutation({
     await requireOwner(ctx);
     const { franchise, entry } = await requireManualDraft(ctx, draftId);
     requireOpen(entry, draft);
-    const result = await commitDraft(ctx, franchise, entry, draft);
+    const result = await commitDraft(ctx, franchise, entry, draft, "manual");
     await ctx.db.patch("manualDrafts", entry._id, {
       draft,
       status: "committed",

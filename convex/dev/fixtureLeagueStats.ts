@@ -51,6 +51,7 @@ export async function seedSampleLeagueStats(
       displayName: `${firstName} ${lastName}`,
       position,
       isReal: true,
+      origin: "import",
       retired: false,
       aliases: [],
     });

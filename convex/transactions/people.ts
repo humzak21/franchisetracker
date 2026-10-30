@@ -1,9 +1,11 @@
 /** Who a recorded move names: an existing player, or a new one typed into the form. */
 import { v, type Infer } from "convex/values";
+import { newPlayerName } from "../../shared/players/identity";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { invalid, must } from "../lib/errors";
 import { vPosition } from "../lib/validators";
+import { provenanceOf } from "../players/provenance";
 
 export const vPersonInput = v.union(
   v.object({ playerId: v.id("players") }),
@@ -18,12 +20,6 @@ type PersonInput = Infer<typeof vPersonInput>;
 
 const MAX_NAME = 60;
 
-function splitName(name: string): { firstName: string; lastName: string } {
-  const parts = name.split(/\s+/);
-  const lastName = parts.pop() ?? name;
-  return { firstName: parts.join(" "), lastName };
-}
-
 const inRange = (value: number | undefined, min: number, max: number) =>
   value === undefined || (Number.isInteger(value) && value >= min && value <= max);
 
@@ -33,11 +29,11 @@ export type ResolvedPerson = {
   extras?: { ovr?: number; age?: number };
 };
 
-/** Resolves each person, creating players typed by name (marked real, as captured players are). */
+/** Resolves each person, creating players typed by name, dated to the move's season. */
 export async function resolvePeople(
   ctx: MutationCtx,
   franchiseId: Id<"franchises">,
-  year: number,
+  season: Doc<"seasons">,
   people: readonly PersonInput[],
 ): Promise<ResolvedPerson[]> {
   const out: ResolvedPerson[] = [];
@@ -54,13 +50,11 @@ export async function resolvePeople(
     if (!inRange(person.ovr, 1, 99)) throw invalid("OVR runs from 1 to 99");
     const id = await ctx.db.insert("players", {
       franchiseId,
-      ...splitName(name),
-      displayName: name,
+      ...newPlayerName(name),
       position: person.position,
-      ...(person.age !== undefined ? { ageAnchor: { age: person.age, year } } : {}),
-      isReal: true,
+      ...(person.age !== undefined ? { ageAnchor: { age: person.age, year: season.year } } : {}),
+      ...(await provenanceOf(ctx, franchiseId, season._id, "manual")),
       retired: false,
-      aliases: [],
     });
     out.push({
       player: must(await ctx.db.get("players", id), "New player"),

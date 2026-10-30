@@ -1,5 +1,5 @@
 /** What every row target's commit gets, and small readers for row values. */
-import { isPosition, type WeekKey } from "../../shared/domain";
+import { isPosition, type PlayerOrigin, type WeekKey } from "../../shared/domain";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import type { StoredDraft } from "../lib/draftValidators";
@@ -22,6 +22,8 @@ export type RowCommit = {
   meta: StoredRowsDraft["meta"];
   /** Accepted rows only. */
   rows: StoredRow[];
+  /** How a player these rows create came in: a screen, or typed in by hand. */
+  origin: PlayerOrigin;
 };
 
 /** Where the review goes after commit: a game's page, a player page for a card, else the next set. */
@@ -56,14 +58,21 @@ export async function rowPlayer(
   commit: RowCommit,
   row: StoredRow,
   teamId: Id<"teams"> | undefined,
-  options: { fields?: Parameters<typeof ensureRosterEntry>[1]["fields"]; complete?: boolean } = {},
+  options: {
+    fields?: Parameters<typeof ensureRosterEntry>[1]["fields"];
+    complete?: boolean;
+    /** Overrides how a new player came in: a draft class says so itself. */
+    origin?: PlayerOrigin;
+  } = {},
 ): Promise<Doc<"players">> {
+  const { origin = commit.origin, ...entry } = options;
   const player = await playerFor(ctx, commit.franchise._id, {
     name: row.name ?? "Unknown player",
     playerId: row.playerId,
     position: positionOf(row),
     seasonId: commit.season._id,
     teamAbbr: teamId ? (await ctx.db.get("teams", teamId))?.abbr : undefined,
+    origin,
   });
   if (!teamId) return player;
   await ensureRosterEntry(ctx, {
@@ -72,7 +81,7 @@ export async function rowPlayer(
     teamId,
     userTeamId: commit.franchise.userTeamId,
     position: positionOf(row) ?? player.position,
-    ...options,
+    ...entry,
   });
   return player;
 }

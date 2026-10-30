@@ -1,5 +1,12 @@
 import type { Page, TestInfo } from "@playwright/test";
-import { SAMPLE_YEAR, expect, expectNoHorizontalOverflow, isPhone, test } from "./fixtures";
+import {
+  SAMPLE_YEAR,
+  createUndecidedPlayers,
+  expect,
+  expectNoHorizontalOverflow,
+  isPhone,
+  test,
+} from "./fixtures";
 
 /** A 1x1 PNG: the local e2e backend has no OpenRouter key, so the built-in sample answer reads it. */
 const PNG = Buffer.from(
@@ -75,6 +82,7 @@ test("a full game log goes from capture to review to team and player stats", asy
 
   // Fix the doubtful player field in place, then commit.
   await page.getByLabel("T. Henderson · Rushing yards", { exact: true }).fill("110");
+  await createUndecidedPlayers(page);
   await page.getByRole("button", { name: "Commit", exact: true }).click();
 
   await expect(page).toHaveURL(/\/games\//, { timeout: 20_000 });

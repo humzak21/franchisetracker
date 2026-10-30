@@ -39,9 +39,11 @@ export type DraftLine<P extends string = string> = {
   name: string;
   position: Position | null;
   stats: StatLine;
-  /** The player this line commits to; null creates a new player. */
+  /** The player this line commits to; null creates a new player, once that is decided. */
   playerId: P | null;
   match: PlayerMatch<P>;
+  /** Someone decided this name is a new player, so a game can commit with `playerId` null. */
+  confirmedNew?: boolean;
 };
 
 export type BoxScoreDraft<P extends string = string> = {

@@ -36,6 +36,8 @@ export type DraftRow<P extends string = string> = {
   values: Record<string, RowValue>;
   playerId: P | null;
   match: PlayerMatch<P> | null;
+  /** Someone decided this name is a new player, so an unsettled match can commit. */
+  confirmedNew?: boolean;
 };
 
 export type RowsDraft<P extends string = string, T extends string = string> = {
@@ -67,8 +69,9 @@ export type RowSpec = {
   /** Rows carry a team (a standings row, a leader's team). */
   rowTeam: boolean;
   /**
-   * Rows are players new to the franchise (a draft class, mostly created players): reading does
-   * not match their names to the rosters, and review can also find them in college football.
+   * Rows are players new to the franchise (a draft class, mostly created players): reading matches
+   * them only against this season's picks and created players, never the rosters, and review can
+   * also find them in college football.
    */
   newPlayers?: boolean;
   meta: readonly RowField[];

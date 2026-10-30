@@ -82,6 +82,7 @@ export function ManualEntryScreen({ draftId }: { draftId: Id<"manualDrafts"> }) 
             confidence={[]}
             extractionNotes={[]}
             game={game}
+            seasonId={entry.season?._id ?? null}
           >
             {replaces && (
               <p role="status" className={`${noteClass} border-warn/40 bg-warn/10`}>

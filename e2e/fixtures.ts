@@ -10,6 +10,15 @@ export const SAMPLE_YEAR = 2026;
 /** Phone projects render the tab bar instead of the sidebar. */
 export const isPhone = (projectName: string) => projectName.startsWith("phone");
 
+/**
+ * Calls every name a review could not settle new, so a game can commit. Other tests may already
+ * have added the same players, so there may be nothing to decide.
+ */
+export async function createUndecidedPlayers(page: Page) {
+  const create = page.getByRole("button", { name: /^Create .+ as new/ });
+  while ((await create.count()) > 0) await create.first().click();
+}
+
 /** Signs in through the local-only test provider (the e2e backend runs with AUTH_TEST_MODE). */
 export async function signInAsTestOwner(page: Page) {
   await page.goto("/");

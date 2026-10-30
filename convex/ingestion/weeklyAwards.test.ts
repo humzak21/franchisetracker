@@ -77,8 +77,25 @@ describe("weekly awards batch", () => {
     expect(await owner.mutation(api.ingestion.weeklyAwards.commitReady, { setKeys: keys })).toBe(0);
   });
 
-  test("a winner from another team is added to the players as the batch commits", async () => {
-    const { t, owner, active, seasonId, images } = await setup();
+  test("a winner nobody knows waits for review instead of being added unseen", async () => {
+    const { t, owner, active, seasonId, images, batch } = await setup();
+    const named = (displayName: string) =>
+      t.run((ctx) =>
+        ctx.db
+          .query("players")
+          .withIndex("by_franchiseId_and_displayName", (q) =>
+            q.eq("franchiseId", active.franchise._id).eq("displayName", displayName),
+          )
+          .first(),
+      );
+    const gonzalez = (await named("Christian Gonzalez"))!;
+    await t.run(async (ctx) => {
+      const entries = await ctx.db.query("rosterEntries").collect();
+      for (const entry of entries.filter((e) => e.playerId === gonzalez._id))
+        await ctx.db.delete("rosterEntries", entry._id);
+      await ctx.db.delete("players", gonzalez._id);
+    });
+
     const [key] = await owner.mutation(api.ingestion.weeklyAwards.create, {
       seasonId,
       storageIds: await images(1),
@@ -86,16 +103,15 @@ describe("weekly awards batch", () => {
     await owner.mutation(api.ingestion.weeklyAwards.setWeek, { setKey: key!, weekKey: "w9" });
     await owner.mutation(api.ingestion.weeklyAwards.readAll, { setKeys: [key!] });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
-    await owner.mutation(api.ingestion.weeklyAwards.commitReady, { setKeys: [key!] });
-    const parsons = await t.run((ctx) =>
-      ctx.db
-        .query("players")
-        .withIndex("by_franchiseId_and_displayName", (q) =>
-          q.eq("franchiseId", active.franchise._id).eq("displayName", "M. Parsons"),
-        )
-        .first(),
-    );
-    expect(parsons).not.toBeNull();
+
+    expect((await batch()).find((s) => s.setKey === key)).toMatchObject({ winners: 2, ready: false });
+    expect(await owner.mutation(api.ingestion.weeklyAwards.commitReady, { setKeys: [key!] })).toBe(0);
+    expect(await named("C. Gonzalez")).toBeNull();
+
+    // Review sees the name, and committing from there adds them.
+    const draft = (await owner.query(api.ingestion.review.get, { setKey: key! })).extraction!.draft;
+    await owner.mutation(api.ingestion.review.commit, { setKey: key!, draft });
+    expect(await named("C. Gonzalez")).not.toBeNull();
   });
 
   test("is private", async () => {

@@ -54,7 +54,7 @@ function Who({
               <>→ {chosen.name}</>
             ) : row.playerId ? (
               "→ Chosen player"
-            ) : match?.status === "ambiguous" ? (
+            ) : match?.status === "ambiguous" && !row.confirmedNew ? (
               <span className="text-warn">Choose who this is</span>
             ) : spec.optionalPlayer ? (
               <span className="text-warn">{row.name ? "Not matched to a player" : "Needs a player"}</span>
@@ -202,6 +202,7 @@ export function RowCard({
         <PlayerPickerSheet
           open={picking}
           onOpenChange={setPicking}
+          base={base}
           printedName={row.name ?? "Which player?"}
           match={match ?? { status: "new", candidates: [] }}
           value={row.playerId}

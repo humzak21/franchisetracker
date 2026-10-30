@@ -2,6 +2,7 @@
  * Writes a reviewed box score: player entities and roster entries where missing, the game's
  * stat lines (replacing any from an earlier commit), then the affected aggregates.
  */
+import type { PlayerOrigin } from "../../shared/domain";
 import type { StatLine } from "../../shared/stats";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
@@ -20,6 +21,7 @@ export async function commitBoxScore(
   franchise: Doc<"franchises">,
   game: Doc<"games">,
   draft: BoxScore,
+  origin: PlayerOrigin,
 ): Promise<Id<"players">[]> {
   const previous = [];
   for (const teamId of [game.homeTeamId, game.awayTeamId]) {
@@ -42,6 +44,7 @@ export async function commitBoxScore(
       stats: line.stats as StatLine,
       seasonId: game.seasonId,
       teamAbbr: team.abbr,
+      origin,
     });
     const position = line.position ?? player.position;
     await ensureRosterEntry(ctx, {

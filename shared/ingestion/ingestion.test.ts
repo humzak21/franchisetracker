@@ -137,6 +137,26 @@ describe("name matching", () => {
     expect(matchPlayer("Rhamondre Stevenson", players).status).toBe("new");
   });
 
+  test("a full name reaches a player known only by an initial", () => {
+    const known: NameCandidate = {
+      playerId: "hawkins",
+      displayName: "M. Hawkins",
+      firstName: "M.",
+      lastName: "Hawkins",
+      aliases: ["M.Hawkins"],
+    };
+    expect(matchPlayer("Marcellous Hawkins", [known]).status).toBe("matched");
+    expect(matchPlayer("Terrell Hawkins", [known]).status).not.toBe("matched");
+  });
+
+  test("a player who has left the team is the last place to look", () => {
+    const left = { ...players[0]!, inactive: true };
+    const [best] = matchPlayer("D. Maye", [left, { ...players[0]!, playerId: "other" }], {
+      teamAbbr: "NE",
+    }).candidates;
+    expect(best?.playerId).toBe("other");
+  });
+
   test("a last name alone scores below a full match", () => {
     expect(nameScore("Maye", { first: "Drake", last: "Maye", full: "Drake Maye" })).toBeLessThan(0.9);
   });
@@ -180,12 +200,34 @@ describe("normalizeBoxScore", () => {
 });
 
 describe("validation", () => {
-  const draft = () => normalizeBoxScore(RAW_BOX).draft;
+  const undecided = () => normalizeBoxScore(RAW_BOX).draft;
+  const draft = () => {
+    const d = undecided();
+    return { ...d, lines: d.lines.map((l) => ({ ...l, confirmedNew: true })) };
+  };
 
-  test("a clean draft only notes new players", () => {
+  test("a clean draft with its new players decided only notes them", () => {
     const warnings = validateBoxScore(draft());
     expect(warnings.every((w) => w.severity === "info")).toBe(true);
     expect(blocksCommit(warnings)).toBe(false);
+  });
+
+  test("a name nobody decided on blocks commit, ambiguous or new", () => {
+    const d = undecided();
+    const [first, second] = d.lines;
+    first!.match = { status: "ambiguous", candidates: [{ playerId: "a", name: "A", score: 0.8 }] };
+    const warnings = validateBoxScore(d);
+    expect(blocksCommit(warnings)).toBe(true);
+    expect(warnings.find((w) => w.path === `lines.${first!.id}.name`)?.message).toMatch(/choose which/);
+    expect(warnings.find((w) => w.path === `lines.${second!.id}.name`)?.message).toMatch(
+      /create them as new/,
+    );
+  });
+
+  test("a line with no stats is skipped at commit, so it needs no decision", () => {
+    const d = undecided();
+    const lines = d.lines.map((l) => ({ ...l, stats: {} }));
+    expect(blocksCommit(validateBoxScore({ ...d, lines }))).toBe(false);
   });
 
   test("completions over attempts and a wrong team block commit", () => {

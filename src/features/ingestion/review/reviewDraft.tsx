@@ -31,6 +31,8 @@ type ReviewDraftState = {
   /** A row or line's match: what reading found, or the box score's candidates for a nameless play. */
   matchOf: (base: string) => PlayerMatch<Id<"players">> | null;
   saving: boolean;
+  /** The season being filed into, for offering a team's known players; null until tagged. */
+  seasonId: Id<"seasons"> | null;
 };
 
 const ReviewDraftContext = createContext<ReviewDraftState | null>(null);
@@ -44,6 +46,7 @@ export function ReviewDraftProvider({
   confidence,
   extractionNotes,
   game,
+  seasonId = null,
   children,
 }: {
   /** Where edits are saved: the extraction under review, or a manual entry. */
@@ -54,6 +57,7 @@ export function ReviewDraftProvider({
   extractionNotes: readonly DraftWarning[];
   /** The game a game-scoped list files under; undefined until it is known, or for other targets. */
   game?: RowGameContext<Id<"players">> | null;
+  seasonId?: Id<"seasons"> | null;
   children: ReactNode;
 }) {
   const [draft, setDraft] = useState(() => deriveDraft(initial));
@@ -122,8 +126,8 @@ export function ReviewDraftProvider({
   );
 
   const value = useMemo(
-    () => ({ draft, set, update, warnings, confidence, flag, matchOf, saving }),
-    [draft, set, update, warnings, confidence, flag, matchOf, saving],
+    () => ({ draft, set, update, warnings, confidence, flag, matchOf, saving, seasonId }),
+    [draft, set, update, warnings, confidence, flag, matchOf, saving, seasonId],
   );
   return <ReviewDraftContext.Provider value={value}>{children}</ReviewDraftContext.Provider>;
 }

@@ -34,6 +34,7 @@ export const vDraftLine = v.object({
   stats: vStatMap,
   playerId: nullable(v.id("players")),
   match: vMatch,
+  confirmedNew: v.optional(v.boolean()),
 });
 
 export const vBoxScoreDraft = v.object({
@@ -58,6 +59,7 @@ export const vDraftRow = v.object({
   values: v.record(v.string(), vRowValue),
   playerId: nullable(v.id("players")),
   match: nullable(vMatch),
+  confirmedNew: v.optional(v.boolean()),
 });
 
 export const vGameLogDraft = v.object({

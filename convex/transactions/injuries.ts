@@ -40,7 +40,7 @@ export const save = mutation({
     if ((args.notes?.length ?? 0) > MAX_NOTE) throw invalid(`Keep notes under ${MAX_NOTE} characters`);
     if (args.teamId) must(await ctx.db.get("teams", args.teamId), "Team");
     const existing = args.injuryId ? must(await ctx.db.get("injuries", args.injuryId), "Injury") : null;
-    const [person] = await resolvePeople(ctx, franchise._id, season.year, [args.player]);
+    const [person] = await resolvePeople(ctx, franchise._id, season, [args.player]);
     const fields = {
       seasonId: season._id,
       weekKey: args.weekKey,
