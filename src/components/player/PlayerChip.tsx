@@ -31,7 +31,7 @@ export function PlayerChip({
   className,
 }: PlayerChipProps) {
   return (
-    <span className={cn("inline-flex min-w-0 items-center gap-2.5", className)}>
+    <span className={cn("inline-flex max-w-full min-w-0 items-center gap-2.5", className)}>
       <Headshot
         name={player.displayName}
         src={player.headshotUrl}
