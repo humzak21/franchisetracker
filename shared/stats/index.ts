@@ -21,6 +21,8 @@ export * from "./marks";
 export * from "./spans";
 export * from "./pace";
 export * from "./yoy";
+export * from "./hub";
+export * from "./trends";
 export * from "./splits";
 export * from "./quarters";
 export * from "./teamRecords";

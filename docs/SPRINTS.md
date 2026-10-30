@@ -440,13 +440,41 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 ---
 
-## Proposed: Sprints 17 to 23
+## Sprint 17 — Stats hub: overview, pace, trends (M)
+
+**Goal:** the numbers Sprint 15 made start to show. Home and Stats say what a season is on pace for, the roster's nearest marks are counted down, and a career reads as curves rather than rows.
+
+- Stats opens on an Overview of the season; a Trends view charts the team or any player across seasons.
+- The Season view can show each player's pace, or the change from last year.
+- Home gains the pace line and a Countdowns card.
+- The player page gains Pace, Trends and Cumulative.
+- `CumulativeChart`, `SeasonBars`, `PaceBar` and `DeltaBadge` in the gallery.
+
+**Done when:** Home and Stats say what a season is on pace for, and the player page shows a career as curves, not only rows.
+
+**As built:**
+
+- `shared/stats/hub.ts` holds pace, leaders, countdowns and `paceGoals`; `shared/stats/trends.ts` holds the curves. `seasonInProgress` is the one test for when a pace means anything: status `regular`, with games played and games left.
+- A player's pace counts the team's games left, not the player's rate times 17, so a player who sat out three is not projected to play them (`playerPace`, `projectedLine`). `paceGoals` passes the same finish to `paceTargets`.
+- Countdowns rank in games away at each player's career rate, not in yards: 90 yards is two games for a starter and a season for a fullback. Only marks within a season at that rate show, one per player, or a running back's rushing and scrimmage yards would fill the list.
+- `stats/hub:overview` and `stats/hub:countdownsFor` are the Overview and Home reads; the Overview also reads `stats/streaks:all` and `league/teamStats:trends` rather than a second copy of them. "Set this season" is the season's `franchise_record`, `team_record` and `mark` milestones.
+- `stats/trends:player` and `stats/trends:team` are one read each. A player's games are those with the user's team, as marks and spans count them: another team's lines come from box scores against us.
+- The Season view's display is `Totals`, `On pace` or `Vs last year`. Pace rewrites the rows, so every column, the highlights and the totals row follow without knowing about it. Neither view edits, since neither is a stored number. A change shows only on stats that add up, because rates do not subtract.
+- `CareerCurves` is one component in `components/player`, so the player page and Trends share it without a feature importing a feature. It takes its data as a prop and owns the stat picker, so Trends and Cumulative stay on one stat.
+- `TrendChart` gains `scale="auto"` and `format`; OVR keeps its rating axis by default.
+- A record's pace is hidden when the season being played holds the record: racing yourself says nothing.
+- Stats now opens on Overview, and the "real NFL history" notice moved up to `StatsScreen` so a season opened from History shows it on either view. A stored view choice is kept.
+- The Home games row was a grid with an implicit column, so a long opponent name stretched the phone layout. It now has `grid-cols-1`. That bug predates this sprint; sample data only hit it on some weeks.
+- Left for later: `splits` and `quarterScoring` still have no screen (Sprint 21), and team record lists and streak dates wait for Sprint 19. Overview's tiles open the view with their detail; a per-tile deep link can wait for the views that need one.
+
+---
+
+## Proposed: Sprints 18 to 23
 
 Planned after the platform audit of October 2026, not yet scheduled or built. The statistics hub plan is `docs/STATS-HUB.md`; the audit with every gap and the reasoning behind the order is `docs/PLATFORM-AUDIT.md`. When one of these is picked up, it gets a full section above with a goal, a "Done when" and, once built, its "As built" notes, and the stable behaviour moves into `FEATURES.md`.
 
 | Sprint | Theme | Size | Source |
 |---|---|---|---|
-| 17 | Stats hub: Overview, pace columns and the Home pace line, Countdowns card, Trends view, player page Pace, Trends and Cumulative | M | `STATS-HUB.md` 8, Sprint 16 |
 | 18 | Roster truth and the season checklist: the roster page as the truth for a team and season, carry-over that ages contracts and prunes ghosts, retirements step, depth chart, roster diff, team switcher, coverage strip | M | `PLATFORM-AUDIT.md` 2.2 E, F and 3 |
 | 19 | Records and streaks depth: fastest-to and span lists, full single-game lists, team records, streak dates and new kinds, milestone timeline, imported league leaders with "where we rank", player milestones | M | `STATS-HUB.md` 8, Sprint 17 |
 | 20 | Operations without a terminal: maintenance panel, retention crons, boards rebuilt after restore, scale test on a synthetic 20-season franchise, scheduled-job errors surfaced, extraction budget, duplicate screenshot hash | S | `PLATFORM-AUDIT.md` 4 and 6 |

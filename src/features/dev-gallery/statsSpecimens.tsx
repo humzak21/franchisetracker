@@ -1,8 +1,34 @@
+import { REGULAR_WEEKS } from "@shared/domain";
+import { CountdownList } from "@/components/data/CountdownList";
+import { CumulativeChart } from "@/components/data/CumulativeChart";
+import { DeltaBadge } from "@/components/data/DeltaBadge";
 import { FactChip } from "@/components/data/FactChip";
+import { PaceBar } from "@/components/data/PaceBar";
+import { SeasonBars } from "@/components/data/SeasonBars";
+import { CareerCurves, type CareerCurvesData } from "@/components/player/CareerCurves";
 import { ScoreWorm, type WormPoint } from "@/components/data/ScoreWorm";
 import { ScoringSummary, type SummaryPlay } from "@/components/data/ScoringSummary";
 import { BUF, NE } from "./fixtures";
 import type { Specimen } from "./specimens";
+
+const CAREER: CareerCurvesData = {
+  gamesPerSeason: 17,
+  seasons: [
+    { year: 2025, age: 23, gamesPlayed: 12, imported: true, totals: { recYds: 720, rec: 55, recTd: 4 } },
+    { year: 2026, age: 24, gamesPlayed: 17, imported: false, totals: { recYds: 1140, rec: 88, recTd: 9 } },
+    { year: 2027, age: 25, gamesPlayed: 4, imported: false, totals: { recYds: 312, rec: 22, recTd: 3 } },
+  ],
+  games: [2026, 2027].flatMap((year) =>
+    Array.from({ length: year === 2026 ? 17 : 4 }, (_, i) => ({
+      gameId: `${year}-${i}`,
+      seasonId: String(year),
+      year,
+      weekKey: REGULAR_WEEKS[i] ?? "w1",
+      stats: { recYds: 45 + ((i * 37) % 60), rec: 5 },
+    })),
+  ),
+  records: [{ statKey: "recYds", value: 1402, year: 2024 }],
+};
 
 const when = (play: string, score: string) => ({ when: "Q2 9:14", what: play, score });
 
@@ -60,6 +86,127 @@ const PLAYS: SummaryPlay[] = [
 ];
 
 export const STATS_SPECIMENS: Specimen[] = [
+  {
+    id: "deltabadge",
+    name: "DeltaBadge",
+    note: "A signed change, coloured by whether it is good for that stat. A short season shows it without a verdict.",
+    render: () => (
+      <div className="flex flex-wrap items-baseline gap-4">
+        <DeltaBadge delta={214} />
+        <DeltaBadge delta={-41} />
+        <DeltaBadge delta={-3} better="lower" />
+        <DeltaBadge delta={0} />
+        <DeltaBadge delta={120} muted />
+        <DeltaBadge delta={null} />
+      </div>
+    ),
+  },
+  {
+    id: "pacebar",
+    name: "PaceBar",
+    note: "Progress to a target with the projected finish as a ghost. Reading and label stack in a narrow pane.",
+    render: () => (
+      <div className="space-y-4">
+        <PaceBar
+          label="Receiving yards: franchise record"
+          accessibleLabel="Receiving yards, franchise record"
+          value={812}
+          target={1402}
+          projected={1228}
+          reading="812 of 1,402"
+          caption="On pace for 1,228 · 65.6 a game to get there"
+        />
+        <PaceBar
+          label="Rushing yards: next mark"
+          accessibleLabel="Rushing yards, next mark"
+          value={942}
+          target={1000}
+          reading="942 of 1,000"
+        />
+      </div>
+    ),
+  },
+  {
+    id: "countdownlist",
+    name: "CountdownList",
+    note: "The roster's nearest career marks, ranked in games away at each player's own rate.",
+    render: () => (
+      <CountdownList
+        items={[
+          {
+            statKey: "passYds",
+            mark: 10000,
+            value: 9813,
+            remaining: 187,
+            gamesAway: 1,
+            player: { playerId: "maye", name: "Drake Maye", position: "QB", headshotUrl: null },
+          },
+          {
+            statKey: "recTd",
+            mark: 25,
+            value: 22,
+            remaining: 3,
+            gamesAway: 4,
+            player: { playerId: "diggs", name: "Stefon Diggs", position: "WR", headshotUrl: null },
+          },
+        ]}
+      />
+    ),
+  },
+  {
+    id: "cumulativechart",
+    name: "CumulativeChart",
+    note: "Running totals by game: seasons as step lines, a record's pace dashed, marks as rules. Legend as chips.",
+    render: () => (
+      <CumulativeChart
+        valueLabel="Receiving yards"
+        marks={[1000]}
+        series={[
+          {
+            key: "y27",
+            label: "2027",
+            points: [62, 141, 201, 312].map((total, i) => ({ game: i + 1, total })),
+          },
+          {
+            key: "y26",
+            label: "2026",
+            points: [48, 90, 171, 240, 330, 391, 470].map((total, i) => ({ game: i + 1, total })),
+          },
+          {
+            key: "record",
+            label: "Record pace (2024)",
+            reference: true,
+            points: [1, 7].map((game) => ({ game, total: game * 82 })),
+          },
+        ]}
+      />
+    ),
+  },
+  {
+    id: "seasonbars",
+    name: "SeasonBars",
+    note: "Grouped bars per season, with a rank badge under each year where one was captured.",
+    render: () => (
+      <SeasonBars
+        valueLabel="Points scored and allowed"
+        series={[
+          { key: "pf", label: "Scored" },
+          { key: "pa", label: "Allowed" },
+        ]}
+        seasons={[
+          { year: 2026, values: { pf: 412, pa: 301 }, rank: 6 },
+          { year: 2027, values: { pf: 356, pa: 340 }, rank: 14 },
+          { year: 2028, values: { pf: 471, pa: 288 }, rank: 2 },
+        ]}
+      />
+    ),
+  },
+  {
+    id: "careercurves",
+    name: "CareerCurves",
+    note: "A stat by season with each change, then running totals against the last season, the best and the record.",
+    render: () => <CareerCurves data={CAREER} initialStat="recYds" />,
+  },
   {
     id: "factchip",
     name: "FactChip",

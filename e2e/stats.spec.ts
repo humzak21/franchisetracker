@@ -1,7 +1,9 @@
 import type { Page } from "@playwright/test";
 import { expect, expectNoHorizontalOverflow, isPhone, test } from "./fixtures";
 
-async function openView(page: Page, view: "Season" | "League" | "Records" | "Leaders" | "Streaks") {
+const VIEWS = ["Overview", "Season", "League", "Trends", "Records", "Leaders", "Streaks"] as const;
+
+async function openView(page: Page, view: (typeof VIEWS)[number]) {
   await page.goto("/stats");
   await expect(page.getByRole("heading", { level: 1, name: "Stats" })).toBeVisible();
   await page.getByRole("radio", { name: view, exact: true }).click();
@@ -12,13 +14,33 @@ for (const theme of ["dark", "light"] as const) {
     test.use({ theme });
 
     test("every stats view loads without overflow", async ({ page }) => {
-      for (const view of ["Season", "League", "Records", "Leaders", "Streaks"] as const) {
-        await openView(page, view);
+      // One load, then the tabs: a reload per view can catch a token refresh mid-flight and sign out.
+      await openView(page, VIEWS[0]);
+      for (const view of VIEWS) {
+        await page.getByRole("radio", { name: view, exact: true }).click();
         await expectNoHorizontalOverflow(page);
       }
     });
   });
 }
+
+test("the overview leads with the season and opens the views behind it", async ({ page }) => {
+  await openView(page, "Overview");
+  await expect(page.getByText("Differential", { exact: true })).toBeVisible();
+  await expect(page.getByText("Passing yards", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /Expected wins/ }).click();
+  await expect(page.getByLabel("Show trends for")).toBeVisible();
+});
+
+test("trends chart the team, then any player on the roster", async ({ page }) => {
+  await openView(page, "Trends");
+  await expect(page.getByRole("heading", { name: "Results" })).toBeVisible();
+  await page.getByLabel("Show trends for").selectOption({ label: "Drake Maye" });
+  await expect(page.getByRole("heading", { name: "Cumulative" })).toBeVisible();
+  await expect(page.getByLabel("Stat to chart")).toHaveValue("passYds");
+  await expect(page.getByRole("table", { name: "Passing yards by season" })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
 
 test("season stats add up from the sample box scores", async ({ page }) => {
   await openView(page, "Season");

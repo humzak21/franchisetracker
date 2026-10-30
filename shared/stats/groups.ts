@@ -3,7 +3,7 @@
  * stat categories become columns, which big-game counts it keeps, and the few columns a phone
  * keeps in the table.
  */
-import type { PositionGroup } from "../domain/positions";
+import { positionGroupOf, type Position, type PositionGroup } from "../domain/positions";
 import { categoriesForPosition } from "./categories";
 import type { StatCategory, StatKey } from "./registry";
 import type { GameThresholdKey } from "./thresholds";
@@ -108,4 +108,10 @@ export const STAT_GROUPS: readonly StatGroup[] = [
 
 export function statGroup(id: string): StatGroup {
   return STAT_GROUPS.find((g) => g.id === id) ?? STAT_GROUPS[0]!;
+}
+
+/** A position's stats in the order its season table leads with them. */
+export function leadStats(position: Position): StatKey[] {
+  const group = STAT_GROUPS.find((g) => g.positions?.includes(positionGroupOf(position)));
+  return group ? [group.lead, ...group.phone.filter((k) => k !== group.lead)] : [];
 }
