@@ -10,15 +10,13 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { invalid, must } from "../lib/errors";
-import { playersById } from "../lib/franchise";
+import { MAX_ROSTER, playersById } from "../lib/franchise";
 import { headshotUrls } from "../lib/refs";
 import { vPosition } from "../lib/validators";
 import { ownGame } from "./access";
 import { gamePlays } from "./playRows";
 
 const MAX_LINES_PER_TEAM = 100;
-/** A 53-man roster plus practice squad and injured reserve, with room for in-season moves. */
-const MAX_ROSTER = 150;
 
 /**
  * Players with a stat line in this game (both teams, the user's first), each with the line a

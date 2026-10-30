@@ -5,16 +5,21 @@
 import { v } from "convex/values";
 import { currentSeasonYear } from "../../shared/seasons/reports";
 import type { StatLine } from "../../shared/stats";
+import type { Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { invalid, must } from "../lib/errors";
 import { activeFranchise, playersById, teamsById } from "../lib/franchise";
 import { careerWithTeam } from "../lib/hof";
-import { toTeamRef, vTeamRef } from "../lib/refs";
+import { headshotUrls, toTeamRef, vTeamRef } from "../lib/refs";
 import { franchiseSeasonList } from "../lib/reports";
+import { vPosition } from "../lib/validators";
 import schema from "../schema";
 
 const MAX_ENTRIES = 300;
+/** Every stat's career list at 25 entries, with headroom. */
+const MAX_PLACEMENTS = 2_000;
+const MAX_CANDIDATES = 12;
 const MAX_BLURB = 2_000;
 const MAX_NAME = 60;
 
@@ -39,6 +44,63 @@ function cleanBlurb(blurb: string | undefined) {
 function statMap(line: StatLine): Record<string, number> {
   return Object.fromEntries(Object.entries(line).filter((e): e is [string, number] => e[1] !== undefined));
 }
+
+/**
+ * Retired players the team's career book still lists and the wall does not: the people worth
+ * opening a plaque for, most placements first.
+ */
+export const candidates = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      playerId: v.id("players"),
+      displayName: v.string(),
+      position: vPosition,
+      placements: v.number(),
+      bestRank: v.number(),
+      headshotUrl: v.union(v.string(), v.null()),
+    }),
+  ),
+  handler: async (ctx) => {
+    await requireOwner(ctx);
+    const franchise = await activeFranchise(ctx);
+    const [placements, entries] = await Promise.all([
+      ctx.db
+        .query("recordPlacements")
+        .withIndex("by_franchiseId_and_book_and_split_and_scope_and_statKey", (q) =>
+          q.eq("franchiseId", franchise._id).eq("book", "team").eq("split", "regular").eq("scope", "career"),
+        )
+        .take(MAX_PLACEMENTS),
+      ctx.db
+        .query("hofEntries")
+        .withIndex("by_franchiseId_and_inductedYear", (q) => q.eq("franchiseId", franchise._id))
+        .take(MAX_ENTRIES),
+    ]);
+    const inducted = new Set(entries.map((e) => e.playerId));
+    const counted = new Map<Id<"players">, { placements: number; bestRank: number }>();
+    for (const { playerId, rank } of placements) {
+      if (inducted.has(playerId)) continue;
+      const seen = counted.get(playerId);
+      counted.set(playerId, {
+        placements: (seen?.placements ?? 0) + 1,
+        bestRank: Math.min(seen?.bestRank ?? rank, rank),
+      });
+    }
+    const players = await playersById(ctx, counted.keys());
+    const retired = [...players.values()].filter((p) => p.retired);
+    const photos = await headshotUrls(ctx, retired);
+    return retired
+      .map((p) => ({
+        playerId: p._id,
+        displayName: p.displayName,
+        position: p.position,
+        ...must(counted.get(p._id), "Placements"),
+        headshotUrl: photos.get(p._id) ?? null,
+      }))
+      .sort((a, b) => b.placements - a.placements || a.bestRank - b.bestRank)
+      .slice(0, MAX_CANDIDATES);
+  },
+});
 
 /** Every inductee with what the wall draws: name, position or title, and the team's colors. */
 export const wall = query({

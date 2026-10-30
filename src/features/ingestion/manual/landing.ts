@@ -29,3 +29,7 @@ const LANDING = {
 export function landingFor(target: TargetKey) {
   return LANDING[target];
 }
+
+/** A roster page lands on the team it wrote, where what it changed can be reviewed. */
+export const rosterSearch = (draft: { meta?: { team?: unknown } }) =>
+  typeof draft.meta?.team === "string" ? { team: draft.meta.team } : {};

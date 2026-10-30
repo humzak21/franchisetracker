@@ -46,7 +46,7 @@ export function MovePlayerSheet({
   const [seasonId, setSeasonId] = useState(initial.seasonId);
   const [teamId, setTeamId] = useState(initial.teamId);
   const [status, setStatus] = useState<MoveValues["status"]>(
-    initial.status === "traded" ? "active" : initial.status,
+    initial.status === "traded" || initial.status === "unsigned" ? "active" : initial.status,
   );
   const [week, setWeek] = useState<string>(NO_WEEK);
   const [leaving, setLeaving] = useState<MoveValues["leaving"]>("traded");

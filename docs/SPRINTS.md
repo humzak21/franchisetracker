@@ -469,13 +469,48 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 ---
 
-## Proposed: Sprints 18 to 23
+## Sprint 18 — Roster truth and the season checklist (M)
+
+**Goal:** the app, not the owner, keeps track of who is on each team and what to capture next: a roster page is the truth for its team, carry-over ages contracts and drops people nobody has seen, old players get a retirements step, and Home says what is done and what to shoot.
+
+- A committed roster page releases who it leaves off, with an undo list, and writes the depth chart from its order.
+- Carry-over decrements contracts, holds expired user-team deals for a decision, and keeps other teams' players only while something names them. The 150-entry caps become one constant, tested past it.
+- A yearly retirements step, ingested retire rows that apply the flag, and Hall of Fame candidates.
+- Roster gains a team switcher, a depth chart view and a roster diff.
+- Home gains the season checklist and the coverage strip.
+
+**Done when:** a whole roster page releases who is missing and can be undone, a season's carry-over leaves a player with an expired deal waiting and a ghost behind, the retirements list closes with a logged move, any team's roster opens with its depth chart and changes, and the checklist says what to shoot next from the data alone.
+
+**As built:**
+
+- `lastSeenYear` is a number, not the `lastSeenSeasonId` in `PLATFORM-AUDIT.md` 2.2 E, so carry-over and the retirements test need no season reads. `playerFor` stamps it, which covers every commit that names a player; manual moves stamp it in `resolvePeople`, the game page's added lines in `statLines`, and a new player's `provenanceOf` sets it.
+- There is no backfill. A player with no `lastSeenYear` is carried and stamped with the season carried from, so imported rosters and anyone from before this sprint get two more seasons and then prune. `stillSeen` keeps a player seen in the season carried from or the one before.
+- Pruning drops the roster entry, never the player: the next commit that names them finds them by search and makes a new entry. The user team is never pruned, and nothing here touches `isReal` or the imported stats.
+- `unsigned` is a new roster status, shown as Contract expired. The entry keeps its old terms with `years: 0`, so the prompt can show what they were paid, and `underContract` keeps it off the cap. A re-signing or any other `ensure` with no status of its own settles it (`rosterEffects.applyOp`), and deleting that move brings the prompt back. A player nobody decided on stays unsigned through later carry-overs. The cap view's filter also stops counting traded-away entries, which it did by mistake.
+- `agedContract` pins `apy` before `years` shrinks, since `capHit` falls back to `total / years`. A contract with neither `years` nor `expiresYear` has nothing to age, and stays. `expiresYear` decides over `years` when both are there.
+- "Whole page" is the rule that stops a filtered screen from releasing the team: at least `MIN_WHOLE_ROSTER` (40) accepted rows and no `meta.partial`. `partial` is a meta field the model can set from a filtered screen and review can flip. The practice squad is never released, because Madden lists it apart.
+- A page also brings back anyone it lists who was released or traded away, and marks anyone it lists as traded from another team that season. Both go through the same `changes` list. The audit asked only for the releases; a ghost entry on the old team was the same bug from the other side.
+- `rosterSyncs` is the undo list and doubles as "a roster page was committed" for the checklist and the partial label. It is not backed up, so after a restore a team reads as partial until its next page, and the checklist's Roster page item reopens. `settle` restores only entries still holding what the page wrote, and clears the list either way. Commit lands on `/roster` with the team, where the notice is, since a list otherwise moves straight on to the next set.
+- `MAX_ROSTER` is 300, one constant in `lib/franchise.ts` used by the twelve files that had their own 150. The test carries 220.
+- A retirement now also releases the entry, in `planRoster`, so a retired player leaves the roster page and deleting the move undoes both. This applies to moves recorded by hand too. "Released" is the closest status there is; the Retired move on the player's page says why.
+- Ingested transactions run `planRoster` and `applyRoster` for every type, not only `retire`, and store `effects`, so a captured release, signing or trade moves the roster and deleting it undoes that. The audit's finding 4 named this; 2.2 F only asked for retire.
+- Suggestions read one new index, `rosterEntries.by_seasonId_and_age`, from 34 up, rather than 32 teams' rosters. Carry-over fills `age` from the player when the entry has none, so the index sees imported veterans. Entries with no age and no birth year are never suggested. The list shows only while the season is `upcoming`; `seasons.retirementsReviewed` closes it. That flag is the one fact on the checklist that is a decision rather than data, since keeping everyone writes nothing else.
+- Depth order is `byDepth`: slots first, then OVR. `byDepthOrder` on the Roster tables uses it, so a set chart also orders the tables. `depthSlots` numbers a page's rows per position, not per position group, matching how Madden charts them. Arrows call `players/depth:reorder`. A page sorted by another column writes that order; the arrows are the fix.
+- `RosterTables` came out of `RosterScreen` to make room. The diff reads earlier to later whichever season is picked, so an arrival is always someone who joined. The batch bar stays on other teams' rosters; each pick keeps its own team.
+- Standings have no week, so "Standings" compares the user team's `w + l + t` in the captured standings with regular-season games played: no new field, and a screen shot mid-season stops where it was shot. Final standings need 17.
+- Season stats on the checklist read the categories in `reportedSeasonStats`, which is the user team's. Free agency is `optional`: a year with no signings is a real year, so it never holds the offseason open. `seasons/checklist:forSeason` is a dozen bounded reads plus three per played game, and `seasons/coverage:forSeason` serves Reconcile. Both return null for imported seasons.
+- Hall of Fame candidates are a list under the wall, not on the induction sheet, which is only reached from a player page. They read the team book's career lists.
+- Playwright smoke tests for the depth chart, changes, team switcher and checklist are written; this sprint left them to CI on purpose (the Mac's swap was full), so the phone project has not run them. The screens were checked by hand at 390 x 844 in light and at desktop width in dark.
+- Left for later: `depthSlot` for other teams beyond what a page writes; contract years in the cap projection (Sprint 22); the "Week 9 vs MIA: 53 known players" line on the capture sheet still waits. The audit's "how we got him" story stays open too.
+
+---
+
+## Proposed: Sprints 19 to 23
 
 Planned after the platform audit of October 2026, not yet scheduled or built. The statistics hub plan is `docs/STATS-HUB.md`; the audit with every gap and the reasoning behind the order is `docs/PLATFORM-AUDIT.md`. When one of these is picked up, it gets a full section above with a goal, a "Done when" and, once built, its "As built" notes, and the stable behaviour moves into `FEATURES.md`.
 
 | Sprint | Theme | Size | Source |
 |---|---|---|---|
-| 18 | Roster truth and the season checklist: the roster page as the truth for a team and season, carry-over that ages contracts and prunes ghosts, retirements step, depth chart, roster diff, team switcher, coverage strip | M | `PLATFORM-AUDIT.md` 2.2 E, F and 3 |
 | 19 | Records and streaks depth: fastest-to and span lists, full single-game lists, team records, streak dates and new kinds, milestone timeline, imported league leaders with "where we rank", player milestones | M | `STATS-HUB.md` 8, Sprint 17 |
 | 20 | Operations without a terminal: maintenance panel, retention crons, boards rebuilt after restore, scale test on a synthetic 20-season franchise, scheduled-job errors surfaced, extraction budget, duplicate screenshot hash | S | `PLATFORM-AUDIT.md` 4 and 6 |
 | 21 | Splits and the stat explorer | M | `STATS-HUB.md` 8, Sprint 18 |

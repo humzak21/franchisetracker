@@ -15,6 +15,7 @@ import { invalid, must } from "../lib/errors";
 import { vPosition } from "../lib/validators";
 import { ownGame } from "./access";
 import { refreshGame } from "./refreshGame";
+import { markSeen } from "../players/provenance";
 
 const vValue = v.union(v.number(), v.null());
 
@@ -102,6 +103,8 @@ export const addLine = mutation({
           origin: "manual",
         });
     if (player.franchiseId !== franchise._id) throw invalid("That player belongs to another franchise");
+    const season = must(await ctx.db.get("seasons", game.seasonId), "Season");
+    await markSeen(ctx, player, season.year);
     const position = args.position ?? player.position;
     await ensureRosterEntry(ctx, {
       player,

@@ -38,6 +38,42 @@ for (const theme of ["dark", "light"] as const) {
   });
 }
 
+for (const theme of ["dark", "light"] as const) {
+  test.describe(`${theme} theme`, () => {
+    test.use({ theme });
+
+    test("the depth chart and changes views render without overflow", async ({ page }) => {
+      await openRoster(page);
+      await page.getByRole("radio", { name: "Depth chart" }).click();
+      await expect(page.getByRole("region", { name: "WR depth" }).getByText("Stefon Diggs")).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+      await page.getByRole("radio", { name: "Changes" }).click();
+      await expect(page.getByLabel("Compare with season")).toBeVisible();
+      await expect(page.getByText(/^Arrivals · \d+$/)).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+    });
+  });
+}
+
+test("the depth chart moves a player up, and the roster keeps that order", async ({ page }) => {
+  await openRoster(page);
+  await page.getByRole("radio", { name: "Depth chart" }).click();
+  const receivers = page.getByRole("region", { name: "WR depth" }).getByRole("listitem");
+  await page.getByRole("button", { name: "Move DeMario Douglas up" }).click();
+  await expect(receivers.first()).toContainText("DeMario Douglas");
+  await page.getByRole("button", { name: "Move Stefon Diggs up" }).click();
+  await expect(receivers.first()).toContainText("Stefon Diggs");
+});
+
+test("another team's roster opens from the switcher, labeled partial", async ({ page }) => {
+  await openRoster(page);
+  await page.getByRole("combobox", { name: "Team" }).selectOption({ label: "Miami Dolphins" });
+  await expect(page).toHaveURL(/team=MIA/);
+  await expect(page.getByText(/^Partial: this roster/)).toBeVisible();
+  await expect(page.getByText("Tyreek Hill")).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
 test("each position group's table holds only its positions", async ({ page }) => {
   const receivers = await openRoster(page);
   await expect(receivers.getByText("Stefon Diggs")).toBeVisible();

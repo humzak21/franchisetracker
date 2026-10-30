@@ -27,13 +27,15 @@ export const PLAYER_ORIGIN_LABELS: Record<PlayerOrigin, string> = {
   manual: "Typed in by hand",
 };
 
-export const ROSTER_STATUSES = ["active", "ir", "practice_squad", "released", "traded"] as const;
+/** `unsigned` is a user-team player whose contract ran out at carry-over, waiting on a decision. */
+export const ROSTER_STATUSES = ["active", "ir", "practice_squad", "unsigned", "released", "traded"] as const;
 export type RosterStatus = (typeof ROSTER_STATUSES)[number];
 
 export const ROSTER_STATUS_LABELS: Record<RosterStatus, string> = {
   active: "Active",
   ir: "Injured reserve",
   practice_squad: "Practice squad",
+  unsigned: "Contract expired",
   released: "Released",
   traded: "Traded away",
 };

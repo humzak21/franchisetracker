@@ -87,7 +87,9 @@ async function applyOp(ctx: MutationCtx, rc: RosterContext, op: Op): Promise<Ros
     .take(MAX_SEASON_ENTRIES);
   const existing = entries.find((e) => e.teamId === op.teamId);
   if (existing) {
-    const change = diffFields(fieldsOf(existing), op.set);
+    // A deal that ran out at carry-over is settled by the re-signing that names the player.
+    const settled = existing.status === "unsigned" && !op.set.status && op.kind === "ensure";
+    const change = diffFields(fieldsOf(existing), settled ? { ...op.set, status: "active" } : op.set);
     if (change.changed.length === 0) return null;
     await ctx.db.patch("rosterEntries", existing._id, toPatch(change.next, change.changed));
     return { entryId: existing._id, created: false, ...change };

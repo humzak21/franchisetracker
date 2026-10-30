@@ -6,6 +6,12 @@ import { must } from "./errors";
 /** Every season a franchise can hold: real history back to 1920 plus a long franchise run. */
 export const MAX_SEASONS = 150;
 
+/**
+ * One team's entries in one season: a full roster, practice squad, IR and the season's departures,
+ * plus other teams' partial entries. Carry-over keeps those down, so this stays well clear.
+ */
+export const MAX_ROSTER = 300;
+
 /** 32 teams today; headroom without becoming unbounded. */
 const MAX_TEAMS = 64;
 

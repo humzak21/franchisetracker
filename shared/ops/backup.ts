@@ -68,6 +68,7 @@ export const NOT_BACKED_UP = {
   recordPlacements: "worked out with the records boards",
   recordBuilds: "the records rebuild job's progress",
   identityTidies: "the identity tidy job's progress",
+  rosterSyncs: "a roster page's undo list; the entries it changed are backed up",
   scoringBoards: "worked out from the scoring plays; rewritten when the next game's plays commit",
   playerMarks: "worked out from the game logs; Rebuild stats in Settings → Data writes them again",
   spanBoards: "worked out from the game logs; Rebuild stats in Settings → Data writes them again",

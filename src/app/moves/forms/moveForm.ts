@@ -1,6 +1,6 @@
 /** Form state for recording moves, and its mapping to and from the stored move. Pure. */
 import type { Id } from "@convex/_generated/dataModel";
-import type { Position, SeasonStatus, TransactionPhase, WeekKey } from "@shared/domain";
+import type { Position, SeasonStatus, TransactionPhase, TransactionType, WeekKey } from "@shared/domain";
 import type { Contract } from "@shared/transactions";
 import type { Injury, Move } from "../types";
 
@@ -87,9 +87,10 @@ export type PrefillPlayer = { person: Person; teamId?: Id<"teams"> };
 
 /**
  * A new move or injury started from players (a roster row, the player page, a batch picked on the
- * roster or the players list). Moves other than trades record one transaction per player.
+ * roster or the players list). Moves other than trades record one transaction per player; `type`
+ * picks which one the other-move sheet opens on.
  */
-export type Prefill = { players: PrefillPlayer[] };
+export type Prefill = { players: PrefillPlayer[]; type?: TransactionType };
 
 /** The prefill for one player. */
 export const prefillOf = (person: Person, teamId?: Id<"teams">): Prefill => ({

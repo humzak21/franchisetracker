@@ -10,7 +10,7 @@ import { mutation, query, type QueryCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { requireOwner } from "../lib/auth";
 import { invalid, must } from "../lib/errors";
-import { activeFranchise, playersById } from "../lib/franchise";
+import { activeFranchise, MAX_ROSTER, playersById } from "../lib/franchise";
 import { rowGameContext, vRowGameContext } from "../lib/gameContext";
 import { headshotUrls } from "../lib/refs";
 import { literals, vPatResult, vPosition, vScoringKind } from "../lib/validators";
@@ -19,9 +19,6 @@ import { ownGame } from "./access";
 import { gamePlays } from "./playRows";
 
 const nullable = <T extends Parameters<typeof v.union>[0]>(validator: T) => v.union(validator, v.null());
-
-/** A 53-man roster plus practice squad and injured reserve, with room for in-season moves. */
-const MAX_ROSTER = 150;
 
 /** The game a game-scoped list would file under, for review's checks; null when there is none. */
 export const reviewContext = query({

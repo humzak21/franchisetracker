@@ -4,14 +4,12 @@ import { applyEntryPatch } from "../../shared/roster/entryPatch";
 import { mutation, query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { appError, invalid, must } from "../lib/errors";
-import { activeFranchise, playersById } from "../lib/franchise";
+import { activeFranchise, MAX_ROSTER, playersById } from "../lib/franchise";
 import { headshotUrls } from "../lib/refs";
 import { vWeekKey } from "../lib/validators";
 import schema from "../schema";
 import { vEntryPatch } from "./patches";
 
-/** A full roster plus practice squad and IR stays well under this. */
-const MAX_ROSTER = 150;
 /** A season's injury reports for the whole league, with headroom. */
 const MAX_INJURIES = 1000;
 /** One player's entries in one season: a few teams at most, even after moves. */

@@ -34,7 +34,7 @@ describe("empty drafts", () => {
 
   test("screen fields that name a team start as the user's team; the rest are empty", () => {
     const roster = emptyDraft("roster_page", { userTeamAbbr: "NE", game: null }) as RowTargetDraft;
-    expect(roster.meta).toEqual({ team: "NE" });
+    expect(roster.meta).toEqual({ team: "NE", partial: null });
     const leaders = emptyDraft("league_leaders", { userTeamAbbr: "NE", game: null }) as RowTargetDraft;
     expect(leaders.meta).toEqual({ stat: null });
   });

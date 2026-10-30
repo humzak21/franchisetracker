@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import { weekLabel } from "@shared/domain";
 import { useCapture } from "@/app/capture/CaptureProvider";
 import { useSeason } from "@/app/season";
+import { CoverageStrip } from "@/components/data/CoverageStrip";
 import { EmptyState } from "@/components/data/EmptyState";
 import { Notice } from "@/components/data/Notice";
 import { Tile, TileStrip } from "@/components/data/Tile";
@@ -23,6 +24,7 @@ export function ReconcileScreen() {
   const { season } = useSeason();
   const capture = useCapture();
   const data = useQuery(api.stats.reconcile.get, season ? { seasonId: season._id } : "skip");
+  const coverage = useQuery(api.seasons.coverage.forSeason, season ? { seasonId: season._id } : "skip");
   const open = data?.differences.filter((d) => d.resolution === null) ?? [];
   const settled = data?.differences.filter((d) => d.resolution !== null) ?? [];
 
@@ -52,6 +54,7 @@ export function ReconcileScreen() {
         />
       ) : (
         <div className="space-y-6">
+          {coverage && <CoverageStrip items={coverage} />}
           <TileStrip>
             <Tile label="Players checked" value={data.reportedPlayers} />
             <Tile label="Numbers that match" value={data.matched} accent />

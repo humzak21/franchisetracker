@@ -1,6 +1,7 @@
 import { REGULAR_WEEKS } from "@shared/domain";
 import { CountdownList } from "@/components/data/CountdownList";
 import { CumulativeChart } from "@/components/data/CumulativeChart";
+import { CoverageStrip } from "@/components/data/CoverageStrip";
 import { DeltaBadge } from "@/components/data/DeltaBadge";
 import { FactChip } from "@/components/data/FactChip";
 import { PaceBar } from "@/components/data/PaceBar";
@@ -86,6 +87,22 @@ const PLAYS: SummaryPlay[] = [
 ];
 
 export const STATS_SPECIMENS: Specimen[] = [
+  {
+    id: "coveragestrip",
+    name: "CoverageStrip",
+    note: "How much of a season has been captured, one count per kind of screen. A full bar turns green.",
+    render: () => (
+      <CoverageStrip
+        items={[
+          { key: "box", label: "Box scores", have: 9, of: 9 },
+          { key: "team", label: "Team stats", have: 7, of: 9 },
+          { key: "scoring", label: "Scoring", have: 0, of: 9 },
+          { key: "standings", label: "Standings", have: 8, of: 9 },
+          { key: "awards", label: "Weekly awards", have: 3, of: 9 },
+        ]}
+      />
+    ),
+  },
   {
     id: "deltabadge",
     name: "DeltaBadge",

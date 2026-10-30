@@ -7,6 +7,7 @@ import { Section } from "@/components/layout/Section";
 import { Button } from "@/components/ui/button";
 import { AddPlayerSheet } from "./AddPlayerSheet";
 import { ImportCsvButton } from "./ImportCsvButton";
+import { RosterPagePreview } from "./RosterPagePreview";
 import { RowCard } from "./RowCard";
 import { RowFieldInput } from "./RowFieldInput";
 import { useReviewDraft } from "./reviewDraft";
@@ -46,6 +47,7 @@ export function RowsEditor() {
           </div>
         </Section>
       )}
+      {draft.target === "roster_page" && <RosterPagePreview draft={draft} />}
       <Section
         title="Rows"
         description={`${accepted} of ${draft.rows.length} accepted · only accepted rows are committed`}
