@@ -3,7 +3,7 @@
  * scores follow from them, and a game with no final yet takes its score from the last play.
  * A name that matched no player stays as printed; the game page asks for it.
  */
-import { resolvePasser } from "../../shared/games/scorers";
+import { matchLine, resolvePasser, type GameLine } from "../../shared/games/scorers";
 import { compareRows, parsePlay, type ParsedPlay } from "../../shared/ingestion/rows/scoringSpec";
 import { lineScoreFromPlays } from "../../shared/stats/scoring";
 import { internal } from "../_generated/api";
@@ -19,24 +19,33 @@ import { playerFor } from "./rowPlayers";
 const samePlay = (a: Pick<ParsedPlay, "period" | "clock">, b: Pick<ParsedPlay, "period" | "clock">) =>
   a.period === b.period && a.clock === b.clock;
 
-/** The row's player: the one review chose, else whoever had this play before a re-read. */
+/**
+ * The row's player: the one review chose, else the box score line the printed name settles on
+ * (a player a game log's own box score just added has no id until commit), else whoever had this
+ * play before a re-read.
+ */
 async function scorerOf(
   ctx: MutationCtx,
-  commit: RowCommit,
+  game: Doc<"games">,
   row: StoredRow,
+  lines: readonly GameLine<Id<"players">>[],
   previous: Doc<"scoringPlays"> | undefined,
 ): Promise<Id<"players"> | undefined> {
-  if (!row.playerId) return row.name && row.name !== previous?.rawName ? undefined : previous?.playerId;
+  if (!row.playerId) {
+    const line = row.name ? matchLine(row.name, row.teamAbbr, lines) : null;
+    if (line) return line;
+    return row.name && row.name !== previous?.rawName ? undefined : previous?.playerId;
+  }
   if (!row.name) {
     const player = must(await ctx.db.get("players", row.playerId), "Player");
-    if (player.franchiseId !== commit.franchise._id) throw invalid("Player must belong to this franchise");
+    if (player.franchiseId !== game.franchiseId) throw invalid("Player must belong to this franchise");
     return player._id;
   }
-  const player = await playerFor(ctx, commit.franchise._id, {
+  const player = await playerFor(ctx, game.franchiseId, {
     name: row.name,
     playerId: row.playerId,
     position: null,
-    seasonId: commit.season._id,
+    seasonId: game.seasonId,
     teamAbbr: row.teamAbbr ?? undefined,
   });
   return player._id;
@@ -46,12 +55,24 @@ export async function commitScoringPlays(ctx: MutationCtx, commit: RowCommit): P
   const { franchise, season, weekKey, gameId } = commit;
   const found = await findGame(ctx, { gameId, seasonId: season._id, weekKey });
   const game = must(found, "Game");
+  await commitPlays(ctx, franchise, game, commit.rows);
+  return { gameId: game._id };
+}
+
+/** Writes accepted rows as the game's plays. No rows leaves what the game has alone. */
+export async function commitPlays(
+  ctx: MutationCtx,
+  franchise: Doc<"franchises">,
+  game: Doc<"games">,
+  accepted: readonly StoredRow[],
+): Promise<void> {
+  if (accepted.length === 0) return;
   const context = must(await rowGameContext(ctx, game._id), "Game");
   const { homeTeamId, awayTeamId } = game;
   if (!homeTeamId || !awayTeamId) throw invalid("That game has no teams yet");
 
   const previous = await gamePlays(ctx, game._id);
-  const rows = [...commit.rows].sort(compareRows);
+  const rows = [...accepted].sort(compareRows);
   const plays: (ParsedPlay & { row: StoredRow; teamId: Id<"teams"> })[] = rows.map((row) => ({
     ...must(parsePlay(row), "Scoring play"),
     row,
@@ -68,7 +89,7 @@ export async function commitScoringPlays(ctx: MutationCtx, commit: RowCommit): P
       gameId: game._id,
       order: i + 1,
       ...play,
-      playerId: await scorerOf(ctx, commit, row, before),
+      playerId: await scorerOf(ctx, game, row, context.lines, before),
       rawName: row.name ?? undefined,
       ...(play.kind === "pass_td"
         ? {
@@ -103,5 +124,4 @@ export async function commitScoringPlays(ctx: MutationCtx, commit: RowCommit): P
     await ctx.db.patch("games", game._id, { lineScore: line, overtime });
   }
   await ctx.scheduler.runAfter(0, internal.stats.scoring.afterPlays, { gameId: game._id });
-  return { gameId: game._id };
 }

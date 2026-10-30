@@ -10,6 +10,7 @@ import {
 } from "react";
 import type { Id } from "@convex/_generated/dataModel";
 import { deriveDraft } from "@shared/ingestion/normalize";
+import { gameLogContext } from "@shared/ingestion/rows/gameLogPlays";
 import { rowScorerMatch } from "@shared/ingestion/rows/scoringSpec";
 import type { DraftRow, RowGameContext } from "@shared/ingestion/rows/types";
 import { isRowDraft, rowTarget, validateDraft } from "@shared/ingestion/targets";
@@ -109,8 +110,12 @@ export function ReviewDraftProvider({
   const matchOf = useCallback(
     (base: string) => {
       const stored = getAt(draft, `${base}.match`) as PlayerMatch<Id<"players">> | null;
-      if (!game || !isRowDraft(draft) || !rowTarget(draft.target).spec.optionalPlayer) return stored;
       const row = getAt(draft, base) as DraftRow<Id<"players">>;
+      if (draft.target === "game_log" && base.startsWith("plays.")) {
+        const context = gameLogContext(draft, game);
+        return (context && rowScorerMatch(row, draft.plays ?? [], context)) ?? stored;
+      }
+      if (!game || !isRowDraft(draft) || !rowTarget(draft.target).spec.optionalPlayer) return stored;
       return rowScorerMatch(row, draft.rows, game) ?? stored;
     },
     [draft, game],

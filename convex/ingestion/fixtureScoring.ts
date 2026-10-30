@@ -27,7 +27,7 @@ const OUR_PLAYS = [
   { name: "T. Henderson", kind: "rush_td", yards: 21, passer: null },
 ];
 
-export function fixtureScoring(game: ScoringGame): Record<string, unknown> {
+export function fixtureScoring(game: ScoringGame): { rows: Record<string, unknown>[] } {
   const home = game.homeScore ?? (game.userIsHome ? 31 : 17);
   const away = game.awayScore ?? (game.userIsHome ? 17 : 31);
   const ourTeam = game.userIsHome ? game.home : game.away;

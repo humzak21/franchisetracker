@@ -94,6 +94,30 @@ export function passerCandidates<P extends string>(
   );
 }
 
+/** A printed name among the team's lines, when it settles on one player. */
+export function matchLine<P extends string>(
+  printed: string,
+  teamAbbr: string | null,
+  lines: readonly GameLine<P>[],
+): P | null {
+  const match = matchPlayer(
+    printed,
+    lines
+      .filter((l) => l.teamAbbr === teamAbbr)
+      .map((l) => {
+        const words = l.name.trim().split(/\s+/);
+        return {
+          playerId: l.playerId,
+          displayName: l.name,
+          firstName: words.slice(0, -1).join(" "),
+          lastName: words.at(-1) ?? l.name,
+          aliases: [],
+        };
+      }),
+  );
+  return match.status === "matched" ? (match.candidates[0]?.playerId ?? null) : null;
+}
+
 /** The thrower of a touchdown: the name printed, else the team's only touchdown passer. */
 export function resolvePasser<P extends string>(
   printed: string | null,
@@ -101,22 +125,8 @@ export function resolvePasser<P extends string>(
   lines: readonly GameLine<P>[],
 ): P | null {
   if (printed) {
-    const match = matchPlayer(
-      printed,
-      lines
-        .filter((l) => l.teamAbbr === teamAbbr && (l.stats.passAtt ?? 0) > 0)
-        .map((l) => {
-          const words = l.name.trim().split(/\s+/);
-          return {
-            playerId: l.playerId,
-            displayName: l.name,
-            firstName: words.slice(0, -1).join(" "),
-            lastName: words.at(-1) ?? l.name,
-            aliases: [],
-          };
-        }),
-    );
-    return match.status === "matched" ? (match.candidates[0]?.playerId ?? null) : null;
+    const throwers = lines.filter((l) => (l.stats.passAtt ?? 0) > 0);
+    return matchLine(printed, teamAbbr, throwers);
   }
   const passers = passerCandidates(teamAbbr, lines);
   return passers.length === 1 ? (passers[0]?.playerId ?? null) : null;

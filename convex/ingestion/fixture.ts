@@ -5,6 +5,7 @@
  */
 import { isRowTarget, type TargetKey } from "../../shared/ingestion/targets";
 import { fixtureRows } from "./fixtureRows";
+import { fixtureScoring } from "./fixtureScoring";
 
 type Teams = {
   home: string;
@@ -37,6 +38,8 @@ export function fixtureAnswer(target: TargetKey, teams: Teams): unknown {
     return {
       ...(fixtureAnswer("game_box_score", teams) as object),
       ...(fixtureAnswer("team_game_stats", teams) as object),
+      // The log's own header says 31 to 17, so its plays add up to that, whatever the game holds.
+      scoring_plays: fixtureScoring({ ...teams, homeScore: null, awayScore: null }).rows,
     };
   if (isRowTarget(target)) return fixtureRows(target, us, teams);
   const header = {

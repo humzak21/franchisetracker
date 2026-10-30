@@ -2,6 +2,7 @@ import { Section } from "@/components/layout/Section";
 import { AttentionList } from "./AttentionList";
 import { BoxScoreEditor } from "./BoxScoreEditor";
 import { GameHeaderFields } from "./GameHeaderFields";
+import { PlaysEditor } from "./PlaysEditor";
 import { useReviewDraft } from "./reviewDraft";
 import { RowsEditor } from "./RowsEditor";
 import { TeamStatsEditor } from "./TeamStatsEditor";
@@ -32,6 +33,7 @@ export function DraftEditor() {
               <TeamStatsEditor />
             </Section>
           )}
+          {draft.target === "game_log" && <PlaysEditor />}
         </>
       )}
     </>

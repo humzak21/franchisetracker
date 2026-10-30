@@ -375,6 +375,7 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 - Milestones `first_td`, `game_winner` and `connection` (10, 25, 50, 75 and 100 touchdowns) come from `stats/scoring:afterPlays`, which rebuilds on every change, so a game-winner that changes hands moves its milestone.
 - The game page asks for a player on a nameless play, or on the user's own unmatched scorer. An opponent's printed name stands, since that box score is often not captured.
 - The stars editor lists the game-winner first.
+- The full game log carries the scoring summary too (`GameLogDraft.plays`, optional so drafts stored before it still commit), so a game's screens go up as one upload. The plays are checked by the same rules, against the log's own final and box score (`shared/ingestion/rows/gameLogPlays.ts`), and commit after the box score so a printed name reaches a player it just added. A wrong play blocks the commit until it is fixed or left out; leaving every play out commits the rest.
 - Left for the sprints that show them: `playerScoring`, `kicking` and `teamScoring` in `shared/stats/scoring.ts`, `stats/scoring:player` and `stats/scoring:team`, and the Trends and Overview uses in `STATS-HUB.md` 4.10. Nothing reads them yet.
 
 ---

@@ -8,9 +8,11 @@
 import type { WeekKey } from "../domain/calendar";
 import { lastPlayedWeek, nextWeek, type GameLike } from "../games/summary";
 import { emptyHeader, emptyRowsDraft } from "./manual";
-import { boxScoreSchema, teamStatsSchema, gameLogSchema, type JsonSchema } from "./schema";
+import { boxScoreSchema, teamStatsSchema, gameLogSchema, object, type JsonSchema } from "./schema";
 import { normalizeBoxScore, normalizeTeamStats, normalizeGameLog, type Normalized } from "./normalize";
-import { mergeRowDrafts, normalizeRows, rowsSchema, validateRows } from "./rows/engine";
+import { mergeRowDrafts, normalizeRows, rowProperties, rowsSchema, validateRows } from "./rows/engine";
+import { gameLogPlayWarnings, toPlaysPath } from "./rows/gameLogPlays";
+import { scoringPlaysSpec } from "./rows/scoringSpec";
 import { ROW_TARGETS, type RowTargetDef, type RowTargetKey, type TargetScope } from "./rows/targets";
 import type { RowGameContext } from "./rows/types";
 import { validateBoxScore, validateTeamStats } from "./validate";
@@ -48,20 +50,38 @@ type GameTargetDef<D extends Draft> = {
 const TEAM_YARDS_INSTRUCTIONS =
   "Read passing and rushing yards separately and leave total_yds null. The app calculates total yards as passing plus rushing only; never copy Madden's Total yards gained, which includes return yards.";
 
+/** A full game log with any scoring summary in the upload read into its plays. */
+function normalizeFullGameLog(raw: unknown): Normalized<GameLogDraft> {
+  const log = normalizeGameLog(raw);
+  const answer = typeof raw === "object" && raw !== null ? (raw as { scoring_plays?: unknown }) : {};
+  const plays = normalizeRows("scoring_plays", scoringPlaysSpec, { rows: answer.scoring_plays });
+  return {
+    draft: { ...log.draft, plays: plays.draft.rows },
+    confidence: [...log.confidence, ...plays.confidence.map((c) => ({ ...c, path: toPlaysPath(c.path) }))],
+    warnings: [
+      ...log.warnings,
+      ...plays.warnings.map((w) => (w.path ? { ...w, path: toPlaysPath(w.path) } : w)),
+    ],
+  };
+}
+
 const GAME_TARGETS = {
   game_log: {
     kind: "game",
     label: "Full game log",
-    goesTo: "Schedule → the game: its box score and team stats",
-    description: "Team stats and every player's stats together in one upload",
+    goesTo: "Schedule → the game: its box score, team stats and scoring summary",
+    description: "Team stats, every player's stats and the scoring summary together in one upload",
     scope: "game",
     multiImage: true,
     instructions: [
       "These are Madden post-game screenshots for one game: score summary, side-by-side team stats,",
-      "and player stats tabs (passing, rushing, receiving, defense, kicking, punting, returns).",
+      "player stats tabs (passing, rushing, receiving, defense, kicking, punting, returns),",
+      "and possibly the scoring summary listing every score.",
       "Put each player row in its category array and each team's comparison column in teams.",
       "Use null for columns not visible and empty arrays for screens not supplied.",
       TEAM_YARDS_INSTRUCTIONS,
+      "Put the scoring summary's rows in scoring_plays, an empty array if it is not supplied.",
+      ROW_TARGETS.scoring_plays.instructions,
     ].join(" "),
     empty: (game) => ({
       target: "game_log",
@@ -72,8 +92,15 @@ const GAME_TARGETS = {
         { teamAbbr: game.awayAbbr, stats: {} },
       ],
     }),
-    schema: gameLogSchema,
-    normalize: normalizeGameLog,
+    schema: () =>
+      object({
+        ...gameLogSchema().properties,
+        scoring_plays: {
+          type: "array",
+          items: object(rowProperties(scoringPlaysSpec, scoringPlaysSpec.fields())),
+        },
+      }),
+    normalize: normalizeFullGameLog,
     validate: (draft: GameLogDraft) => [
       ...validateBoxScore({ ...draft, target: "game_box_score" }),
       ...validateTeamStats({ ...draft, target: "team_game_stats" }).filter(
@@ -159,7 +186,7 @@ export function schemaFor(key: TargetKey): JsonSchema {
 
 export function normalizeFor(target: TargetKey, raw: unknown): Normalized<Draft> {
   if (isRowTarget(target)) return normalizeRows(target, ROW_TARGETS[target].spec, raw);
-  if (target === "game_log") return normalizeGameLog(raw);
+  if (target === "game_log") return normalizeFullGameLog(raw);
   return target === "game_box_score" ? normalizeBoxScore(raw) : normalizeTeamStats(raw);
 }
 
@@ -174,7 +201,9 @@ export function mergeFor(
 /** Runs the target's validator on a draft of any target; a game-scoped list also checks against its game. */
 export function validateDraft(draft: Draft, game?: RowGameContext | null): DraftWarning[] {
   if (isRowDraft(draft)) return validateRows(ROW_TARGETS[draft.target].spec, draft, game);
-  if (draft.target === "game_log") return GAME_TARGETS.game_log.validate(draft);
+  if (draft.target === "game_log") {
+    return [...GAME_TARGETS.game_log.validate(draft), ...gameLogPlayWarnings(draft, game)];
+  }
   return draft.target === "game_box_score" ? validateBoxScore(draft) : validateTeamStats(draft);
 }
 
