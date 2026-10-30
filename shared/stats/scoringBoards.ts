@@ -1,13 +1,13 @@
 /**
  * The franchise's scoring records, folded from every captured scoring play of the user's team
- * (`docs/STATS-HUB.md` 4.10): the longest scores, the clutch ones, the connections, and what the
- * team did in a quarter or from behind. Franchise era only, since plays start with the franchise.
+ * (`docs/STATS-HUB.md` 4.10): the longest scores, the clutch ones and the connections. Franchise
+ * era only, since plays start with the franchise.
  */
 import { weekIndex, weekPhase, type WeekKey } from "../domain/calendar";
 import { SCORING_KIND_LABELS, type ScoringKind } from "../domain/scoring";
 import type { PlayLike } from "../games/scoringPlay";
 import { RECORD_TOP } from "./records";
-import { connections, gameFlow, lineScoreFromPlays, LONGEST_KINDS, touchdownsByPeriod } from "./scoring";
+import { connections, gameFlow, LONGEST_KINDS, touchdownsByPeriod } from "./scoring";
 
 const longest = (kind: ScoringKind) => ({
   label: kind === "fg" ? "Longest field goal" : `Longest ${SCORING_KIND_LABELS[kind].toLowerCase()}`,
@@ -29,9 +29,6 @@ export const SCORING_LISTS = {
   game_winners_career: { label: "Game-winning scores, career", unit: "GW", group: "clutch" },
   connection_season: { label: "Touchdowns from one connection, season", unit: "TD", group: "clutch" },
   connection_career: { label: "Touchdowns from one connection, career", unit: "TD", group: "clutch" },
-  team_points_quarter: { label: "Most points in a quarter", unit: "pts", group: "team" },
-  team_comeback: { label: "Largest comeback", unit: "pts", group: "team" },
-  team_blown_lead: { label: "Largest lead lost", unit: "pts", group: "team" },
 } as const satisfies Record<string, { label: string; unit: string; group: string }>;
 
 export type ScoringListKey = keyof typeof SCORING_LISTS;
@@ -40,7 +37,6 @@ export const SCORING_LIST_KEYS = Object.keys(SCORING_LISTS) as ScoringListKey[];
 export const SCORING_GROUPS = [
   { key: "long", label: "The longest" },
   { key: "clutch", label: "Clutch and connections" },
-  { key: "team", label: "The team" },
 ] as const;
 
 export type ScoredGame<
@@ -165,7 +161,6 @@ function boardsFor<T extends string, P extends string, S extends string, G exten
 
     const flow = gameFlow(game.plays);
     const won = flow.winner === (userIsHome ? "home" : "away");
-    const lost = flow.winner !== null && !won;
     const winner = won ? flow.gameWinner : null;
     if (winner?.playerId) {
       gameWinners.push({
@@ -186,15 +181,6 @@ function boardsFor<T extends string, P extends string, S extends string, G exten
         value: pair.touchdowns,
       });
     }
-
-    const line = lineScoreFromPlays(game.plays);
-    const points = userIsHome ? line.home : line.away;
-    const most = Math.max(0, ...points);
-    if (most > 0) {
-      add("team_points_quarter", { ...where, value: most, period: points.indexOf(most) + 1 });
-    }
-    if (won && flow.deficitOvercome > 0) add("team_comeback", { ...where, value: flow.deficitOvercome });
-    if (lost && flow.deficitOvercome > 0) add("team_blown_lead", { ...where, value: flow.deficitOvercome });
   }
 
   const perSeason = (entries: readonly (Entry & { key: string })[]) =>

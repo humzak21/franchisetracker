@@ -1,5 +1,5 @@
-import { useAction, useConvex } from "convex/react";
-import { DatabaseBackup, FileSpreadsheet, Upload } from "lucide-react";
+import { useAction, useConvex, useMutation } from "convex/react";
+import { DatabaseBackup, FileSpreadsheet, RefreshCw, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { api } from "@convex/_generated/api";
 import { gamesCsv, playerSeasonsCsv } from "@shared/ops/csv";
@@ -7,6 +7,7 @@ import { useFranchise } from "@/app/franchise";
 import { Section } from "@/components/layout/Section";
 import { Button } from "@/components/ui/button";
 import { downloadFile } from "@/lib/download";
+import { useQuery } from "@/lib/convex/useQuery";
 import { errorMessage } from "@/lib/errors";
 import { BackupList } from "./BackupList";
 import { RestoreProgress } from "./RestoreProgress";
@@ -26,14 +27,17 @@ export function DataSettings() {
   const convex = useConvex();
   const active = useFranchise();
   const backUp = useAction(api.ops.backupRun.create);
+  const rebuildStats = useMutation(api.stats.rebuild.start);
+  const build = useQuery(api.stats.recordBuild.status, {});
+  const rebuilding = build?.status === "running";
   const { state, restore, reset } = useRestore();
   const fileInput = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState<"backup" | "csv" | null>(null);
+  const [busy, setBusy] = useState<"backup" | "csv" | "rebuild" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const restoring = state.phase === "reading" || state.phase === "writing";
   const name = slug(active?.franchise.name ?? "franchise");
 
-  const run = async (kind: "backup" | "csv", work: () => Promise<void>) => {
+  const run = async (kind: "backup" | "csv" | "rebuild", work: () => Promise<void>) => {
     setBusy(kind);
     setError(null);
     try {
@@ -100,10 +104,19 @@ export function DataSettings() {
           <Button variant="outline" size="sm" disabled={busy !== null} onClick={() => void exportCsv()}>
             <FileSpreadsheet /> {busy === "csv" ? "Exporting…" : "Export CSV"}
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy !== null || rebuilding}
+            onClick={() => void run("rebuild", async () => void (await rebuildStats({})))}
+          >
+            <RefreshCw /> {rebuilding ? "Rebuilding…" : "Rebuild stats"}
+          </Button>
         </div>
         <p className="text-xs text-muted-foreground">
           CSV exports the active franchise&apos;s games and its players&apos; season totals. Screenshots in
-          the inbox and Shortcut tokens are not in backups.
+          the inbox and Shortcut tokens are not in backups. Rebuild stats works out every season, record, mark
+          and streak again from the game logs; run it after restoring a backup.
         </p>
         {error && (
           <p role="alert" className="text-sm text-loss">

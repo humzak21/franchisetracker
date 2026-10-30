@@ -147,3 +147,27 @@ export async function recomputeCareer(ctx: MutationCtx, player: Doc<"players">):
   }
   return { rows: dated, careers };
 }
+
+/** Twenty seasons of a long career, playoffs included. */
+const MAX_PLAYER_LINES = 600;
+
+/** Every log-derived row of one player, from his lines. */
+export async function rebuildPlayer(ctx: MutationCtx, player: Doc<"players">) {
+  const lines = await ctx.db
+    .query("gameStatLines")
+    .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", player._id))
+    .take(MAX_PLAYER_LINES);
+  const rows = await ctx.db
+    .query("seasonPlayerStats")
+    .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", player._id))
+    .take(MAX_SEASON_ROWS);
+  // Seasons with logs, plus any log-derived row whose lines are gone, so a stale row is dropped.
+  const seasonIds = new Set([
+    ...lines.map((l) => l.seasonId),
+    ...rows.filter((r) => r.source === "logs").map((r) => r.seasonId),
+  ]);
+  // Imported history alone has nothing log-derived to rebuild.
+  if (seasonIds.size === 0) return;
+  for (const seasonId of seasonIds) await recomputePlayerSeason(ctx, player, seasonId);
+  await recomputeCareer(ctx, player);
+}

@@ -3,7 +3,14 @@ import type { FunctionReturnType } from "convex/server";
 import { api } from "@convex/_generated/api";
 import { weekLabel } from "@shared/domain";
 import { playPeriodLabel } from "@shared/games/scoringPlay";
-import { SCORING_GROUPS, SCORING_LIST_KEYS, SCORING_LISTS, type ScoringListKey } from "@shared/stats";
+import {
+  SCORING_GROUPS,
+  SCORING_LIST_KEYS,
+  SCORING_LISTS,
+  TEAM_RECORD_STATS,
+  type ScoringListKey,
+  type TeamRecordStat,
+} from "@shared/stats";
 import { Section } from "@/components/layout/Section";
 import { Skeleton } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
@@ -11,7 +18,11 @@ import { useQuery } from "@/lib/convex/useQuery";
 import type { Split } from "./split";
 
 type ListView = FunctionReturnType<typeof api.stats.scoring.records>[number];
-type Entry = ListView["entries"][number];
+type TeamList = FunctionReturnType<typeof api.stats.teamRecords.lists>[number];
+type Entry = ListView["entries"][number] | TeamList["entries"][number];
+
+/** The team's lists shown beside the plays; the Team view takes the rest in a later sprint. */
+const TEAM_LISTS: readonly TeamRecordStat[] = ["pointsInQuarter", "comeback", "blownLead"];
 
 const where = (e: Entry) =>
   [
@@ -24,7 +35,11 @@ const where = (e: Entry) =>
     .join(" · ");
 
 function Holder({ entry }: { entry: Entry }) {
-  if (!entry.player) return <span className="truncate">{entry.rawName ?? "The team"}</span>;
+  if (!("player" in entry) || !entry.player) {
+    return (
+      <span className="truncate">{"rawName" in entry && entry.rawName ? entry.rawName : "The team"}</span>
+    );
+  }
   return (
     <Link
       to="/players/$playerId"
@@ -36,16 +51,15 @@ function Holder({ entry }: { entry: Entry }) {
   );
 }
 
-function ScoringList({ list }: { list: ListView }) {
-  const def = SCORING_LISTS[list.list as ScoringListKey];
+function ScoringList({ label, unit, entries }: { label: string; unit: string; entries: readonly Entry[] }) {
   return (
     <section
       className="overflow-hidden rounded-xl border border-border bg-surface"
-      aria-label={`${def.label} records`}
+      aria-label={`${label} records`}
     >
-      <h4 className="border-b border-border px-4 py-2.5 text-sm font-medium">{def.label}</h4>
+      <h4 className="border-b border-border px-4 py-2.5 text-sm font-medium">{label}</h4>
       <ol className="divide-y divide-border">
-        {list.entries.map((e) => (
+        {entries.map((e) => (
           <li key={e.rank} className="flex min-h-11 items-center gap-2.5 px-3 py-1.5">
             <span
               className={cn(
@@ -71,7 +85,7 @@ function ScoringList({ list }: { list: ListView }) {
             </span>
             <span className="num shrink-0 font-display text-lg font-bold">
               {e.value}
-              <span className="ml-1 text-xs font-medium text-muted-foreground">{def.unit}</span>
+              <span className="ml-1 text-xs font-medium text-muted-foreground">{unit}</span>
             </span>
           </li>
         ))}
@@ -83,8 +97,10 @@ function ScoringList({ list }: { list: ListView }) {
 /** The records only scoring plays can tell: under the books, once a summary has been captured. */
 export function ScoringRecords({ split }: { split: Split }) {
   const lists = useQuery(api.stats.scoring.records, { split });
-  if (lists === undefined) return <Skeleton className="h-40 rounded-xl" />;
-  if (lists.length === 0) return null;
+  const team = useQuery(api.stats.teamRecords.lists, { split, scope: "game" });
+  if (lists === undefined || team === undefined) return <Skeleton className="h-40 rounded-xl" />;
+  const teamLists = team.filter((l) => TEAM_LISTS.includes(l.statKey as TeamRecordStat));
+  if (lists.length === 0 && teamLists.length === 0) return null;
   const order = (l: ListView) => SCORING_LIST_KEYS.indexOf(l.list as ScoringListKey);
   return (
     <Section
@@ -103,13 +119,33 @@ export function ScoringRecords({ split }: { split: Split }) {
                 {label}
               </h4>
               <div className="@container grid gap-3 @lg:grid-cols-2 @4xl:grid-cols-3">
-                {group.map((list) => (
-                  <ScoringList key={list.list} list={list} />
-                ))}
+                {group.map((list) => {
+                  const def = SCORING_LISTS[list.list as ScoringListKey];
+                  return (
+                    <ScoringList key={list.list} label={def.label} unit={def.unit} entries={list.entries} />
+                  );
+                })}
               </div>
             </div>
           );
         })}
+        {teamLists.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-[11px] font-semibold tracking-[0.08em] text-subtle-foreground uppercase">
+              The team
+            </h4>
+            <div className="@container grid gap-3 @lg:grid-cols-2 @4xl:grid-cols-3">
+              {teamLists.map((list) => (
+                <ScoringList
+                  key={list.statKey}
+                  label={TEAM_RECORD_STATS[list.statKey as TeamRecordStat].label}
+                  unit="pts"
+                  entries={list.entries}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </Section>
   );

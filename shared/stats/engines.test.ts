@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import type { WeekKey } from "../domain/calendar";
 import { detectMilestones } from "./milestones";
 import { rankStat, RECORD_STATS, type SeasonRow } from "./records";
-import { playerStreaks, runs, teamStreaks } from "./streaks";
+import { playerStreaks, runs, seasonStreaks, teamStreaks, type TeamGame } from "./streaks";
 
 const rows: SeasonRow[] = [
   {
@@ -50,29 +51,108 @@ describe("rankStat", () => {
 });
 
 describe("streaks", () => {
-  it("measures current and longest runs", () => {
-    expect(runs([true, true, false, true])).toEqual({ current: 1, longest: 2 });
-    expect(runs([])).toEqual({ current: 0, longest: 0 });
+  const at = (n: number) => ({ seasonId: "s", year: 2026, weekKey: `w${n}` as WeekKey });
+  const seq = (flags: boolean[]) => flags.map((flag, i) => ({ at: at(i + 1), flag }));
+
+  it("measures current and longest runs, with where each stands", () => {
+    expect(runs(seq([true, true, false, true]), (x) => x.flag)).toEqual({
+      current: 1,
+      longest: 2,
+      currentFrom: at(4),
+      longestFrom: at(1),
+      longestTo: at(2),
+    });
+    expect(runs(seq([]), (x) => x.flag)).toEqual({ current: 0, longest: 0 });
   });
 
+  it("a streak that ended has no start, and a tie keeps the earliest run", () => {
+    const ended = runs(seq([true, true, false, true, true, false]), (x) => x.flag);
+    expect(ended.currentFrom).toBeUndefined();
+    expect(ended).toMatchObject({ current: 0, longest: 2, longestFrom: at(1), longestTo: at(2) });
+  });
+
+  const game = (n: number, over: Partial<TeamGame>): TeamGame => ({
+    at: at(n),
+    result: "W",
+    home: true,
+    division: false,
+    us: 24,
+    them: 17,
+    takeaways: null,
+    ...over,
+  });
+  const summary = (s: { key: string; current: number; longest: number }) => [s.key, s.current, s.longest];
+
   it("home and division streaks skip games they do not apply to", () => {
-    const w = (home: boolean, division = false) => ({ result: "W" as const, home, division });
-    const l = (home: boolean) => ({ result: "L" as const, home, division: false });
-    const streaks = teamStreaks([w(true, true), l(false), w(true), w(false, true), w(true)]);
-    expect(streaks).toEqual([
-      { key: "wins", current: 3, longest: 3 },
-      { key: "homeWins", current: 3, longest: 3 },
-      { key: "divisionWins", current: 2, longest: 2 },
+    const streaks = teamStreaks([
+      game(1, { division: true }),
+      game(2, { result: "L", home: false }),
+      game(3, {}),
+      game(4, { home: false, division: true }),
+      game(5, {}),
     ]);
+    expect(streaks.map(summary)).toEqual(
+      expect.arrayContaining([
+        ["wins", 3, 3],
+        ["homeWins", 3, 3],
+        ["divisionWins", 2, 2],
+      ]),
+    );
+  });
+
+  it("the team's newer streaks read the score and the takeaways", () => {
+    const streaks = teamStreaks([
+      game(1, { us: 31, them: 28, takeaways: 2 }),
+      game(2, { us: 35, them: 14, takeaways: 1 }),
+      game(3, { us: 20, them: 10, takeaways: null }),
+    ]);
+    const of = (key: string) => streaks.find((s) => s.key === key);
+    expect(of("score30")).toMatchObject({ current: 0, longest: 2 });
+    expect(of("allowUnder20")).toMatchObject({ current: 2, longest: 2 });
+    // A game with no team stats is not a game without a takeaway.
+    expect(of("takeawayGames")).toMatchObject({ current: 2, longest: 2 });
+  });
+
+  it("season runs need a whole season to count", () => {
+    const season = (year: number, wins: number, playoffs: boolean) => ({
+      at: { seasonId: `s${year}`, year },
+      wins,
+      losses: 17 - wins,
+      playoffs,
+      divisionTitle: false,
+    });
+    const streaks = seasonStreaks([season(2026, 11, true), season(2027, 12, true), season(2028, 7, false)]);
+    expect(streaks.find((s) => s.key === "tenWinSeasons")).toMatchObject({
+      current: 0,
+      longest: 2,
+      longestTo: { year: 2027 },
+    });
   });
 
   it("player streaks count only the games they apply to", () => {
-    const streaks = playerStreaks([
-      { rushAtt: 20, rushYds: 120, rushTd: 1 },
-      { rec: 3, recYds: 20 },
-      { rushAtt: 18, rushYds: 101 },
-    ]);
-    expect(streaks).toEqual([{ key: "rush100", current: 2, longest: 2 }]);
+    const streaks = playerStreaks(
+      [
+        { rushAtt: 20, rushYds: 120, rushTd: 1 },
+        { rec: 3, recYds: 20 },
+        { rushAtt: 18, rushYds: 101 },
+      ].map((line, i) => ({ at: at(i + 1), line })),
+    );
+    expect(streaks.find((s) => s.key === "rush100")).toMatchObject({
+      current: 2,
+      longest: 2,
+      currentFrom: at(1),
+    });
+    expect(streaks.find((s) => s.key === "appearances")).toMatchObject({ current: 3, longest: 3 });
+  });
+
+  it("a quarterback's clean games are counted, not the games he did not throw", () => {
+    const streaks = playerStreaks(
+      [{ passAtt: 30, passInt: 0 }, { rushAtt: 2 }, { passAtt: 28 }].map((line, i) => ({
+        at: at(i + 1),
+        line,
+      })),
+    );
+    expect(streaks.find((s) => s.key === "noIntGames")).toMatchObject({ current: 2, longest: 2 });
   });
 });
 

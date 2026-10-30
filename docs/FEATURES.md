@@ -146,6 +146,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - `careerPlayerStats`: same shape, per player, all seasons, with the team he played the most games for.
 - `records`: franchise-era records per stat key per scope (single game, season, career), with holder, value, game or season reference, date set, previous holder, and the top 20 behind it. Recomputed incrementally.
 - `scoringBoards`: the scoring records (`shared/stats/scoringBoards.ts`), top 20 per list and split, rebuilt from `scoringPlays` whenever a game's plays change.
+- `playerMarks`: every mark a player has reached ("fastest to"), per career, season and stint with the team, with the game and games taken. `spanBoards`: the best N-game stretches per stat and window, each split apart. `teamRecords`: the team's best and worst games and seasons per stat. All three are worked out from the logs and rebuilt by Settings → Data → Rebuild stats (`shared/stats/marks.ts`, `spans.ts`, `teamRecords.ts`).
 - `recordBoards`: the team and all-time books (`shared/stats/recordBoards.ts`), the best 25 entries per book, split, scope and stat; built once by `stats/recordBuild` and merged per game. `typedRecords`: numbers typed by hand into either book. `recordPlacements`: every list a player makes, for his page.
 - `milestones`: detected events (first 1000-yard season, career high, franchise record broken, streak reached) with week and acknowledgment flag. Feed the dashboard.
 
@@ -261,7 +262,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
   - Typed numbers (Bruce Smith, 200 career sacks) join the team and all-time books, replacing the computed entry for the same player; only the number, never the games. A whole list (a records page from any website or book) comes in as screenshots or a CSV through the records list target, one typed record per row with player, team, season and number.
 - Scoring records, under the books, from captured scoring summaries (franchise games only): the longest score of each kind, most touchdowns in a quarter, game-winning scores and connections by season and career, and the team's best quarter, largest comeback and largest lead lost. Regular season and playoffs apart.
 - All-time leaders: career top 20 per stat within the franchise era.
-- Streaks: team (wins, home wins, division wins) and player (consecutive 100-yard games, games with a TD, games with a sack).
+- Streaks: team (wins, home, road and division wins, one-score wins, games scoring 30, games allowing under 20, games with a takeaway), seasons (winning seasons, playoff appearances, division titles, double-digit win seasons) and player (consecutive 100-yard rushing, receiving and scrimmage games, games with a TD, a TD pass, a catch, a receiving TD, a sack, a sack or TFL, a takeaway, a field goal, games without an interception, games played). Each keeps where it began and where it ended.
 
 ### 5.6 League
 
@@ -339,7 +340,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Thresholds: edit elite highlight thresholds per stat, two tiers each, on two scales: Highlights (season numbers in every table) and, right under it, Game highlights (one player's numbers in a single game, in box scores and game logs). Only changed stats are saved; Restore defaults clears a scale's overrides.
 - Models: OpenRouter primary and fallback model, temperature, token budget. Both are picked from saved model presets (the defaults plus any the user adds; saving a new model adds it), with an "Other model" field for any id. The re-run sheet uses the same presets.
 - Shortcut: generate and revoke tokens, download the Shortcut file, test endpoint.
-- Data: refresh the real NFL history import; back up every franchise now (and nightly, keeping fourteen) as gzipped JSON to download; restore a listed backup or a file as new, inactive franchises (never overwriting); export the active franchise's games and player seasons as CSV. Backups leave out inbox screenshots and Shortcut tokens (docs/LAUNCH.md).
+- Data: refresh the real NFL history import; back up every franchise now (and nightly, keeping fourteen) as gzipped JSON to download; restore a listed backup or a file as new, inactive franchises (never overwriting); export the active franchise's games and player seasons as CSV; rebuild every season row, record, mark, span and streak from the game logs (Rebuild stats, also after restoring a backup). Backups leave out inbox screenshots and Shortcut tokens (docs/LAUNCH.md).
 - Franchises: delete any franchise, the active one included, after an "are you sure" and typing its name; the franchise used before it takes over (or setup when none is left), and its rows go in the background.
 - Real NFL history: add 1999–2001 to a franchise imported from 2002.
 - Errors: unexpected errors from any device, one row per distinct error with a count.

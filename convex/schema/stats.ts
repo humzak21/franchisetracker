@@ -12,6 +12,8 @@ import {
   vStatSource,
   vStatSplit,
   vReconcileResolution,
+  vMarkHorizon,
+  vTeamRecordScope,
   vWeekKey,
 } from "../lib/validators";
 
@@ -30,6 +32,13 @@ const aggregateFields = {
   /** Best single-game value per summed raw stat (records read these). */
   bests: v.optional(vStatMap),
 };
+
+/** Where a streak stands: a game's season and week, or a season alone. */
+const vStreakPoint = v.object({
+  seasonId: v.id("seasons"),
+  year: v.number(),
+  weekKey: v.optional(vWeekKey),
+});
 
 /** A season high: the best single-game value for a stat and the game it came in. */
 export const vSeasonHigh = v.object({ value: v.number(), gameId: v.id("games"), weekKey: vWeekKey });
@@ -200,6 +209,70 @@ export const statTables = {
     ),
   }).index("by_franchiseId_and_split_and_list", ["franchiseId", "split", "list"]),
 
+  /**
+   * Every mark a player has reached, per horizon (`shared/stats/marks.ts`). Rewritten per player
+   * from his log, so a correction un-reaches one too. The index reads a fastest-to list in order.
+   */
+  playerMarks: defineTable({
+    franchiseId: v.id("franchises"),
+    playerId: v.id("players"),
+    statKey: v.string(),
+    mark: v.number(),
+    horizon: vMarkHorizon,
+    gamesToReach: v.number(),
+    seasonId: v.id("seasons"),
+    weekKey: vWeekKey,
+    gameId: v.id("games"),
+  })
+    .index("by_playerId", ["playerId"])
+    .index("by_franchiseId_and_statKey_and_mark_and_horizon_and_gamesToReach", [
+      "franchiseId",
+      "statKey",
+      "mark",
+      "horizon",
+      "gamesToReach",
+    ]),
+
+  /** The best N-game stretches per stat and window (`shared/stats/spans.ts`), merged as games arrive. */
+  spanBoards: defineTable({
+    franchiseId: v.id("franchises"),
+    split: vStatSplit,
+    statKey: v.string(),
+    window: v.number(),
+    top: v.array(
+      v.object({
+        playerId: v.id("players"),
+        value: v.number(),
+        startGameId: v.id("games"),
+        endGameId: v.id("games"),
+        startYear: v.number(),
+        startWeek: vWeekKey,
+        endYear: v.number(),
+        endWeek: vWeekKey,
+        crossesSeasons: v.boolean(),
+      }),
+    ),
+  }).index("by_franchiseId_and_split_and_statKey_and_window", ["franchiseId", "split", "statKey", "window"]),
+
+  /** The team's record lists (`shared/stats/teamRecords.ts`), rewritten a season at a time. */
+  teamRecords: defineTable({
+    franchiseId: v.id("franchises"),
+    split: vStatSplit,
+    scope: vTeamRecordScope,
+    statKey: v.string(),
+    top: v.array(
+      v.object({
+        value: v.number(),
+        seasonId: v.id("seasons"),
+        year: v.number(),
+        gameId: v.optional(v.id("games")),
+        weekKey: v.optional(vWeekKey),
+        opponentTeamId: v.optional(v.id("teams")),
+        period: v.optional(v.number()),
+      }),
+    ),
+  }).index("by_franchiseId_and_split_and_scope_and_statKey", ["franchiseId", "split", "scope", "statKey"]),
+
   /** Team and player streaks, current and longest, refreshed on every commit. */
   streaks: defineTable({
     franchiseId: v.id("franchises"),
@@ -208,6 +281,10 @@ export const statTables = {
     key: v.string(),
     current: v.number(),
     longest: v.number(),
+    /** Absent on rows from before dates were kept, until the next refresh or a rebuild. */
+    currentFrom: v.optional(vStreakPoint),
+    longestFrom: v.optional(vStreakPoint),
+    longestTo: v.optional(vStreakPoint),
   })
     .index("by_franchiseId_and_playerId", ["franchiseId", "playerId"])
     .index("by_playerId", ["playerId"]),

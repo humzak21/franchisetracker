@@ -68,6 +68,9 @@ export const NOT_BACKED_UP = {
   recordPlacements: "worked out with the records boards",
   recordBuilds: "the records rebuild job's progress",
   scoringBoards: "worked out from the scoring plays; rewritten when the next game's plays commit",
+  playerMarks: "worked out from the game logs; Rebuild stats in Settings → Data writes them again",
+  spanBoards: "worked out from the game logs; Rebuild stats in Settings → Data writes them again",
+  teamRecords: "worked out from the games; Rebuild stats in Settings → Data writes them again",
 } as const;
 
 type Row = { _id: string } & Record<string, unknown>;

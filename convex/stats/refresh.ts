@@ -40,8 +40,8 @@ async function playerMilestones(
   franchise: Doc<"franchises">,
   game: Doc<"games">,
   player: Doc<"players">,
-) {
-  const lines = await refreshPlayerStreaks(ctx, franchise, player);
+): Promise<NewMilestone[]> {
+  const { lines, reached } = await refreshPlayerStreaks(ctx, franchise, player);
   const index = lines.findIndex((l) => l.gameId === game._id);
   const line = lines[index];
   if (!line || line.teamId !== franchise.userTeamId) return [];
@@ -57,14 +57,26 @@ async function playerMilestones(
   const priorSeasons = priorSeasonIds.map((id) =>
     aggregateLines(earlier.filter((l) => l.seasonId === id && sameSplit(l)).map((l) => l.stats as StatLine)),
   );
-  return detectMilestones({
+  const streaks: NewMilestone[] = reached.map(({ key, length, label: name }) => ({
+    key: `${player._id}:streak:${key}:${length}`,
+    kind: "player_streak",
+    playerId: player._id,
+    statKey: key,
+    value: length,
+    title: `${player.displayName}: ${length} straight, ${name.toLowerCase()}`,
+  }));
+  const detected = detectMilestones({
     name: player.displayName,
     line: line.stats as StatLine,
     priorGames: earlier.map((l) => l.stats as StatLine),
     seasonBefore,
     priorSeasons,
     thresholds: franchise.settings.thresholdOverrides as ThresholdOverrides | undefined,
-  }).map((m) => ({ ...m, key: `${player._id}:${m.key}`, playerId: player._id }));
+  });
+  return [
+    ...streaks,
+    ...detected.map((m) => ({ ...m, key: `${player._id}:${m.key}`, playerId: player._id })),
+  ];
 }
 
 function recordMilestone(record: BrokenRecord, player: Doc<"players"> | undefined): NewMilestone {
@@ -152,4 +164,10 @@ export async function refreshAfterGame(
       detectedAt: Date.now(),
     });
   }
+  await ctx.scheduler.runAfter(0, internal.stats.performance.afterGame, {
+    franchiseId: franchise._id,
+    seasonId: game.seasonId,
+    gameId,
+    playerIds: [...new Set(playerIds)],
+  });
 }

@@ -7,6 +7,7 @@ import { SECOND_FRANCHISE_NAME } from "../dev/fixtureDashboard";
 import { SAMPLE_FRANCHISE_NAME } from "../dev/fixtures";
 import { asOwner, asStranger } from "../lib/testOwner";
 import schema from "../schema";
+import { SWEEP_TABLES } from "./remove";
 
 const modules = import.meta.glob("/convex/**/*.ts");
 
@@ -28,7 +29,19 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+/** Tokens belong to the owner, not to the franchise that was active when they were made. */
+const KEPT = new Set(["ingestionTokens"]);
+
 describe("deleting a franchise", () => {
+  test("every table holding a franchise's rows is swept", () => {
+    const owned = Object.entries(schema.tables).flatMap(([name, table]) => {
+      const fields = (table.validator as { fields?: Record<string, unknown> }).fields ?? {};
+      return "franchiseId" in fields ? [name] : [];
+    });
+    const swept = new Set<string>(SWEEP_TABLES);
+    expect(owned.filter((name) => !swept.has(name) && !KEPT.has(name))).toEqual([]);
+  });
+
   test("refuses a wrong name, then removes every row of an inactive one", async () => {
     const { t, owner, sample, second, remove } = await setup();
     await owner.mutation(api.franchise.franchises.activate, { franchiseId: second._id });
