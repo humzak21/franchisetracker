@@ -1,28 +1,37 @@
 import { useMutation } from "convex/react";
-import { BarChart3, History } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
-import { isPreFranchise } from "@shared/history/nflverse";
 import { MISSING_GAME_NOTE } from "@shared/ingestion/reconcile";
-import { GAMES_EDIT_KEY, STAT_GROUPS, type ThresholdOverrides } from "@shared/stats";
+import { GAMES_EDIT_KEY, seasonInProgress, STAT_GROUPS, type ThresholdOverrides } from "@shared/stats";
 import { useFranchise } from "@/app/franchise";
 import { useSeason } from "@/app/season";
 import { DataTable } from "@/components/data/DataTable";
 import { EmptyState } from "@/components/data/EmptyState";
-import { Notice } from "@/components/data/Notice";
 import { JumpLinks } from "@/components/layout/JumpLinks";
 import { Skeleton } from "@/components/ui/misc";
+import { Segmented } from "@/components/ui/segmented";
 import { useQuery } from "@/lib/convex/useQuery";
+import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import { FindPlayer } from "./FindPlayer";
 import { groupAnchor, GroupSection } from "./GroupSection";
 import { seasonColumns } from "./seasonColumns";
-import { groupRows, totalsRow } from "./seasonRows";
+import { groupRows, paceRows, totalsRow } from "./seasonRows";
 import type { Split } from "./split";
+
+type Display = "totals" | "pace" | "yoy";
+
+const DISPLAYS: { value: Display; label: string }[] = [
+  { value: "totals", label: "Totals" },
+  { value: "pace", label: "On pace" },
+  { value: "yoy", label: "Vs last year" },
+];
 
 /**
  * Season stats (FEATURES.md 5.5): every position group's table on one page (QB, RB, WR/TE, ...),
  * each with registry columns, big-game counts, season highs and totals; jump links hop between
- * them and one search narrows them all.
+ * them and one search narrows them all. While a season runs the numbers can show its pace, and any
+ * season can show each change from the one before.
  */
 export function SeasonStats({ split }: { split: Split }) {
   const { season } = useSeason();
@@ -31,33 +40,42 @@ export function SeasonStats({ split }: { split: Split }) {
   const thresholds = active?.franchise.settings.thresholdOverrides as ThresholdOverrides | undefined;
   const setStat = useMutation(api.stats.edit.setStat);
   const [search, setSearch] = useState("");
+  const [picked, setPicked] = useLocalStorage<Display>("ft.stats-season-display", "totals");
+
+  const { seasons } = useSeason();
+  const previous = seasons.find((s) => season && s.year === season.year - 1);
+  const record = season?.userRecord;
+  const teamGames = (record?.w ?? 0) + (record?.l ?? 0) + (record?.t ?? 0);
+  const gamesPerSeason = active?.franchise.settings.gamesPerSeason ?? 17;
+  const live = split === "regular" && !!season && seasonInProgress(season.status, teamGames, gamesPerSeason);
+  const options = DISPLAYS.filter((d) => (d.value !== "pace" || live) && (d.value !== "yoy" || previous));
+  const display = options.some((o) => o.value === picked) ? picked : "totals";
+  const lastYear = useQuery(
+    api.stats.season.bySplit,
+    display === "yoy" && previous ? { seasonId: previous._id, split } : "skip",
+  );
 
   const tables = useMemo(() => {
     if (!data || !active) return undefined;
+    const before = display === "yoy" ? lastYear : undefined;
     return STAT_GROUPS.map((group) => {
-      const rows = groupRows(data, group);
+      const counted = groupRows(data, group);
+      const rows = display === "pace" ? paceRows(counted, teamGames, gamesPerSeason) : counted;
       return {
         group,
         rows,
         totals: totalsRow(rows),
-        ...seasonColumns(group, rows, active.userTeam, thresholds),
+        ...seasonColumns(group, rows, active.userTeam, thresholds, before),
       };
     }).filter((t) => t.rows.length > 0);
-  }, [data, active, thresholds]);
+  }, [data, active, thresholds, display, lastYear, teamGames, gamesPerSeason]);
 
   const text = search.trim().toLowerCase();
   const shown = tables
     ?.map((t) => ({ ...t, rows: text ? t.rows.filter((r) => r.name.toLowerCase().includes(text)) : t.rows }))
     .filter((t) => !text || t.rows.length > 0);
-  const preFranchise = season && active && isPreFranchise(season.year, active.franchise.startYear);
   return (
     <div className="space-y-4">
-      {preFranchise && (
-        <Notice icon={History}>
-          {season.year} is real NFL history: season totals for the {active.userTeam.name} imported from
-          nflverse. Records, leaders and streaks count only the seasons you play.
-        </Notice>
-      )}
       {!shown ? (
         <Skeleton className="h-72 rounded-xl" />
       ) : tables?.length === 0 ? (
@@ -71,7 +89,25 @@ export function SeasonStats({ split }: { split: Split }) {
           <JumpLinks
             links={(tables ?? []).map((t) => ({ id: groupAnchor("season", t.group), label: t.group.label }))}
           />
-          <FindPlayer value={search} onChange={setSearch} />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="min-w-48 flex-1">
+              <FindPlayer value={search} onChange={setSearch} />
+            </div>
+            {options.length > 1 && (
+              <Segmented size="sm" aria-label="Show" value={display} onChange={setPicked} options={options} />
+            )}
+          </div>
+          {display === "yoy" && live && (
+            <p className="text-xs text-muted-foreground">
+              {teamGames} games so far against all of {previous?.year}.
+            </p>
+          )}
+          {display === "pace" && (
+            <p className="text-xs text-muted-foreground">
+              Projected from {teamGames} of {gamesPerSeason} games, if each player plays the rest at the same
+              rate.
+            </p>
+          )}
           {shown.length === 0 && (
             <p className="text-sm text-muted-foreground">No player matches “{search}”.</p>
           )}
@@ -95,7 +131,7 @@ export function SeasonStats({ split }: { split: Split }) {
                       : undefined
                 }
                 onEdit={(row, columnId, value) =>
-                  season && active && row.playerId
+                  display === "totals" && season && active && row.playerId
                     ? setStat({
                         playerId: row.playerId,
                         seasonId: season._id,
@@ -108,7 +144,9 @@ export function SeasonStats({ split }: { split: Split }) {
                 }
                 // Playoff totals from the logs change only through their games; the team row is a sum.
                 canEditRow={(row) =>
-                  row.playerId !== null && (split === "regular" || row.source === "import")
+                  display === "totals" &&
+                  row.playerId !== null &&
+                  (split === "regular" || row.source === "import")
                 }
               />
             </GroupSection>

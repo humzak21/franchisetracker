@@ -6,6 +6,8 @@ import { positionGroupOf } from "@shared/domain";
 import {
   aggregateLines,
   isRawStatKey,
+  projectedGames,
+  projectedLine,
   statsInCategory,
   statValue,
   type SeasonHigh,
@@ -55,6 +57,18 @@ export function groupRows(rows: readonly SeasonStatRow[], group: StatGroup): Row
       highs: r.bestGames,
       overridden: r.overridden,
     }));
+}
+
+/** The rows as they would finish: counts projected, games filled in. Not a stored number, so not editable. */
+export function paceRows(rows: readonly Row[], teamGames: number, gamesPerSeason: number): Row[] {
+  return rows.map((row) => {
+    const games = row.games ?? 0;
+    return {
+      ...row,
+      line: projectedLine(row.line, games, teamGames, gamesPerSeason),
+      games: projectedGames(games, teamGames, gamesPerSeason),
+    };
+  });
 }
 
 export function totalsRow(rows: readonly Row[]): Row {

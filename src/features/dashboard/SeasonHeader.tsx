@@ -1,5 +1,6 @@
 import type { ActiveFranchise, Season } from "@/app/franchise";
 import { TeamLogo } from "@/components/team/TeamLogo";
+import { paceLine } from "@shared/stats";
 import { Skeleton } from "@/components/ui/misc";
 import { headlineFacts } from "./headline";
 import type { HomeSeason } from "./types";
@@ -31,6 +32,9 @@ export function SeasonHeader({
         division: `${userTeam.conference} ${userTeam.division}`,
       })
     : null;
+  const pace = data
+    ? paceLine(data.summary.regular, data.summary.pointsFor, season.status, franchise.settings.gamesPerSeason)
+    : null;
 
   return (
     <div
@@ -53,6 +57,7 @@ export function SeasonHeader({
             <h2 className="mt-1 font-display text-3xl leading-none font-bold tracking-wide uppercase @tablet:text-5xl">
               {franchise.name}
             </h2>
+            {pace && <p className="mt-2 text-sm font-medium opacity-80">{pace}</p>}
           </div>
         </div>
         {facts === null ? (

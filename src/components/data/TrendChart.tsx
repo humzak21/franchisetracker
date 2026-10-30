@@ -12,26 +12,51 @@ export type TrendPoint = {
 
 const AXIS = { fill: "var(--muted-foreground)", fontSize: 11 } as const;
 
-function Tip({ active, payload }: { active?: boolean; payload?: readonly { payload?: TrendPoint }[] }) {
+function Tip({
+  active,
+  payload,
+  format,
+}: {
+  active?: boolean;
+  payload?: readonly { payload?: TrendPoint }[];
+  format: (value: number) => string;
+}) {
   const point = payload?.[0]?.payload;
   if (!active || !point) return null;
   return (
     <div className="rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm shadow-lg">
       <div className="text-xs text-muted-foreground">{point.label}</div>
-      <div className="num font-display text-xl font-bold">{point.value}</div>
+      <div className="num font-display text-xl font-bold">{format(point.value)}</div>
     </div>
   );
 }
 
-/**
- * A value over time in the team accent (OVR progression). The phone variant, chosen from its
- * own width, is shorter with one tick per group and no grid. No animation, so reduced motion holds.
- */
-export function TrendChart({ points, valueLabel }: { points: readonly TrendPoint[]; valueLabel: string }) {
-  const { ref, compact } = useElementWidth<HTMLDivElement>();
-  const values = points.map((p) => p.value);
+/** A rating's axis: the nearest fives around the values, inside 0 to 100. */
+function ratingAxis(values: readonly number[]) {
   const lo = Math.max(0, Math.floor((Math.min(...values) - 3) / 5) * 5);
   const hi = Math.min(100, Math.ceil((Math.max(...values) + 3) / 5) * 5);
+  return { domain: [lo, hi], ticks: Array.from({ length: (hi - lo) / 5 + 1 }, (_, i) => lo + i * 5) };
+}
+
+/**
+ * A value over time in the team accent: OVR progression on a rating's axis, or any stat across
+ * seasons with `scale="auto"`. The phone variant, chosen from its own width, is shorter with one
+ * tick per group and no grid. No animation, so reduced motion holds.
+ */
+export function TrendChart({
+  points,
+  valueLabel,
+  scale = "rating",
+  format = String,
+}: {
+  points: readonly TrendPoint[];
+  valueLabel: string;
+  scale?: "rating" | "auto";
+  format?: (value: number) => string;
+}) {
+  const { ref, compact } = useElementWidth<HTMLDivElement>();
+  const values = points.map((p) => p.value);
+  const axis = scale === "rating" ? ratingAxis(values) : { domain: [0, "auto"] as const, ticks: undefined };
   const firsts = new Set(
     points.filter((p, i) => i === 0 || points[i - 1]!.group !== p.group).map((p) => p.key),
   );
@@ -41,7 +66,7 @@ export function TrendChart({ points, valueLabel }: { points: readonly TrendPoint
       ref={ref}
       className="w-full"
       role="img"
-      aria-label={`${valueLabel} from ${values[0]} to ${values.at(-1)}`}
+      aria-label={`${valueLabel} from ${format(values[0] ?? 0)} to ${format(values.at(-1) ?? 0)}`}
     >
       <ResponsiveContainer width="100%" height={compact ? 180 : 240}>
         <LineChart data={[...points]} margin={{ top: 12, right: 12, bottom: 4, left: 0 }}>
@@ -57,15 +82,16 @@ export function TrendChart({ points, valueLabel }: { points: readonly TrendPoint
             }
           />
           <YAxis
-            domain={[lo, hi]}
-            ticks={Array.from({ length: (hi - lo) / 5 + 1 }, (_, i) => lo + i * 5)}
+            domain={axis.domain}
+            ticks={axis.ticks}
             tick={AXIS}
             tickLine={false}
             axisLine={false}
-            width={compact ? 28 : 36}
+            width={scale === "rating" ? (compact ? 28 : 36) : compact ? 40 : 48}
             allowDecimals={false}
+            tickFormatter={format}
           />
-          <Tooltip content={<Tip />} cursor={{ stroke: "var(--border-strong)" }} />
+          <Tooltip content={<Tip format={format} />} cursor={{ stroke: "var(--border-strong)" }} />
           <Line
             type="monotone"
             dataKey="value"

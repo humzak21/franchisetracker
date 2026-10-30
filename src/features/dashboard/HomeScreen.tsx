@@ -5,6 +5,7 @@ import { useSeason } from "@/app/season";
 import { Page } from "@/components/layout/Page";
 import { Section } from "@/components/layout/Section";
 import { Skeleton } from "@/components/ui/misc";
+import { Countdowns } from "./Countdowns";
 import { FranchiseRecord } from "./FranchiseRecord";
 import { GoalsCard } from "./GoalsCard";
 import { InboxSummary } from "./InboxSummary";
@@ -53,7 +54,7 @@ export function HomeScreen() {
                 <TeamStreaks />
               </div>
               {!imported && (
-                <div className="order-4 grid gap-8 @tablet:grid-cols-2 @desktop:order-none">
+                <div className="order-4 grid grid-cols-1 gap-8 @tablet:grid-cols-2 @desktop:order-none">
                   <Section title="Last game">
                     {data === undefined ? (
                       <Skeleton className="h-40 rounded-xl" />
@@ -95,6 +96,7 @@ export function HomeScreen() {
               {!imported && (
                 <GoalsCard seasonId={season._id} year={season.year} className="order-5 @desktop:order-none" />
               )}
+              {!imported && <Countdowns seasonId={season._id} className="order-7 @desktop:order-none" />}
               <Section title="Team ranks" className="order-8 @desktop:order-none">
                 <RankPulse year={season.year} />
               </Section>

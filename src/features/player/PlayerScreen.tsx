@@ -5,10 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { POSITION_INFO } from "@shared/domain";
+import { leadStats } from "@shared/stats";
 import { NotesEditor } from "@/components/forms/NotesEditor";
 import { JumpLinks } from "@/components/layout/JumpLinks";
 import { Page } from "@/components/layout/Page";
 import { Section } from "@/components/layout/Section";
+import { CareerCurves } from "@/components/player/CareerCurves";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { CareerStatsTable } from "./CareerStatsTable";
@@ -21,6 +23,7 @@ import { PlayerActivity } from "./PlayerActivity";
 import { PlayerEditActions } from "./PlayerEditActions";
 import { PlayerHero } from "./PlayerHero";
 import { PlayerHighlights } from "./PlayerHighlights";
+import { PlayerPace } from "./PlayerPace";
 import { PlayerStatCards } from "./PlayerStatCards";
 import { PossibleDuplicate } from "./PossibleDuplicate";
 import { RatingsSheet } from "./RatingsSheet";
@@ -31,6 +34,8 @@ const SECTIONS = [
   { id: "stats", label: "Stats" },
   { id: "progression", label: "OVR" },
   { id: "career", label: "Career" },
+  { id: "trends", label: "Trends" },
+  { id: "cumulative", label: "Cumulative" },
   { id: "games", label: "Game log" },
   { id: "rosters", label: "Rosters" },
   { id: "activity", label: "Awards" },
@@ -39,9 +44,9 @@ const SECTIONS = [
 ] as const;
 
 /**
- * Player page (FEATURES.md 5.4): the card and bio, stat cards, records and streaks, OVR
- * progression, career stats (real NFL seasons first, marked), game logs, roster history, identity
- * tools and notes. Jump links keep it navigable on a phone.
+ * Player page (FEATURES.md 5.4): the card and bio, stat cards, pace in a live season, records and
+ * streaks, OVR progression, career stats (real NFL seasons first, marked), trends and cumulative
+ * curves, game logs, roster history, identity tools and notes. Jump links keep it navigable on a phone.
  */
 export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
   const page = useQuery(api.players.player.get, { playerId });
@@ -56,8 +61,11 @@ export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
   const [espnOpen, setEspnOpen] = useState(false);
   const [ratingsOpen, setRatingsOpen] = useState(false);
   const [hofOpen, setHofOpen] = useState(false);
+  const trends = useQuery(api.stats.trends.player, { playerId });
   const position = page?.player.position;
   const latest = page?.history[page.history.length - 1];
+  const shownPosition = latest?.entry.position ?? position;
+  const lead = useMemo(() => (shownPosition ? leadStats(shownPosition) : []), [shownPosition]);
 
   // Cache this player's photo the first time anyone opens the page; a no-op once cached.
   useEffect(() => {
@@ -113,6 +121,7 @@ export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
           <Section id="stats" title="Stats">
             <PlayerStatCards page={page} />
           </Section>
+          {trends && <PlayerPace trends={trends} stats={lead} />}
           <PlayerHighlights playerId={playerId} />
           <Section id="progression" title="OVR progression">
             <OvrProgression playerId={playerId} />
@@ -124,6 +133,16 @@ export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
           >
             <CareerStatsTable page={page} />
           </Section>
+          {trends === undefined ? (
+            <Skeleton className="h-64 rounded-xl" />
+          ) : (
+            <CareerCurves
+              key={playerId}
+              data={trends}
+              initialStat={lead[0]}
+              anchors={{ trends: "trends", cumulative: "cumulative" }}
+            />
+          )}
           <Section id="games" title="Game log">
             <GameLog page={page} />
           </Section>

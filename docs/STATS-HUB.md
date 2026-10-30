@@ -296,7 +296,7 @@ The `scoring_plays` row target with game scope and multi-screen merge, `scoringP
 **Sprint 15: engines and storage (M)** (built; the differences are in `SPRINTS.md`, Sprint 15 "As built")
 `ledger`, `marks`, `spans`, `pace`, `yoy`, `splits`, `quarters` (reading scoring plays where a game has them), `teamRecords`, extended `streaks` in `shared/stats` with unit tests at the current coverage bar; schema additions; `afterGame` and `recordBuild` extended; `rebuild:all` and a Settings button; `players/gameLog:career`; backup coverage. Done when a committed game sets a mark, improves a span, dates a streak and sets a team record, recommitting changes nothing, and a rebuild from scratch matches the incremental result.
 
-**Sprint 16: hub overview, pace, trends (M)**
+**Sprint 16: hub overview, pace, trends (M)** (built as Sprint 17; the differences are in `SPRINTS.md`, Sprint 17 "As built")
 Overview view, pace columns and the Home pace line, Countdowns card, Trends view, player page Pace, Trends and Cumulative sections; `CumulativeChart`, `SeasonBars`, `PaceBar`, `DeltaBadge` in the gallery. Done when Home and Stats say what a season is on pace for and the player page shows a career as curves, not only rows.
 
 **Sprint 17: records and streaks depth (M)**

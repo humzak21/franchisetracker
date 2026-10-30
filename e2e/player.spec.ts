@@ -29,6 +29,14 @@ test("the identity panel says where a player has been seen", async ({ page }) =>
   await expectNoHorizontalOverflow(page);
 });
 
+test("the player page shows a career as curves without overflow", async ({ page }) => {
+  await openDiggs(page);
+  await expect(page.getByRole("heading", { name: "Trends" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Cumulative" })).toBeVisible();
+  await expect(page.getByRole("table", { name: /by season$/ })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
 test("player notes save on blur", async ({ page }) => {
   await openDiggs(page);
   const notes = page.getByLabel("Scouting notes");
