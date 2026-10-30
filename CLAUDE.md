@@ -105,6 +105,7 @@ Every screen ships for phone and desktop together (FEATURES.md 5.13 and 9). Ther
 - `npm run check:all` passes locally and CI is green on the PR (GitHub Actions: format, typecheck, lint, Vitest, build, Playwright).
 - New `shared/` logic has unit tests next to it (`*.test.ts`). New Convex mutations and queries have `convex-test` coverage of the happy path and the idempotency or authorization edge.
 - Every new screen gets a Playwright smoke test in `e2e/`: it loads in both themes with no console errors and no horizontal overflow (name it "... without overflow" so the phone project runs it too), and its main interaction works on desktop. Use the fixtures in `e2e/fixtures.ts`.
+- Playwright is sized for a Mac that is short of memory, where the backend stalls too: 3 workers locally (2 for WebKit), 60 s tests, 10 s waits, and a 15 s function limit on the e2e backend. CI keeps Convex's real 1 s limit. Run one suite at a time: a run refuses to start on ports held by another checkout (`e2e/globalSetup.ts`).
 - UI changes are also looked at in the running app (`.claude/launch.json` config `web`) at phone and desktop widths, not only by tests.
 - Each sprint's "Done when" in `docs/SPRINTS.md` is the bar for closing it.
 

@@ -16,6 +16,10 @@ const env = {
   ...process.env,
   CONVEX_AGENT_MODE: "anonymous",
   CONVEX_DEPLOYMENT: "anonymous:anonymous-agent",
+  // Convex stops a query or mutation after 1 s of wall time, and on a Mac that is swapping even
+  // `league/teams:list` can sit that long waiting for memory. CI keeps the real limit, so a query
+  // that is actually slow still fails there.
+  ...(process.env.CI ? {} : { DATABASE_UDF_USER_TIMEOUT_SECONDS: "15" }),
 };
 const run = (cmd, args) => execFileSync(cmd, args, { stdio: "inherit", env });
 
