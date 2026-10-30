@@ -17,6 +17,7 @@ import {
   schemaFor,
   validateDraft,
 } from "../../shared/ingestion/targets";
+import type { DraftRow } from "../../shared/ingestion/rows/types";
 import type { Draft, FieldConfidence, RowTargetDraft } from "../../shared/ingestion/types";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -194,8 +195,9 @@ const UNSETTLED_NAME = 0.4;
 /** The printed names in a draft and the teams to look them up in. */
 function namesOf(draft: Draft, userTeamAbbr: string): { names: string[]; teams: string[] } | null {
   if ("lines" in draft) {
+    const plays = "plays" in draft ? (draft.plays ?? []) : [];
     return {
-      names: draft.lines.map((l) => l.name),
+      names: [...draft.lines.map((l) => l.name), ...plays.flatMap((p) => (p.name ? [p.name] : []))],
       teams: [draft.game.homeAbbr, draft.game.awayAbbr, ...draft.lines.map((l) => l.teamAbbr)].filter(
         (t): t is string => t !== null,
       ),
@@ -226,14 +228,11 @@ async function resolvePlayers(
   if (!wanted) return draft as StoredDraft;
   const userTeamAbbr = job.teams.userIsHome ? job.teams.home : job.teams.away;
   const metaTeam = isRowDraft(draft) && typeof draft.meta.team === "string" ? draft.meta.team : null;
+  const named = (rows: readonly DraftRow[]) =>
+    rows.flatMap((r) => (r.name ? [{ name: r.name, teamAbbr: r.teamAbbr ?? metaTeam ?? userTeamAbbr }] : []));
+  const plays = "plays" in draft ? (draft.plays ?? []) : [];
   const printed =
-    "lines" in draft
-      ? draft.lines
-      : isRowDraft(draft)
-        ? draft.rows.flatMap((r) =>
-            r.name ? [{ name: r.name, teamAbbr: r.teamAbbr ?? metaTeam ?? userTeamAbbr }] : [],
-          )
-        : [];
+    "lines" in draft ? [...draft.lines, ...named(plays)] : isRowDraft(draft) ? named(draft.rows) : [];
   const remembered = new Map<string, { playerId: Id<"players">; name: string; score: number }>();
   for (let i = 0; i < printed.length; i += NAMES_PER_LOOKUP) {
     const found = await ctx.runQuery(internal.ingestion.candidates.assignments, {
@@ -265,29 +264,27 @@ async function resolvePlayers(
     }
     return { match, playerId: match.status === "matched" ? (match.candidates[0]?.playerId ?? null) : null };
   };
+  const resolveRow = (row: DraftRow, optional: boolean | undefined, root: string) => {
+    if (!row.name) {
+      const match = optional ? { status: "new" as const, candidates: [] } : null;
+      return { ...row, playerId: null, match };
+    }
+    const resolved = resolve(
+      { name: row.name, teamAbbr: row.teamAbbr ?? metaTeam ?? userTeamAbbr },
+      `${root}.${row.id}.name`,
+    );
+    // A name the rosters could not settle waits for a decision before it commits, unless the
+    // row can stand without a player, when it would only hold the rest of the list back.
+    const settled = optional || resolved.match.status !== "ambiguous";
+    return { ...row, ...resolved, accepted: row.accepted && settled };
+  };
   if ("lines" in draft) {
-    return {
-      ...draft,
-      lines: draft.lines.map((line) => ({ ...line, ...resolve(line, `lines.${line.id}.name`) })),
-    };
+    const lines = draft.lines.map((line) => ({ ...line, ...resolve(line, `lines.${line.id}.name`) }));
+    return draft.target === "game_log"
+      ? { ...draft, lines, plays: plays.map((p) => resolveRow(p, true, "plays")) }
+      : { ...draft, lines };
   }
   if (!isRowDraft(draft)) return draft as StoredDraft;
-  const spec = rowTarget(draft.target).spec;
-  return {
-    ...draft,
-    rows: draft.rows.map((row) => {
-      if (!row.name) {
-        const match = spec.optionalPlayer ? { status: "new" as const, candidates: [] } : null;
-        return { ...row, playerId: null, match };
-      }
-      const resolved = resolve(
-        { name: row.name, teamAbbr: row.teamAbbr ?? metaTeam ?? userTeamAbbr },
-        `rows.${row.id}.name`,
-      );
-      // A name the rosters could not settle waits for a decision before it commits, unless the
-      // row can stand without a player, when it would only hold the rest of the list back.
-      const settled = spec.optionalPlayer || resolved.match.status !== "ambiguous";
-      return { ...row, ...resolved, accepted: row.accepted && settled };
-    }),
-  };
+  const { optionalPlayer } = rowTarget(draft.target).spec;
+  return { ...draft, rows: draft.rows.map((row) => resolveRow(row, optionalPlayer, "rows")) };
 }

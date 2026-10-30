@@ -16,6 +16,7 @@ import { rowGameContext } from "../lib/gameContext";
 import { commitBoxScore } from "./commitBoxScore";
 import { refreshSeasonRecord, upsertGame, type DraftContext } from "./commitGame";
 import { commitRows } from "./commitRows";
+import { commitPlays } from "./commitScoringPlays";
 import { commitTeamStats } from "./commitTeamStats";
 import type { StoredRowsDraft } from "./rowCommit";
 
@@ -34,8 +35,10 @@ const finite = (draft: StoredDraft) => {
     ...("lines" in draft ? draft.lines.map((l) => l.stats) : []),
     ...("teams" in draft ? draft.teams.map((t) => t.stats) : []),
   ];
+  const plays = "plays" in draft ? (draft.plays ?? []) : [];
   const numbers = [
     ...maps.flatMap((m) => Object.values(m)),
+    ...plays.flatMap((p) => Object.values(p.values).filter((v) => typeof v === "number")),
     draft.game.homeScore ?? 0,
     draft.game.awayScore ?? 0,
   ];
@@ -55,6 +58,13 @@ async function commitGameDraft(
     case "game_log":
       if (draft.lines.length > 0) playerIds = await commitBoxScore(ctx, franchise, game, draft);
       await commitTeamStats(ctx, franchise, game, draft);
+      // After the box score, so a name reaches the players it just added.
+      await commitPlays(
+        ctx,
+        franchise,
+        game,
+        (draft.plays ?? []).filter((p) => p.accepted),
+      );
       break;
     case "game_box_score":
       playerIds = await commitBoxScore(ctx, franchise, game, draft);
@@ -77,10 +87,12 @@ export async function commitDraft(
 ): Promise<DraftCommitResult> {
   const draft = deriveDraft(submitted);
   if (!finite(draft)) throw invalid("A number in the draft is out of range");
-  const game =
-    isRowDraft(draft) && INGESTION_TARGETS[draft.target].scope === "game"
-      ? await rowGameContext(ctx, (await existingGame(ctx, context))?._id ?? null)
-      : undefined;
+  const readsGame = isRowDraft(draft)
+    ? INGESTION_TARGETS[draft.target].scope === "game"
+    : draft.target === "game_log";
+  const game = readsGame
+    ? await rowGameContext(ctx, (await existingGame(ctx, context))?._id ?? null)
+    : undefined;
   const errors = validateDraft(draft, game).filter((w) => w.severity === "error");
   if (blocksCommit(errors)) throw invalid(errors[0]!.message);
   return isRowDraft(draft)

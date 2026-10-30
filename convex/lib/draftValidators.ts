@@ -48,13 +48,6 @@ export const vTeamStatsDraft = v.object({
   teams: v.array(v.object({ teamAbbr: nullable(v.string()), stats: vStatMap })),
 });
 
-export const vGameLogDraft = v.object({
-  target: v.literal("game_log"),
-  game: vGameHeader,
-  lines: v.array(vDraftLine),
-  teams: vTeamStatsDraft.fields.teams,
-});
-
 const vRowValue = v.union(v.number(), v.string(), v.boolean(), v.null());
 
 export const vDraftRow = v.object({
@@ -65,6 +58,14 @@ export const vDraftRow = v.object({
   values: v.record(v.string(), vRowValue),
   playerId: nullable(v.id("players")),
   match: nullable(vMatch),
+});
+
+export const vGameLogDraft = v.object({
+  target: v.literal("game_log"),
+  game: vGameHeader,
+  lines: v.array(vDraftLine),
+  teams: vTeamStatsDraft.fields.teams,
+  plays: v.optional(v.array(vDraftRow)),
 });
 
 export const vRowsDraft = v.object({

@@ -18,7 +18,7 @@ import {
   type ScoringPeriod,
 } from "../../domain/scoring";
 import { periodLabel } from "../../games/lineScore";
-import { SCORER_STAT, scoreCount, scorerCandidates, scorerMatch } from "../../games/scorers";
+import { SCORER_STAT, scoreCount, scorerCandidates, scorerMatch, type GameLine } from "../../games/scorers";
 import { playWhen } from "../../games/scoringPlay";
 import type { RawStatKey } from "../../stats/registry";
 import type { DraftWarning, PlayerMatch } from "../types";
@@ -209,6 +209,10 @@ function scoringRules(draft: RowsDraft, game?: RowGameContext | null): DraftWarn
   return [...out, ...runningScore(rows, game), ...(game ? boxChecks(rows, game) : [])];
 }
 
+/** A line added in this review has no player yet, so it can be counted but not picked. */
+export const NEW_LINE = "new-line:";
+const isNewLine = (playerId: string) => playerId.startsWith(NEW_LINE);
+
 /**
  * The row's candidates from the box score, for a row with no player yet. Null when it has one or
  * the box score offers nobody, leaving the row's own match to stand.
@@ -216,7 +220,7 @@ function scoringRules(draft: RowsDraft, game?: RowGameContext | null): DraftWarn
 export function rowScorerMatch<P extends string>(
   row: DraftRow<P>,
   rows: readonly DraftRow<P>[],
-  game: RowGameContext<P>,
+  game: RowGameContext<string>,
 ): PlayerMatch<P> | null {
   const { kind } = row.values;
   if (row.playerId || !isKind(kind)) return null;
@@ -225,7 +229,8 @@ export function rowScorerMatch<P extends string>(
       ? [{ kind: r.values.kind, playerId: r.playerId }]
       : [],
   );
-  return scorerMatch(scorerCandidates(kind, row.teamAbbr, game.lines, others));
+  const lines = game.lines.filter((l): l is GameLine<P> => !isNewLine(l.playerId));
+  return scorerMatch(scorerCandidates(kind, row.teamAbbr, lines, others));
 }
 
 const periodOptions = SCORING_PERIODS.map((p, i) => ({ value: p, label: periodLabel(i) }));

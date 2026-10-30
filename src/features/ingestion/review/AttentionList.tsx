@@ -46,8 +46,9 @@ export function AttentionList() {
       severity: "info",
       message: `${newPlayers} player${newPlayers === 1 ? "" : "s"} will be added as new`,
     });
-  const noNewPlayers = isRowDraft(draft) && rowTarget(draft.target).spec.optionalPlayer;
-  const pickedMatch = picking ? (matchOf(picking) ?? (noNewPlayers ? NO_CANDIDATES : null)) : null;
+  const noNewPlayers = (base: string) =>
+    base.startsWith("plays.") || (isRowDraft(draft) && rowTarget(draft.target).spec.optionalPlayer);
+  const pickedMatch = picking ? (matchOf(picking) ?? (noNewPlayers(picking) ? NO_CANDIDATES : null)) : null;
   if (items.length === 0 && general.length === 0 && !picking) return null;
 
   return (
@@ -66,7 +67,7 @@ export function AttentionList() {
             const value = getAt(draft, item.path);
             const base = item.path.replace(/\.name$/, "");
             const match = item.path.endsWith(".name")
-              ? (matchOf(base) ?? (noNewPlayers ? NO_CANDIDATES : null))
+              ? (matchOf(base) ?? (noNewPlayers(base) ? NO_CANDIDATES : null))
               : null;
             const playerId = match ? getAt(draft, `${base}.playerId`) : null;
             const candidate = !playerId && match?.status === "ambiguous" ? match.candidates[0] : null;
@@ -157,7 +158,7 @@ export function AttentionList() {
           match={pickedMatch}
           value={getAt(draft, `${picking}.playerId`) as Id<"players"> | null}
           prospects={isRowDraft(draft) && rowTarget(draft.target).spec.newPlayers}
-          noNewPlayers={noNewPlayers}
+          noNewPlayers={noNewPlayers(picking)}
           onChange={(player) => {
             update((d) => choosePlayerAt(d, picking, player));
             confirm(`${picking}.name`);

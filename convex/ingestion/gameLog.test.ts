@@ -153,3 +153,110 @@ describe("full game logs and remembered players", () => {
     expect(box.teams.some((team) => team.stats?.totalYds === 412)).toBe(true);
   });
 });
+
+describe("a full game log with its scoring summary", () => {
+  const plays = (t: Awaited<ReturnType<typeof setup>>["t"], gameId: Id<"games">) =>
+    t.run((ctx) =>
+      ctx.db
+        .query("scoringPlays")
+        .withIndex("by_gameId_and_order", (q) => q.eq("gameId", gameId))
+        .take(50),
+    );
+
+  test("one upload commits the stats and the plays, and the quarters follow the plays", async () => {
+    const { t, owner, season, capture } = await setup();
+    const setKey = await capture({
+      targetKey: "game_log",
+      seasonId: season(SAMPLE_START_YEAR + 1),
+      weekKey: "w1",
+    });
+    const draft = (await owner.query(api.ingestion.review.get, { setKey })).extraction!.draft;
+    if (draft.target !== "game_log") throw new Error("wrong target");
+    expect(draft.plays?.length).toBeGreaterThan(0);
+    const { gameId } = await owner.mutation(api.ingestion.review.commit, { setKey, draft });
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    const rows = await plays(t, gameId!);
+    expect(rows).toHaveLength(draft.plays!.length);
+    const last = rows.at(-1)!;
+    expect([last.homeScore, last.awayScore]).toEqual([31, 17]);
+    const page = await owner.query(api.games.schedule.get, { gameId: gameId! });
+    expect(page?.header.quartersFromPlays).toBe(true);
+    const box = await owner.query(api.games.boxScore.get, { gameId: gameId! });
+    expect(box.teams[0]!.lines.length).toBeGreaterThan(0);
+  });
+
+  test("a scorer the box score adds as a new player lands on the play", async () => {
+    const { t, owner, season, capture } = await setup();
+    const setKey = await capture({
+      targetKey: "game_log",
+      seasonId: season(SAMPLE_START_YEAR + 1),
+      weekKey: "w1",
+    });
+    const draft = (await owner.query(api.ingestion.review.get, { setKey })).extraction!.draft;
+    if (draft.target !== "game_log") throw new Error("wrong target");
+    const named = draft.plays!.find((p) => p.name && p.teamAbbr === draft.lines[0]!.teamAbbr)!;
+    const edited = {
+      ...draft,
+      lines: draft.lines.map((l, i) =>
+        i === 0
+          ? { ...l, name: "Brand Newguy", playerId: null, match: { status: "new" as const, candidates: [] } }
+          : l,
+      ),
+      plays: draft.plays!.map((p) =>
+        p.id === named.id ? { ...p, name: "Brand Newguy", playerId: null } : p,
+      ),
+    };
+    const { gameId } = await owner.mutation(api.ingestion.review.commit, { setKey, draft: edited });
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    const play = (await plays(t, gameId!)).find((p) => p.rawName === "Brand Newguy");
+    const player = await t.run((ctx) => ctx.db.get("players", play!.playerId!));
+    expect(player?.displayName).toBe("Brand Newguy");
+  });
+
+  test("leaving every play out commits the rest and keeps the plays the game had", async () => {
+    const { t, owner, season, capture } = await setup();
+    const seasonId = season(SAMPLE_START_YEAR + 1);
+    const first = await capture({ targetKey: "game_log", seasonId, weekKey: "w1" });
+    const draft = (await owner.query(api.ingestion.review.get, { setKey: first })).extraction!.draft;
+    const { gameId } = await owner.mutation(api.ingestion.review.commit, { setKey: first, draft });
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    const before = await plays(t, gameId!);
+
+    const again = await capture({ targetKey: "game_log", gameId: gameId! });
+    const second = (await owner.query(api.ingestion.review.get, { setKey: again })).extraction!.draft;
+    if (second.target !== "game_log") throw new Error("wrong target");
+    const none = { ...second, plays: second.plays!.map((p) => ({ ...p, accepted: false })) };
+    await owner.mutation(api.ingestion.review.commit, { setKey: again, draft: none });
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    expect((await plays(t, gameId!)).map((p) => p.order)).toEqual(before.map((p) => p.order));
+  });
+
+  test("plays that miss the log's final block the commit until they are fixed or left out", async () => {
+    const { owner, season, capture } = await setup();
+    const setKey = await capture({
+      targetKey: "game_log",
+      seasonId: season(SAMPLE_START_YEAR + 1),
+      weekKey: "w1",
+    });
+    const draft = (await owner.query(api.ingestion.review.get, { setKey })).extraction!.draft;
+    if (draft.target !== "game_log") throw new Error("wrong target");
+    const short = { ...draft, plays: draft.plays!.slice(0, -1) };
+    await expect(owner.mutation(api.ingestion.review.commit, { setKey, draft: short })).rejects.toThrow(
+      "the game's final is",
+    );
+  });
+
+  test("a stored draft from before plays were part of a log still commits", async () => {
+    const { owner, season, capture } = await setup();
+    const setKey = await capture({
+      targetKey: "game_log",
+      seasonId: season(SAMPLE_START_YEAR + 1),
+      weekKey: "w1",
+    });
+    const draft = (await owner.query(api.ingestion.review.get, { setKey })).extraction!.draft;
+    if (draft.target !== "game_log") throw new Error("wrong target");
+    const { plays: _plays, ...older } = draft;
+    const { gameId } = await owner.mutation(api.ingestion.review.commit, { setKey, draft: older });
+    expect(gameId).toBeDefined();
+  });
+});

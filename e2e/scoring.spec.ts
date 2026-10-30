@@ -1,5 +1,5 @@
 import type { Page, TestInfo } from "@playwright/test";
-import { expect, expectNoHorizontalOverflow, isPhone, test } from "./fixtures";
+import { SAMPLE_YEAR, expect, expectNoHorizontalOverflow, isPhone, test } from "./fixtures";
 
 /** A 1x1 PNG: the local e2e backend has no OpenRouter key, so the built-in sample answer reads it. */
 const PNG = Buffer.from(
@@ -74,5 +74,35 @@ test("a scoring summary goes from photos to a play list without overflow", async
     .click();
   const picker = page.getByRole("dialog", { name: "Who scored?" });
   await expect(picker.getByRole("list", { name: "Players" })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
+test("a full game log carries its scoring summary without overflow", async ({ page }, info) => {
+  // Its own week of the empty second season, clear of the game log tests in `ingestion.spec.ts`.
+  const week = isPhone(info.project.name) ? 6 : 5;
+  await page.goto("/inbox");
+  await expect(page.getByRole("heading", { level: 1, name: "Inbox" })).toBeVisible();
+  if (isPhone(info.project.name)) await page.locator('button[aria-label="Capture screenshots"]').click();
+  else await page.getByRole("button", { name: "Capture", exact: true }).click();
+  const sheet = page.getByRole("dialog", { name: "Capture" });
+  await expect(sheet.getByLabel("Screen", { exact: true })).toHaveValue("game_log");
+  await sheet.getByLabel("Season", { exact: true }).selectOption({ label: String(SAMPLE_YEAR + 1) });
+  await sheet.getByLabel("Week", { exact: true }).selectOption(`w${week}`);
+  await sheet.getByLabel("Choose screenshots").setInputFiles([
+    { name: "players.png", mimeType: "image/png", buffer: PNG },
+    { name: "team-stats.png", mimeType: "image/png", buffer: PNG },
+    { name: "scoring.png", mimeType: "image/png", buffer: PNG },
+  ]);
+  await page.getByRole("button", { name: "Upload 3 screenshots" }).click();
+  await expect(page).toHaveURL(/\/inbox\/.+/);
+  if (isPhone(info.project.name)) await page.getByRole("radio", { name: "Draft" }).click();
+  await expect(page.getByRole("heading", { name: "Scoring plays" })).toBeVisible({ timeout: 20_000 });
+  await expectNoHorizontalOverflow(page);
+
+  await page.getByRole("button", { name: "Commit", exact: true }).click();
+  await expect(page).toHaveURL(/\/games\//, { timeout: 20_000 });
+  await expect(page.getByRole("heading", { name: "Scoring summary" })).toBeVisible();
+  await expect(page.getByText("From the scoring plays")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Box score" })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });

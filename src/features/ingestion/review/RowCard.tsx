@@ -8,12 +8,17 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { choosePlayerAt } from "./draftEdit";
 import { PlayerPickerSheet } from "./PlayerPickerSheet";
-import { useReviewDraft } from "./reviewDraft";
+import { useReviewDraft, type ReviewDraft } from "./reviewDraft";
 import { RowFieldInput } from "./RowFieldInput";
 
 type Row = RowTargetDraft<Id<"players">>["rows"][number];
 
 const TEAM: RowField = { key: "teamAbbr", label: "Team", type: "team" };
+
+function withoutRow(draft: ReviewDraft, id: string): ReviewDraft {
+  if ("rows" in draft) return { ...draft, rows: draft.rows.filter((r) => r.id !== id) };
+  return "plays" in draft ? { ...draft, plays: draft.plays?.filter((r) => r.id !== id) } : draft;
+}
 
 function Who({
   row,
@@ -74,12 +79,23 @@ function Who({
  * One row of a list screen as a card: accept it, fix who it is, and its fields; the primary ones
  * in view and the rest a tap away, so a long list can be reviewed with thumbs (FEATURES.md 9).
  */
-export function RowCard({ row, spec, fields }: { row: Row; spec: RowSpec; fields: readonly RowField[] }) {
+export function RowCard({
+  row,
+  spec,
+  fields,
+  collection = "rows",
+}: {
+  row: Row;
+  spec: RowSpec;
+  fields: readonly RowField[];
+  /** Where the draft keeps this row: a list's `rows`, or a full game log's `plays`. */
+  collection?: "rows" | "plays";
+}) {
   const { player, rowTeam } = spec;
   const { set, update, flag, matchOf } = useReviewDraft();
   const [picking, setPicking] = useState(false);
   const [open, setOpen] = useState(false);
-  const base = `rows.${row.id}`;
+  const base = `${collection}.${row.id}`;
   const match = matchOf(base);
   // Empty optional fields wait under "more": a passer's card does not lead with blank carries.
   // Which ones had a value is read once, so a field typed into does not jump grids and lose focus.
@@ -130,9 +146,7 @@ export function RowCard({ row, spec, fields }: { row: Row; spec: RowSpec; fields
           variant="ghost"
           size="icon-sm"
           aria-label={`Remove ${label}`}
-          onClick={() =>
-            update((d) => ("rows" in d ? { ...d, rows: d.rows.filter((r) => r.id !== row.id) } : d))
-          }
+          onClick={() => update((d) => withoutRow(d, row.id))}
         >
           <Trash2 />
         </Button>

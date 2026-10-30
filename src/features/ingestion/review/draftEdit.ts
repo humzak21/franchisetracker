@@ -8,6 +8,7 @@ import { CHECK_BELOW, ROW_CHECK_BELOW, deriveDraft } from "@shared/ingestion/nor
 import { isRowDraft, rowTarget } from "@shared/ingestion/targets";
 import type { Position } from "@shared/domain";
 import { PROSPECT_ESPN_ID } from "@shared/ingestion/rows/peopleSpecs";
+import { scoringPlaysSpec } from "@shared/ingestion/rows/scoringSpec";
 import type { Draft, DraftWarning, FieldConfidence, PlayerMatch } from "@shared/ingestion/types";
 
 type Node = Record<string, unknown> | unknown[];
@@ -72,6 +73,13 @@ export function fieldLabel(draft: Draft, path: string): string {
     if (field === "stats" && key) return `${who} · ${statLabel(key)}`;
     if (field === "teamAbbr") return `${who} · Team`;
     return who;
+  }
+  if (root === "plays" && "plays" in draft) {
+    const row = draft.plays?.find((r) => r.id === id);
+    const who = row?.name ?? row?.teamAbbr ?? "Play";
+    if (field === "teamAbbr") return `${who} · Team`;
+    const label = scoringPlaysSpec.fields().find((f) => f.key === key)?.label;
+    return field === "values" && label ? `${who} · ${label}` : who;
   }
   if (isRowDraft(draft)) {
     const { spec } = rowTarget(draft.target);

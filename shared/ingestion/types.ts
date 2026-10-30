@@ -7,7 +7,7 @@ import type { Position } from "../domain/positions";
 import type { StatLine } from "../stats/registry";
 import type { TeamStatLine } from "../stats/teamRegistry";
 import type { RowTargetKey } from "./rows/targets";
-import type { RowsDraft } from "./rows/types";
+import type { DraftRow, RowsDraft } from "./rows/types";
 
 /** The score header both game targets carry. Team fields are abbreviations from `NFL_TEAMS`. */
 export type GameHeader = {
@@ -62,6 +62,8 @@ export type GameLogDraft<P extends string = string> = {
   game: GameHeader;
   lines: DraftLine<P>[];
   teams: TeamStatsDraft["teams"];
+  /** The scoring summary, when the upload had it; absent on drafts read before it was part of a log. */
+  plays?: DraftRow<P>[];
 };
 
 /** A list screen's draft (leaders, standings, a roster page): see `./rows`. */
