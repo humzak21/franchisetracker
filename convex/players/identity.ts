@@ -2,20 +2,23 @@
  * Identity tools (FEATURES.md 5.4): aliases, real or fictional, merge duplicates, and
  * apply a name correction from review to every player still carrying the misread name.
  */
+import { paginationOptsValidator, paginationResultValidator } from "convex/server";
 import { v } from "convex/values";
-import { likelyDuplicate, mergeAliases, splitDisplayName } from "../../shared/players/identity";
+import { TARGET_KEYS } from "../../shared/ingestion/targets";
+import { aliasFields, likelyDuplicate, mergeAliases, splitDisplayName } from "../../shared/players/identity";
 import { applyPlayerPatch } from "../../shared/players/playerPatch";
 import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { appError, invalid, must } from "../lib/errors";
-import { activeFranchise } from "../lib/franchise";
-import { vPosition } from "../lib/validators";
+import { activeFranchise, teamsById } from "../lib/franchise";
+import { vPlayerOrigin, vPosition } from "../lib/validators";
 import { mergePlayers } from "./merge";
+import { searchPlayers } from "./nameSearch";
 
-const MAX_CAPTURED = 400;
 const PEERS = 12;
-const MAX_CORRECTIONS = 500;
+/** Most recent corrections read per target; the name fixes among them are what this is after. */
+const MAX_CORRECTIONS = 300;
 
 async function named(ctx: QueryCtx, franchiseId: Id<"franchises">, displayName: string) {
   return await ctx.db
@@ -25,6 +28,10 @@ async function named(ctx: QueryCtx, franchiseId: Id<"franchises">, displayName: 
     )
     .take(10);
 }
+
+/** Players still carrying a printed name, as a new player would have been stored from it. */
+const holders = (ctx: QueryCtx, franchiseId: Id<"franchises">, printed: string) =>
+  named(ctx, franchiseId, splitDisplayName(printed).displayName);
 
 /** Renames through the player patch, so the old name stays an alias (`player:update` renames too). */
 async function rename(ctx: MutationCtx, player: Doc<"players">, name: string) {
@@ -40,7 +47,7 @@ export const setAliases = mutation({
   handler: async (ctx, { playerId, aliases }) => {
     await requireOwner(ctx);
     const player = must(await ctx.db.get("players", playerId), "Player");
-    await ctx.db.patch("players", playerId, { aliases: mergeAliases(player.displayName, [], aliases) });
+    await ctx.db.patch("players", playerId, aliasFields(mergeAliases(player.displayName, [], aliases)));
     return null;
   },
 });
@@ -87,14 +94,33 @@ const side = (p: Doc<"players">) => ({
   imported: p.nflverseId !== undefined,
 });
 
+/** Same last name catches typos in the first name; the text search catches them in the last. */
+async function likelyDuplicatesOf(ctx: QueryCtx, player: Doc<"players">) {
+  const { franchiseId } = player;
+  const peers = [
+    ...(await ctx.db
+      .query("players")
+      .withIndex("by_franchiseId_and_lastName", (q) =>
+        q.eq("franchiseId", franchiseId).eq("lastName", player.lastName),
+      )
+      .take(PEERS)),
+    ...(await searchPlayers(ctx, franchiseId, player.displayName, PEERS)),
+  ];
+  const byId = new Map(peers.map((p) => [p._id, p]));
+  return [...byId.values()].filter((p) => p._id !== player._id && likelyDuplicate(player, p));
+}
+
+const vPair = v.object({ captured: vSide, match: vSide });
+
 /**
- * Captured players (created from box scores, not the import) whose name nearly matches another
- * player at a compatible position: the usual sign of one person entered twice.
+ * A page of captured players (anyone not from the import), newest first, as the pairs whose name
+ * nearly matches another player at a compatible position: the usual sign of one person entered
+ * twice. A pair of two captured players shows on both their pages; the list keeps one.
  */
 export const duplicates = query({
-  args: {},
-  returns: v.array(v.object({ captured: vSide, match: vSide })),
-  handler: async (ctx) => {
+  args: { paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(vPair),
+  handler: async (ctx, { paginationOpts }) => {
     await requireOwner(ctx);
     const franchise = await activeFranchise(ctx);
     const captured = await ctx.db
@@ -102,33 +128,81 @@ export const duplicates = query({
       .withIndex("by_franchiseId_and_nflverseId", (q) =>
         q.eq("franchiseId", franchise._id).eq("nflverseId", undefined),
       )
-      .take(MAX_CAPTURED);
-    const pairs: { captured: ReturnType<typeof side>; match: ReturnType<typeof side> }[] = [];
-    const seen = new Set<string>();
-    for (const player of captured) {
-      // Same last name catches typos in the first name; the text search catches them in the last.
-      const peers = [
-        ...(await ctx.db
-          .query("players")
-          .withIndex("by_franchiseId_and_lastName", (q) =>
-            q.eq("franchiseId", franchise._id).eq("lastName", player.lastName),
-          )
-          .take(PEERS)),
-        ...(await ctx.db
-          .query("players")
-          .withSearchIndex("search_displayName", (q) =>
-            q.search("displayName", player.displayName).eq("franchiseId", franchise._id),
-          )
-          .take(PEERS)),
-      ];
-      for (const peer of peers) {
-        const key = [player._id, peer._id].sort().join("|");
-        if (peer._id === player._id || seen.has(key) || !likelyDuplicate(player, peer)) continue;
-        seen.add(key);
+      .order("desc")
+      .paginate(paginationOpts);
+    const pairs = [];
+    for (const player of captured.page) {
+      for (const peer of await likelyDuplicatesOf(ctx, player))
         pairs.push({ captured: side(player), match: side(peer) });
-      }
     }
-    return pairs;
+    return { ...captured, page: pairs };
+  },
+});
+
+/** Players who look like this one, for the player page. */
+export const duplicatesOf = query({
+  args: { playerId: v.id("players") },
+  returns: v.array(vSide),
+  handler: async (ctx, { playerId }) => {
+    await requireOwner(ctx);
+    const player = must(await ctx.db.get("players", playerId), "Player");
+    return (await likelyDuplicatesOf(ctx, player)).map(side);
+  },
+});
+
+const MAX_SEEN_LINES = 600;
+const MAX_SEEN_ROWS = 60;
+
+/**
+ * Everywhere a player has turned up: how they got here, their seasons and games, and how screens
+ * have printed their name. Enough to judge a merge without opening two player pages.
+ */
+export const seenIn = query({
+  args: { playerId: v.id("players") },
+  returns: v.object({
+    origin: v.union(vPlayerOrigin, v.null()),
+    createdYear: v.union(v.number(), v.null()),
+    games: v.number(),
+    seasons: v.array(v.object({ year: v.number(), teams: v.array(v.string()), games: v.number() })),
+    printed: v.array(v.string()),
+  }),
+  handler: async (ctx, { playerId }) => {
+    await requireOwner(ctx);
+    const player = must(await ctx.db.get("players", playerId), "Player");
+    const entries = await ctx.db
+      .query("rosterEntries")
+      .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId))
+      .take(MAX_SEEN_ROWS);
+    const lines = await ctx.db
+      .query("gameStatLines")
+      .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId))
+      .take(MAX_SEEN_LINES);
+    const assignments = await ctx.db
+      .query("playerNameAssignments")
+      .withIndex("by_playerId", (q) => q.eq("playerId", playerId))
+      .take(MAX_SEEN_ROWS);
+    const teams = await teamsById(ctx);
+    const seasonIds = [...new Set([...entries, ...lines].map((r) => r.seasonId))];
+    const seasons = await Promise.all(seasonIds.map((id) => ctx.db.get("seasons", id)));
+    const years = new Map(seasons.flatMap((s) => (s ? [[s._id, s.year] as const] : [])));
+    const created = player.createdSeasonId ? await ctx.db.get("seasons", player.createdSeasonId) : null;
+    return {
+      origin: player.origin ?? null,
+      createdYear: created?.year ?? null,
+      games: lines.length,
+      seasons: seasonIds
+        .flatMap((id) => {
+          const year = years.get(id);
+          if (year === undefined) return [];
+          const abbrs = entries.flatMap((e) => {
+            const abbr = e.seasonId === id ? teams.get(e.teamId)?.abbr : undefined;
+            return abbr ? [abbr] : [];
+          });
+          return [{ year, teams: abbrs, games: lines.filter((l) => l.seasonId === id).length }];
+        })
+        .sort((a, b) => a.year - b.year),
+      printed: [...new Set(assignments.map((a) => a.normalizedName))],
+    };
   },
 });
 
@@ -146,15 +220,19 @@ export const nameCorrections = query({
   handler: async (ctx) => {
     await requireOwner(ctx);
     const franchise = await activeFranchise(ctx);
-    const corrections = await ctx.db
-      .query("corrections")
-      .withIndex("by_franchiseId_and_targetKey_and_usedAsExample", (q) =>
-        q.eq("franchiseId", franchise._id).eq("targetKey", "game_box_score"),
-      )
-      .order("desc")
-      .take(MAX_CORRECTIONS);
+    const corrections = await Promise.all(
+      TARGET_KEYS.map((targetKey) =>
+        ctx.db
+          .query("corrections")
+          .withIndex("by_franchiseId_and_targetKey_and_usedAsExample", (q) =>
+            q.eq("franchiseId", franchise._id).eq("targetKey", targetKey),
+          )
+          .order("desc")
+          .take(MAX_CORRECTIONS),
+      ),
+    );
     const pairs = new Map<string, { from: string; to: string }>();
-    for (const c of corrections) {
+    for (const c of corrections.flat()) {
       if (
         !c.fieldPath.endsWith(".name") ||
         typeof c.extractedValue !== "string" ||
@@ -167,7 +245,7 @@ export const nameCorrections = query({
     }
     const out = [];
     for (const { from, to } of pairs.values()) {
-      const players = await named(ctx, franchise._id, from);
+      const players = await holders(ctx, franchise._id, from);
       if (players.length === 0) continue;
       const [existing] = await named(ctx, franchise._id, to);
       out.push({ from, to, players: players.map(side), existing: existing ? side(existing) : null });
@@ -183,7 +261,7 @@ export const applyNameCorrection = mutation({
   handler: async (ctx, { from, to }) => {
     await requireOwner(ctx);
     const franchise = await activeFranchise(ctx);
-    const players = await named(ctx, franchise._id, from.trim());
+    const players = await holders(ctx, franchise._id, from);
     const [target] = await named(ctx, franchise._id, splitDisplayName(to).displayName);
     for (const player of players) {
       if (target && target._id !== player._id) await mergePlayers(ctx, player, target);

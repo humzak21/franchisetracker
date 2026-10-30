@@ -17,6 +17,7 @@ describe("applyPlayerPatch", () => {
     expect(applyPlayerPatch(player, { displayName: "  Amon-Ra  St. Brown " })).toEqual({
       ok: true,
       fields: {
+        aliasesText: "S. Diggs Stefon Diggs",
         firstName: "Amon-Ra",
         lastName: "St. Brown",
         displayName: "Amon-Ra St. Brown",

@@ -3,7 +3,7 @@
  * duplicate moves to the kept player, then the kept player's aggregates, streaks and the records
  * book are rebuilt from the combined game logs and the duplicate is deleted.
  */
-import { mergeAliases } from "../../shared/players/identity";
+import { aliasFields, mergeAliases } from "../../shared/players/identity";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { booksBuilt, startRecordBuild } from "../stats/recordBuild";
@@ -117,6 +117,12 @@ async function mergeScoringPlays(ctx: MutationCtx, from: Id<"players">, to: Id<"
   for (const play of thrown) await ctx.db.patch("scoringPlays", play._id, { passerId: to });
 }
 
+async function earlierSeason(ctx: MutationCtx, a: Id<"seasons"> | undefined, b: Id<"seasons"> | undefined) {
+  if (!a || !b) return a ?? b;
+  const [first, second] = await Promise.all([ctx.db.get("seasons", a), ctx.db.get("seasons", b)]);
+  return second && (!first || second.year < first.year) ? b : a;
+}
+
 export async function mergePlayers(ctx: MutationCtx, source: Doc<"players">, target: Doc<"players">) {
   const from = source._id;
   const to = target._id;
@@ -161,16 +167,28 @@ export async function mergePlayers(ctx: MutationCtx, source: Doc<"players">, tar
     for (const row of rows) await ctx.db.delete(table, row._id);
   }
 
+  const espnId = target.espnId ?? source.espnId;
+  const nflverseId = target.nflverseId ?? source.nflverseId;
   await ctx.db.patch("players", to, {
-    aliases: mergeAliases(target.displayName, target.aliases, [source.displayName, ...source.aliases]),
-    espnId: target.espnId ?? source.espnId,
-    nflverseId: target.nflverseId ?? source.nflverseId,
+    ...aliasFields(mergeAliases(target.displayName, target.aliases, [source.displayName, ...source.aliases])),
+    espnId,
+    espnLeague: target.espnId !== undefined ? target.espnLeague : source.espnLeague,
+    nflverseId,
+    // A real half makes the person real; the earlier sighting dates them.
+    isReal: target.isReal || espnId !== undefined || nflverseId !== undefined,
+    origin: target.origin ?? source.origin,
+    createdSeasonId: await earlierSeason(ctx, target.createdSeasonId, source.createdSeasonId),
+    headshotStorageId: target.headshotStorageId ?? source.headshotStorageId,
     birthYear: target.birthYear ?? source.birthYear,
     college: target.college ?? source.college,
     notes: [target.notes, source.notes].filter(Boolean).join("\n\n") || undefined,
   });
   await ctx.db.delete("players", from);
-  if (source.headshotStorageId && source.headshotStorageId !== target.headshotStorageId)
+  if (
+    target.headshotStorageId &&
+    source.headshotStorageId !== target.headshotStorageId &&
+    source.headshotStorageId
+  )
     await ctx.storage.delete(source.headshotStorageId);
 
   const kept = await ctx.db.get("players", to);

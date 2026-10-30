@@ -233,8 +233,13 @@ export function validateRows(spec: RowSpec, draft: RowsDraft, game?: RowGameCont
     }
     if (spec.player && row.playerId === null && (row.name || !spec.optionalPlayer)) {
       out.push(
-        row.match?.status === "ambiguous"
-          ? { path: `${path}.name`, message: `${who}: choose which player this is`, severity: "warning" }
+        row.match?.status === "ambiguous" && !row.confirmedNew
+          ? {
+              path: `${path}.name`,
+              message: `${who}: choose which player this is`,
+              // An accepted row would otherwise create a player nobody asked for.
+              severity: spec.optionalPlayer ? "warning" : "error",
+            }
           : {
               path: `${path}.name`,
               message: spec.optionalPlayer

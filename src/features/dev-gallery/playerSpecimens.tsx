@@ -11,6 +11,7 @@ import { JumpLinks } from "@/components/layout/JumpLinks";
 import { MatchCandidate } from "@/components/player/MatchCandidate";
 import { MovePlayerSheet } from "@/components/player/MovePlayerSheet";
 import { PlayerCard } from "@/components/player/PlayerCard";
+import { SeenIn } from "@/components/player/SeenIn";
 import { Button } from "@/components/ui/button";
 import { BUF, KC, NE, PLAYERS } from "./fixtures";
 import type { Specimen } from "./specimens";
@@ -183,6 +184,25 @@ export const PLAYER_SPECIMENS: Specimen[] = [
           }}
         />
       </div>
+    ),
+  },
+  {
+    id: "seenin",
+    name: "SeenIn",
+    note: "Everywhere a player has turned up: origin, seasons and games, how screens printed the name. Used to judge a merge.",
+    render: () => (
+      <SeenIn
+        seen={{
+          origin: "draft",
+          createdYear: 2028,
+          games: 37,
+          seasons: [
+            { year: 2028, teams: ["NE"], games: 17 },
+            { year: 2029, teams: ["NE", "BUF"], games: 20 },
+          ],
+          printed: ["m hawkins"],
+        }}
+      />
     ),
   },
   {

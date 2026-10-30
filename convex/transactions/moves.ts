@@ -87,8 +87,8 @@ export const save = mutation({
       throw invalid("That move is in another franchise");
     if (previous) await undoMove(ctx, previous);
 
-    const playersIn = await resolvePeople(ctx, franchise._id, season.year, input.playersIn);
-    const playersOut = await resolvePeople(ctx, franchise._id, season.year, input.playersOut);
+    const playersIn = await resolvePeople(ctx, franchise._id, season, input.playersIn);
+    const playersOut = await resolvePeople(ctx, franchise._id, season, input.playersOut);
     const ids = [...playersIn, ...playersOut].map((p) => p.player._id);
     if (new Set(ids).size !== ids.length) throw invalid("A player can only be in a move once");
 

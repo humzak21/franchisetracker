@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import type { FunctionReturnType } from "convex/server";
 import { afterEach, describe, expect, test } from "vitest";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -12,6 +13,21 @@ const modules = import.meta.glob("/convex/**/*.ts");
 afterEach(() => {
   delete process.env.OWNER_EMAILS;
 });
+
+/** Every page of the duplicate scan. */
+async function scan(owner: Awaited<ReturnType<typeof asOwner>>) {
+  const pairs = [];
+  let cursor: string | null = null;
+  for (;;) {
+    const result: FunctionReturnType<typeof api.players.identity.duplicates> = await owner.query(
+      api.players.identity.duplicates,
+      { paginationOpts: { cursor, numItems: 5 } },
+    );
+    pairs.push(...result.page);
+    if (result.isDone) return pairs;
+    cursor = result.continueCursor;
+  }
+}
 
 async function seeded() {
   const t = convexTest(schema, modules);
@@ -57,7 +73,7 @@ describe("players/identity", () => {
     const { owner, id, duplicate, season } = await seeded();
     const maye = id("Drake Maye");
     const dupe = await duplicate("Drake Maey");
-    const pairs = await owner.query(api.players.identity.duplicates, {});
+    const pairs = await scan(owner);
     expect(pairs.some((p) => p.captured.playerId === dupe && p.match.playerId === maye)).toBe(true);
 
     await owner.mutation(api.players.identity.merge, { sourceId: dupe, targetId: maye });
@@ -68,7 +84,7 @@ describe("players/identity", () => {
     expect(log.filter((g) => g.weekKey === "w2")).toHaveLength(1);
     expect(log).toHaveLength(5);
     await expect(owner.query(api.players.player.get, { playerId: dupe })).rejects.toThrow(/not found/);
-    expect(await owner.query(api.players.identity.duplicates, {})).toEqual([]);
+    expect(await scan(owner)).toEqual([]);
   });
 
   test("merging two distinct imported players is refused", async () => {

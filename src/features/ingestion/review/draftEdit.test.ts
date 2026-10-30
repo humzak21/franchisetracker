@@ -1,7 +1,17 @@
 import { validateDraft } from "@shared/ingestion/targets";
 import { describe, expect, it } from "vitest";
 import type { BoxScoreDraft, RowTargetDraft, TeamStatsDraft } from "@shared/ingestion/types";
-import { attentionItems, choosePlayerAt, fieldLabel, getAt, parseStat, setAt } from "./draftEdit";
+import {
+  attentionItems,
+  choosePlayerAt,
+  confirmNewLines,
+  fieldLabel,
+  getAt,
+  parseStat,
+  pickerContext,
+  setAt,
+  undecidedNewLines,
+} from "./draftEdit";
 
 const draft: BoxScoreDraft = {
   target: "game_box_score",
@@ -156,5 +166,67 @@ describe("combined game review", () => {
     // Changing course to a plain new player drops the ESPN id.
     const plain = choosePlayerAt(prospect, "rows.128", { kind: "new", name: "Marcellous Hawkins" });
     expect(plain.rows[0]?.values).not.toHaveProperty("espnId");
+  });
+});
+
+describe("deciding on a name", () => {
+  const undecided: BoxScoreDraft = {
+    ...draft,
+    lines: [
+      {
+        id: "lv-a",
+        teamAbbr: "LV",
+        name: "A. Newman",
+        position: "WR",
+        stats: { rec: 2 },
+        playerId: null,
+        match: { status: "new", candidates: [] },
+      },
+      {
+        id: "lv-b",
+        teamAbbr: "LV",
+        name: "B. Moore",
+        position: "WR",
+        stats: { rec: 1 },
+        playerId: null,
+        match: { status: "ambiguous", candidates: [{ playerId: "x", name: "Bob Moore", score: 0.8 }] },
+      },
+    ],
+  };
+
+  it("records creating a new player, and picking someone clears it", () => {
+    const created = choosePlayerAt(undecided, "lines.lv-a", { kind: "new", name: "A. Newman" });
+    expect(created.lines[0]?.confirmedNew).toBe(true);
+    const picked = choosePlayerAt(created, "lines.lv-a", { kind: "player", _id: "y", name: "Al Newman" });
+    expect(picked.lines[0]?.confirmedNew).toBeUndefined();
+  });
+
+  it("creates every unknown name at once and leaves unsettled ones to be picked", () => {
+    expect(undecidedNewLines(undecided).map((l) => l.id)).toEqual(["lv-a"]);
+    const lines = confirmNewLines(undecided).lines;
+    expect(lines.map((l) => l.confirmedNew)).toEqual([true, undefined]);
+    expect(undecidedNewLines({ ...undecided, lines })).toEqual([]);
+  });
+});
+
+describe("pickerContext", () => {
+  it("reads a line's team and position, and a row's from its values or the screen's team", () => {
+    expect(pickerContext(draft, "lines.ne-d-maye")).toEqual({ teamAbbr: "NE", position: "QB" });
+    const roster: RowTargetDraft = {
+      target: "roster_page",
+      meta: { team: "BUF" },
+      rows: [
+        {
+          id: "r1",
+          accepted: true,
+          name: "J. Allen",
+          teamAbbr: null,
+          values: { position: "QB" },
+          playerId: null,
+          match: { status: "new", candidates: [] },
+        },
+      ],
+    };
+    expect(pickerContext(roster, "rows.r1")).toEqual({ teamAbbr: "BUF", position: "QB" });
   });
 });

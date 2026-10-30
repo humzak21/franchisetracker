@@ -4,7 +4,7 @@
  */
 import type { Position } from "../domain";
 import { rangeError, type PatchResult } from "../roster/entryPatch";
-import { mergeAliases, splitDisplayName } from "./identity";
+import { aliasFields, mergeAliases, splitDisplayName } from "./identity";
 
 type Draft<T extends string> = { year: number; round: number; pick?: number; teamId?: T };
 type AgeAnchor = { age: number; year: number };
@@ -30,6 +30,7 @@ export type PlayerFields<T extends string = string> = {
   lastName: string;
   displayName: string;
   aliases: string[];
+  aliasesText?: string;
   position: Position;
   birthYear?: number;
   ageAnchor?: AgeAnchor;
@@ -87,7 +88,7 @@ function names<T extends string>(
       lastName,
       displayName: display,
       // The old name stays an alias so screenshots that still print it keep resolving.
-      ...(renamed ? { aliases: mergeAliases(display, current.aliases, [current.displayName]) } : {}),
+      ...(renamed ? aliasFields(mergeAliases(display, current.aliases, [current.displayName])) : {}),
     },
   };
 }

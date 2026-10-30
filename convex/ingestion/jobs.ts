@@ -3,8 +3,8 @@ import { v } from "convex/values";
 import { INGESTION_TARGETS, isTargetKey } from "../../shared/ingestion/targets";
 import { weekLabel } from "../../shared/domain";
 import { internal } from "../_generated/api";
-import type { Doc } from "../_generated/dataModel";
-import { internalMutation, internalQuery, type MutationCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { vDraft, vDraftWarning, vFieldConfidence, vTargetKey } from "../lib/draftValidators";
 import { activeFranchise, teamsById } from "../lib/franchise";
 import { testModeEnabled } from "../lib/owner";
@@ -12,6 +12,21 @@ import { vScalar } from "../lib/validators";
 import { MAX_FEW_SHOT } from "../../shared/ingestion/prompt";
 import { modelSettings } from "./models";
 import { isCurrentRun, setUploads } from "./sets";
+
+/** Sixteen games a week, with room for a schedule read twice. */
+const MAX_WEEK_GAMES = 40;
+
+/** Who the user's team plays that week on the league schedule, before the game itself exists. */
+async function leagueOpponent(ctx: QueryCtx, lead: Doc<"uploads">, userTeamId: Id<"teams">) {
+  const { seasonId, weekKey } = lead;
+  if (!seasonId || !weekKey) return undefined;
+  const week = await ctx.db
+    .query("leagueGames")
+    .withIndex("by_seasonId_and_weekKey", (q) => q.eq("seasonId", seasonId).eq("weekKey", weekKey))
+    .take(MAX_WEEK_GAMES);
+  const game = week.find((g) => g.homeTeamId === userTeamId || g.awayTeamId === userTeamId);
+  return game ? (game.homeTeamId === userTeamId ? game.awayTeamId : game.homeTeamId) : undefined;
+}
 
 /** Everything one extraction needs: images, target, prompt context, models and past corrections. */
 export const load = internalQuery({
@@ -21,6 +36,8 @@ export const load = internalQuery({
     v.object({
       targetKey: vTargetKey,
       seasonId: v.union(v.id("seasons"), v.null()),
+      /** The user's team and the week's scheduled opponent: who a game screen can name. */
+      gameTeams: v.array(v.string()),
       images: v.array(v.object({ storageId: v.id("_storage"), mime: v.string(), size: v.number() })),
       context: v.object({
         when: v.optional(v.string()),
@@ -63,7 +80,8 @@ export const load = internalQuery({
             )
             .first()
         : null;
-    const opponent = game?.opponentTeamId ? teams.get(game.opponentTeamId) : undefined;
+    const scheduled = game?.opponentTeamId ?? (await leagueOpponent(ctx, lead, franchise.userTeamId));
+    const opponent = scheduled ? teams.get(scheduled) : undefined;
     const season = lead.seasonId ? await ctx.db.get("seasons", lead.seasonId) : null;
     // A season screen (standings, leaders) is not about any one week.
     const weekKey =
@@ -81,6 +99,7 @@ export const load = internalQuery({
     return {
       targetKey: lead.targetKey,
       seasonId: lead.seasonId ?? null,
+      gameTeams: [userTeam.abbr, ...(opponent ? [opponent.abbr] : [])],
       images: await Promise.all(
         set.map(async (u) => ({
           storageId: u.storageId,

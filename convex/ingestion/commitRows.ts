@@ -1,4 +1,5 @@
 /** Commit for every row target, keyed by target so a new one does not typecheck until it commits. */
+import type { PlayerOrigin } from "../../shared/domain";
 import type { RowTargetKey } from "../../shared/ingestion/rows/targets";
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
@@ -51,6 +52,7 @@ export async function commitRows(
   franchise: Doc<"franchises">,
   context: DraftContext,
   draft: StoredRowsDraft,
+  origin: PlayerOrigin,
 ): Promise<RowCommitResult> {
   const game = context.gameId ? await ctx.db.get("games", context.gameId) : null;
   const seasonId = game?.seasonId ?? context.seasonId;
@@ -63,5 +65,6 @@ export async function commitRows(
     weekKey: game?.weekKey ?? context.weekKey,
     meta: draft.meta,
     rows: draft.rows.filter((r) => r.accepted),
+    origin,
   });
 }

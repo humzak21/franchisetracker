@@ -8,7 +8,7 @@ export type Scalar = string | number | boolean | null;
 export type FieldChange = { path: string; from: Scalar; to: Scalar };
 
 /** Resolution and review bookkeeping, not something the model read. */
-const SKIP = new Set(["match", "playerId", "target", "accepted"]);
+const SKIP = new Set(["match", "playerId", "target", "accepted", "confirmedNew"]);
 
 function flatten(value: unknown, path: string, out: Map<string, Scalar>) {
   if (value === null || typeof value !== "object") {

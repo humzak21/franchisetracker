@@ -12,6 +12,7 @@ import { must } from "../lib/errors";
 import { activeFranchise, playersById, MAX_SEASONS } from "../lib/franchise";
 import { headshotUrls, toTeamRef, vTeamRef } from "../lib/refs";
 import { vPosition } from "../lib/validators";
+import { searchPlayers } from "./nameSearch";
 
 const MAX_ROSTER = 150;
 const SEARCH_RESULTS = 20;
@@ -105,12 +106,7 @@ export const search = query({
     const trimmed = text.trim();
     if (trimmed.length < 2) return [];
     const franchise = await activeFranchise(ctx);
-    const players = await ctx.db
-      .query("players")
-      .withSearchIndex("search_displayName", (q) =>
-        q.search("displayName", trimmed).eq("franchiseId", franchise._id),
-      )
-      .take(SEARCH_RESULTS);
+    const players = await searchPlayers(ctx, franchise._id, trimmed, SEARCH_RESULTS);
     const urls = await headshotUrls(ctx, players);
     return await Promise.all(
       players.map(async (p) => {

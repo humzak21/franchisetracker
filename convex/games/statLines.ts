@@ -98,6 +98,8 @@ export const addLine = mutation({
           playerId: null,
           position: args.position ?? null,
           stats: args.stats as StatLine,
+          seasonId: game.seasonId,
+          origin: "manual",
         });
     if (player.franchiseId !== franchise._id) throw invalid("That player belongs to another franchise");
     const position = args.position ?? player.position;

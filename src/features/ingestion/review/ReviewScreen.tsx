@@ -59,6 +59,7 @@ export function ReviewScreen({ setKey }: { setKey: string }) {
             confidence={extraction.confidence}
             extractionNotes={extraction.warnings}
             game={game}
+            seasonId={data.season?._id ?? null}
           >
             <SplitPane
               ratio="minmax(0, 1fr) minmax(0, 1fr)"

@@ -52,6 +52,10 @@ export function manualId(taken: Iterable<string>): string {
   return `new-${n}`;
 }
 
+/** A name typed in by hand with no player picked is a new player on purpose. */
+const decided = <P extends string>(who: NewEntry<P>) =>
+  who.name && !who.playerId ? { confirmedNew: true } : {};
+
 function matchOf<P extends string>(who: NewEntry<P>): PlayerMatch<P> {
   return who.playerId && who.name
     ? { status: "matched", candidates: [{ playerId: who.playerId, name: who.name, score: 1 }] }
@@ -77,6 +81,7 @@ export function emptyRow<P extends string>(
     values,
     playerId: who.playerId ?? null,
     match: spec.player ? matchOf(who) : null,
+    ...decided(who),
   };
 }
 
@@ -93,5 +98,6 @@ export function newLine<P extends string>(
     stats: {},
     playerId: who.playerId ?? null,
     match: matchOf(who),
+    ...decided(who),
   };
 }

@@ -408,13 +408,44 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 ---
 
-## Proposed: Sprints 16 to 23
+## Sprint 16 — Identity for the created era (M)
+
+**Goal:** the app knows who everyone is for the second decade of a franchise, when nearly every player is a Madden-created one: where each player came from, whether they are real, what they are called, and which player a printed name means.
+
+- Provenance on the player, with `isReal` worked out from it, and a Settings job for players from before it was kept.
+- Names split properly everywhere a player is created; the printed form kept as an alias; aliases searchable; a fuller source upgrades a one-initial name.
+- Resolution that starts from the scheduled game, ranks active players first, leaves retired players out of the search, carries a choice forward a season, and offers the team's known players in the picker.
+- Draft classes matched to the slot's pick and to players created that season; a recommit never duplicates.
+- Commit guards: no game creates a player nobody decided on, and the weekly batch never commits a new player unseen.
+- Identity tools over every captured player, every screen's corrections, a "seen in" list, and duplicate suggestions on the player page.
+
+**Done when:** a box score in a later season can only create a player after someone says so, that player is fictional and dated, the face match no longer lists them, a draft class committed twice leaves one player per pick, a name printed "M.Hawkins" is searchable and becomes Marcellous Hawkins when a fuller screen commits, and every older player can be tidied from Settings.
+
+**As built:**
+
+- `origin` is `import`, `draft`, `screenshot` or `manual`; `roster_import` and `restore` from `PLATFORM-AUDIT.md` 2.2 A are left out. Rosters import against players the import already made, and a backup keeps each row's origin, so neither would ever be written. The sample's bundled players count as `import`.
+- `isReal` stays a stored field, set when a player is created (`shared/players/provenance.ts:derivedIsReal`) and on an ESPN match, so every reader stays one field and the owner's override stands. A draft class filed under the franchise's first season counts as real, as it holds the real rookies. Manual entry passes `manual` through `commitDraft`; moves and the game page's added lines are `manual` too, and `players/create` keeps its explicit real or fictional choice.
+- `aliasesText` feeds a second search index, `search_aliases`, instead of one combined field: the 16,000 imported players then need no rewrite to stay searchable. `aliasFields` writes both, `players/nameSearch.ts:searchPlayers` reads both, and `retired` is a filter field on each.
+- A name upgrade happens where a row has already settled on a player, in `playerFor`, so the resolver's choice or the owner's pick is the "same team" test. `nameScore` now scores a full name against a stored initial, which is what lets the resolver reach such a player. Position must still agree by group.
+- The resolver's teams are `jobs:load`'s `gameTeams` (the user's team and the scheduled opponent, from the game or `leagueGames`) plus whatever the model read. Retired players are left out of the text search only: someone on a season's roster did play that season. `resolvePlayers` moved out of `extract.ts`.
+- A carried choice comes from the season before only, and is dropped if the player has retired or this season's rosters show them gone. It scores 0.95, so it matches without counting as this season's own choice.
+- The picker's team panel is `players/search:teamRoster`, keyed by the line's team and position (`pickerContext`). It is hidden for draft picks and scoring plays.
+- Draft matching is `shared/ingestion/draftMatch.ts`. A row's slot wins if the name fits; otherwise the pool is `by_createdSeasonId`, where a name alone is never enough. `commitDraftResults` applies the slot rule again at commit, for two reads of one class reviewed side by side. The "Draft class" checklist step is Sprint 18's, with the checklist.
+- `DraftLine.confirmedNew` and `DraftRow.confirmedNew` hold the decision. Undecided game lines are validation errors, so `commitDraft` refuses them with the rest; a line with no stats is skipped at commit and needs none. Accepted rows with an ambiguous name are held the same way, which goes past the audit's game targets: the row was creating a player nobody chose. Rows that are simply new still commit, since review shows them, except in the weekly batch. Scoring plays never create a player, so theirs stay a warning.
+- The weekly awards fixture now names a sample player, so a clean batch stays ready.
+- `players/tidy` is the backfill, offered in Settings → Player identity while anyone has no origin. It walks `by_franchiseId_and_origin`, only ever turns a player fictional (one already fictional was the owner's doing), and repairs a name only if it still carries the old naive split, so a hand edit stands. **After deploying, run it once.** A restored backup from before this sprint offers it again.
+- `identity:duplicates` is paginated, newest first, and Settings checks 60 players at a time with a button for older ones: a full scan on every Settings visit would read tens of thousands of documents. `duplicatesOf` serves the player page; `seenIn` serves the player page, the Settings pair and the merge dialog through `components/player/SeenIn`.
+- A merge now keeps the earlier `createdSeasonId` and the source's `espnLeague`, makes the person real if either half was matched, and keeps a headshot only the source had.
+- Left for later: the "Week 9 vs MIA: 53 known players" line on the capture sheet (`PLATFORM-AUDIT.md` section 3) and the "how we got here" story on the player page; `seenIn` covers the facts behind them. 2.2 E and F remain Sprint 18's.
+
+---
+
+## Proposed: Sprints 17 to 23
 
 Planned after the platform audit of October 2026, not yet scheduled or built. The statistics hub plan is `docs/STATS-HUB.md`; the audit with every gap and the reasoning behind the order is `docs/PLATFORM-AUDIT.md`. When one of these is picked up, it gets a full section above with a goal, a "Done when" and, once built, its "As built" notes, and the stable behaviour moves into `FEATURES.md`.
 
 | Sprint | Theme | Size | Source |
 |---|---|---|---|
-| 16 | Identity for the created era: player provenance and a real derived `isReal`, proper name splitting and alias search, game-aware name resolution, draft class matching, commit guards for new and ambiguous names, identity tools over every player | M | `PLATFORM-AUDIT.md` 2.2 A to D, G, H |
 | 17 | Stats hub: Overview, pace columns and the Home pace line, Countdowns card, Trends view, player page Pace, Trends and Cumulative | M | `STATS-HUB.md` 8, Sprint 16 |
 | 18 | Roster truth and the season checklist: the roster page as the truth for a team and season, carry-over that ages contracts and prunes ghosts, retirements step, depth chart, roster diff, team switcher, coverage strip | M | `PLATFORM-AUDIT.md` 2.2 E, F and 3 |
 | 19 | Records and streaks depth: fastest-to and span lists, full single-game lists, team records, streak dates and new kinds, milestone timeline, imported league leaders with "where we rank", player milestones | M | `STATS-HUB.md` 8, Sprint 17 |

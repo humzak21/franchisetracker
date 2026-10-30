@@ -189,6 +189,7 @@ export const seedFixtures = internalMutation({
         college: p.college,
         ageAnchor: { age: p.age, year: SAMPLE_START_YEAR },
         isReal: true,
+        origin: "import",
         retired: false,
         aliases: [],
       });

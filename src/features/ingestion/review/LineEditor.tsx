@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/cn";
+import { needsDecision } from "@shared/ingestion/validate";
 import { choosePlayerAt } from "./draftEdit";
 import { NumberField } from "./NumberField";
 import { PlayerPickerSheet } from "./PlayerPickerSheet";
@@ -56,8 +57,12 @@ export function LineEditor({ line, teams }: { line: Line; teams: readonly string
                 <>→ {chosen.name}</>
               ) : line.playerId ? (
                 "→ Chosen player"
-              ) : line.match.status === "ambiguous" ? (
-                <span className="text-warn">Choose who this is</span>
+              ) : needsDecision(line) ? (
+                <span className="text-warn">
+                  {line.match.status === "ambiguous"
+                    ? "Choose who this is"
+                    : "Pick a player or create as new"}
+                </span>
               ) : (
                 <span className="inline-flex items-center gap-1">
                   <UserPlus className="size-3" /> New player
@@ -67,6 +72,16 @@ export function LineEditor({ line, teams }: { line: Line; teams: readonly string
           </span>
           <ChevronRight className="ml-auto size-4 shrink-0 text-subtle-foreground" />
         </button>
+        {needsDecision(line) && (
+          <Button
+            size="sm"
+            variant="outline"
+            aria-label={`Create ${line.name} as new`}
+            onClick={() => update((d) => choosePlayerAt(d, base, { kind: "new", name: line.name }))}
+          >
+            <UserPlus /> Create as new
+          </Button>
+        )}
         <Segmented
           size="sm"
           aria-label={`${line.name} team`}
@@ -125,6 +140,7 @@ export function LineEditor({ line, teams }: { line: Line; teams: readonly string
       <PlayerPickerSheet
         open={picking}
         onOpenChange={setPicking}
+        base={base}
         printedName={line.name}
         match={line.match}
         value={line.playerId}

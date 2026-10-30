@@ -2,6 +2,7 @@ import { useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useEffect, useState } from "react";
 import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 import { useQuery } from "@/lib/convex/useQuery";
 import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
 import { useLastDefined } from "@/lib/hooks/useLastDefined";
@@ -30,6 +31,21 @@ export function usePlayerSearch(text: string, enabled: boolean) {
     players: active ? (kept ?? []) : [],
     searching: active && (query !== typed || live === undefined),
   };
+}
+
+/** Who a team has at a position this season, offered before anything is typed. */
+export function useTeamRoster(
+  seasonId: Id<"seasons"> | null,
+  teamAbbr: string | null,
+  position: string | null,
+  enabled: boolean,
+) {
+  return (
+    useQuery(
+      api.players.search.teamRoster,
+      enabled && seasonId && teamAbbr ? { seasonId, teamAbbr, position: position ?? undefined } : "skip",
+    ) ?? []
+  );
 }
 
 /** College football players on ESPN matching typed text, for a draft pick that is a real prospect. */

@@ -4,7 +4,7 @@
  */
 import { RAW_STATS, type RawStatKey, type StatLine } from "../stats/registry";
 import type { TeamStatKey, TeamStatLine } from "../stats/teamRegistry";
-import type { BoxScoreDraft, DraftWarning, GameHeader, TeamStatsDraft } from "./types";
+import type { BoxScoreDraft, DraftLine, DraftWarning, GameHeader, TeamStatsDraft } from "./types";
 
 /** [part, whole]: the first can never exceed the second. */
 const PLAYER_BOUNDS: [RawStatKey, RawStatKey][] = [
@@ -74,6 +74,13 @@ function minimumPoints(lines: StatLine[]): number {
   return tds * 6 + total("xpm") + total("fgm") * 3 + total("safeties") * 2;
 }
 
+/**
+ * A line nobody has decided on: it would create a player, and no one said to. A line with no
+ * stats is skipped at commit, so it needs no decision.
+ */
+export const needsDecision = (line: Pick<DraftLine, "playerId" | "confirmedNew" | "stats">) =>
+  line.playerId === null && !line.confirmedNew && Object.keys(line.stats).length > 0;
+
 export function validateBoxScore(draft: BoxScoreDraft): DraftWarning[] {
   const out = validateHeader(draft.game, true);
   const teams = [draft.game.homeAbbr, draft.game.awayAbbr].filter((t): t is string => t !== null);
@@ -90,11 +97,14 @@ export function validateBoxScore(draft: BoxScoreDraft): DraftWarning[] {
     if (Object.keys(line.stats).length === 0) {
       out.push({ path, message: `${line.name} has no stats and will be skipped`, severity: "info" });
     }
-    if (line.playerId === null && line.match.status === "ambiguous") {
+    if (needsDecision(line)) {
       out.push({
         path: `${path}.name`,
-        message: `${line.name}: choose which player this is`,
-        severity: "warning",
+        message:
+          line.match.status === "ambiguous"
+            ? `${line.name}: choose which player this is`
+            : `${line.name}: pick a player or create them as new`,
+        severity: "error",
       });
     } else if (line.playerId === null) {
       out.push({

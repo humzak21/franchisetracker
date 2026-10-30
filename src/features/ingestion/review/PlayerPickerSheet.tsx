@@ -1,18 +1,21 @@
 import { Search, UserPlus } from "lucide-react";
 import { useState } from "react";
 import type { Id } from "@convex/_generated/dataModel";
-import { normalizePosition } from "@shared/domain";
+import { normalizePosition, ROSTER_STATUS_LABELS } from "@shared/domain";
 import type { PlayerMatch } from "@shared/ingestion/types";
 import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { Input } from "@/components/ui/input";
-import type { PlayerChoice } from "./draftEdit";
+import { getAt, pickerContext, type PlayerChoice } from "./draftEdit";
 import { PickerGroup } from "./PickerGroup";
 import { PickerOption } from "./PickerOption";
-import { usePlayerSearch, useProspectSearch } from "./playerSearch";
+import { usePlayerSearch, useProspectSearch, useTeamRoster } from "./playerSearch";
+import { useReviewDraft } from "./reviewDraft";
 
 type PlayerPickerSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Where the draft keeps this line or row, which says whose roster to offer. */
+  base: string;
   printedName: string;
   match: PlayerMatch<Id<"players">>;
   value: Id<"players"> | null;
@@ -24,12 +27,14 @@ type PlayerPickerSheetProps = {
 };
 
 /**
- * Who a printed name is: the rosters' best guesses, a search of every player (and of college
- * football for a draft pick), or a new player named as printed or as typed.
+ * Who a printed name is: the rosters' best guesses, the team's known players at that position, a
+ * search of every player (and of college football for a draft pick), or a new player named as
+ * printed or as typed.
  */
 export function PlayerPickerSheet({
   open,
   onOpenChange,
+  base,
   printedName,
   match,
   value,
@@ -39,8 +44,17 @@ export function PlayerPickerSheet({
 }: PlayerPickerSheetProps) {
   const [text, setText] = useState("");
   const typed = text.trim();
+  const { draft, seasonId } = useReviewDraft();
+  const { teamAbbr, position } = pickerContext(draft, base);
+  // On a game, no player yet is a question, not a choice of a new player.
+  const newChosen = !base.startsWith("lines.") || getAt(draft, `${base}.confirmedNew`) === true;
   const franchise = usePlayerSearch(text, open);
   const college = useProspectSearch(text, open && prospects);
+  const offered = new Set(match.candidates.map((c) => c.playerId));
+  // A draft pick is new to the league, and a scoring play's choices are the box score's.
+  const roster = useTeamRoster(seasonId, teamAbbr, position, open && !prospects && !noNewPlayers).filter(
+    (p) => !offered.has(p._id),
+  );
   const choose = (choice: PlayerChoice) => {
     onChange(choice);
     onOpenChange(false);
@@ -80,7 +94,7 @@ export function PlayerPickerSheet({
             <PickerOption
               icon={<UserPlus className="size-4 shrink-0 text-primary" />}
               label={typed ? `Keep “${printedName}” as a new player` : "Add as a new player"}
-              selected={value === null}
+              selected={value === null && newChosen}
               onClick={() => choose({ kind: "new", name: printedName })}
             />
           </ul>
@@ -94,6 +108,30 @@ export function PlayerPickerSheet({
                 detail={noNewPlayers ? "In the box score" : `${Math.round(c.score * 100)}% match`}
                 selected={value === c.playerId}
                 onClick={() => choose({ kind: "player", _id: c.playerId, name: c.name })}
+              />
+            ))}
+          </PickerGroup>
+        )}
+        {roster.length > 0 && (
+          <PickerGroup
+            label={`${teamAbbr} ${position ? `at ${position}` : "roster"}`}
+            searching={false}
+            empty=""
+            count={roster.length}
+          >
+            {roster.map((p) => (
+              <PickerOption
+                key={p._id}
+                label={p.displayName}
+                position={p.position}
+                detail={[
+                  p.jersey === null ? null : `#${p.jersey}`,
+                  p.status === "active" ? null : ROSTER_STATUS_LABELS[p.status],
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+                selected={value === p._id}
+                onClick={() => choose({ kind: "player", _id: p._id, name: p.displayName })}
               />
             ))}
           </PickerGroup>

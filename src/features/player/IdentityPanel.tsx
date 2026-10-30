@@ -1,9 +1,12 @@
 import { useMutation } from "convex/react";
 import { useState, type ReactNode } from "react";
 import { api } from "@convex/_generated/api";
+import { SeenIn } from "@/components/player/SeenIn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
+import { useQuery } from "@/lib/convex/useQuery";
 import { errorMessage } from "@/lib/errors";
 import { MergeDuplicate } from "./MergeDuplicate";
 import type { PlayerPage } from "./types";
@@ -21,13 +24,14 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
 }
 
 /**
- * Aliases, real or fictional, and merging a duplicate in. Renaming is in the player's Edit sheet,
- * which keeps the old name as an alias.
+ * Where a player has been seen, aliases, real or fictional, and merging a duplicate in. Renaming is
+ * in the player's Edit sheet, which keeps the old name as an alias.
  */
 export function IdentityPanel({ page }: { page: PlayerPage }) {
   const { player } = page;
   const setAliases = useMutation(api.players.identity.setAliases);
   const setReal = useMutation(api.players.identity.setReal);
+  const seen = useQuery(api.players.identity.seenIn, { playerId: player._id });
   const [aliases, setAliasText] = useState(player.aliases.join(", "));
   const [error, setError] = useState<string | null>(null);
   const attempt = (fn: () => Promise<unknown>) => {
@@ -37,6 +41,9 @@ export function IdentityPanel({ page }: { page: PlayerPage }) {
 
   return (
     <div className="@container space-y-5 rounded-xl border border-border bg-surface p-4">
+      <Row label="Seen in" hint="How they got here and where they have turned up.">
+        {seen ? <SeenIn seen={seen} /> : <Skeleton className="h-12 rounded-lg" />}
+      </Row>
       <Row label="Aliases" hint="How screenshots print the name, comma separated.">
         <form
           className="flex gap-2"
@@ -51,7 +58,7 @@ export function IdentityPanel({ page }: { page: PlayerPage }) {
           </Button>
         </form>
       </Row>
-      <Row label="Player" hint="Fictional players get a monogram card.">
+      <Row label="Player" hint="Worked out on arrival. Fictional players get a monogram card.">
         <Segmented
           size="sm"
           aria-label="Real or fictional"

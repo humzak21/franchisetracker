@@ -23,10 +23,16 @@ const MAX_BATCH = 30;
 /** A season's weekly awards uploads, retakes and old sets included. */
 const MAX_UPLOADS = 200;
 
-/** Read with every row accepted and nothing to check, so it commits without a review. */
+/**
+ * Read with every row accepted, every winner known and nothing to check, so it commits without a
+ * review. A row that would create a player waits for someone to look at it.
+ */
 function needsNoReview(draft: StoredDraft | null): boolean {
   if (!draft || !isRowDraft(draft) || draft.rows.length === 0) return false;
-  return draft.rows.every((r) => r.accepted) && validateDraft(draft).every((w) => w.severity === "info");
+  return (
+    draft.rows.every((r) => r.accepted && r.playerId !== null) &&
+    validateDraft(draft).every((w) => w.severity === "info")
+  );
 }
 
 const vBatchSet = v.object({

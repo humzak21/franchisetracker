@@ -232,7 +232,7 @@ describe("row targets", () => {
         .sort(),
     ).toEqual([
       ["AllPro1", null, "C. Gonzalez"],
-      ["DPOW", "w6", "M. Parsons"],
+      ["DPOW", "w6", "C. Gonzalez"],
       ["MVP", null, "D. Maye"],
       ["OPOW", "w6", "D. Maye"],
     ]);

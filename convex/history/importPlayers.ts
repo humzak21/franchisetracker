@@ -62,6 +62,7 @@ function bio(p: Imported, teams: Map<string, Id<"teams">>) {
     undrafted: p.undrafted,
     nflverseId: p.nflverseId,
     isReal: true,
+    origin: "import" as const,
     retired: !p.active,
   });
 }

@@ -18,6 +18,7 @@ import {
   GOAL_TYPES,
   NEED_PRIORITIES,
   PAT_RESULTS,
+  PLAYER_ORIGINS,
   PLAYOFF_RESULTS,
   PLAYOFF_ROUNDS,
   POSITION_GROUPS,
@@ -88,6 +89,7 @@ export const vPosition = literals(POSITIONS);
 export const vPositionGroup = literals(POSITION_GROUPS);
 export const vAcquisitionType = literals(ACQUISITION_TYPES);
 export const vRosterStatus = literals(ROSTER_STATUSES);
+export const vPlayerOrigin = literals(PLAYER_ORIGINS);
 export const vDevTrait = literals(DEV_TRAITS);
 export const vTransactionType = literals(TRANSACTION_TYPES);
 export const vTransactionPhase = literals(TRANSACTION_PHASES);

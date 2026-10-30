@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { SAMPLE_START_YEAR } from "../dev/fixtures";
+import { confirmNew } from "../lib/testDraft";
 import { asOwner } from "../lib/testOwner";
 import schema from "../schema";
 
@@ -65,7 +66,7 @@ describe("season highs", () => {
     const draft = (await owner.query(api.ingestion.review.get, { setKey: setKey! })).extraction!.draft;
     if (draft.target !== "game_box_score") throw new Error("wrong target");
     draft.lines.find((l) => l.name === "S. Diggs")!.stats.recYds = 200;
-    await owner.mutation(api.ingestion.review.commit, { setKey: setKey!, draft });
+    await owner.mutation(api.ingestion.review.commit, { setKey: setKey!, draft: confirmNew(draft) });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
 
     const game = await t.run((ctx) =>

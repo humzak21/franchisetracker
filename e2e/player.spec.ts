@@ -21,6 +21,14 @@ test("player page shows the hero, career stats with totals and roster history", 
   await expectNoHorizontalOverflow(page);
 });
 
+test("the identity panel says where a player has been seen", async ({ page }) => {
+  await openDiggs(page);
+  const identity = page.locator("#identity");
+  await expect(identity.getByText("Seen in", { exact: true })).toBeVisible();
+  await expect(identity.getByText("NFL history import")).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
 test("player notes save on blur", async ({ page }) => {
   await openDiggs(page);
   const notes = page.getByLabel("Scouting notes");

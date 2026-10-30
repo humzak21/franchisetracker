@@ -12,6 +12,8 @@ export type NameCandidate<P extends string = string> = {
   aliases: readonly string[];
   teamAbbr?: string | null;
   position?: string | null;
+  /** Released or traded away this season: still possible, but the last place to look. */
+  inactive?: boolean;
 };
 
 const SUFFIXES = new Set(["jr", "sr", "ii", "iii", "iv", "v"]);
@@ -83,9 +85,20 @@ export function nameScore(printed: string, known: { first: string; last: string;
   const pFirst = p.length > 1 ? p.slice(0, -1).join("") : "";
   const lastSim = similarity(pLast, last);
   if (pFirst === "") return lastSim * 0.85;
-  // "D Maye" or "DJ Moore": initials against the first name.
-  const firstSim = pFirst.length <= 2 ? (first.startsWith(pFirst) ? 1 : 0.4) : similarity(pFirst, first);
-  return Math.min(1, lastSim * 0.65 + firstSim * 0.35) * (pFirst.length <= 2 ? 0.95 : 1);
+  // "D Maye" or "DJ Moore": initials against the first name. A player known only by an initial
+  // works the other way round: "Marcellous Hawkins" against a stored "M. Hawkins".
+  const initials = pFirst.length <= 2 || first.length === 1;
+  const firstSim =
+    pFirst.length <= 2
+      ? first.startsWith(pFirst)
+        ? 1
+        : 0.4
+      : first.length === 1
+        ? pFirst.startsWith(first)
+          ? 1
+          : 0.4
+        : similarity(pFirst, first);
+  return Math.min(1, lastSim * 0.65 + firstSim * 0.35) * (initials ? 0.95 : 1);
 }
 
 const MATCH_SCORE = 0.9;
@@ -110,7 +123,8 @@ export function matchPlayer<P extends string>(
       }),
     ];
     let score = Math.max(...names.map((n) => nameScore(printed, n)));
-    if (hint.teamAbbr && c.teamAbbr === hint.teamAbbr) score += 0.04;
+    if (c.inactive) score -= 0.04;
+    else if (hint.teamAbbr && c.teamAbbr === hint.teamAbbr) score += 0.04;
     if (hint.position && c.position === hint.position) score += 0.02;
     if (score >= CANDIDATE_FLOOR)
       scored.push({ playerId: c.playerId, name: c.displayName, score: Math.min(1, score) });
