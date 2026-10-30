@@ -27,7 +27,13 @@ export const load = internalQuery({
         userTeam: v.string(),
         opponent: v.optional(v.string()),
       }),
-      teams: v.object({ home: v.string(), away: v.string(), userIsHome: v.boolean() }),
+      teams: v.object({
+        home: v.string(),
+        away: v.string(),
+        userIsHome: v.boolean(),
+        homeScore: v.union(v.number(), v.null()),
+        awayScore: v.union(v.number(), v.null()),
+      }),
       models: v.object({
         primary: v.string(),
         fallback: v.string(),
@@ -91,6 +97,8 @@ export const load = internalQuery({
         home: userIsHome ? userTeam.abbr : (opponent?.abbr ?? "MIA"),
         away: userIsHome ? (opponent?.abbr ?? "MIA") : userTeam.abbr,
         userIsHome,
+        homeScore: game?.homeScore ?? null,
+        awayScore: game?.awayScore ?? null,
       },
       models: modelSettings(franchise),
       corrections: corrections.map((c) => ({

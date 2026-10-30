@@ -13,6 +13,7 @@ import { mutation, query, type QueryCtx } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { invalid, must } from "../lib/errors";
 import { ownGame } from "./access";
+import { gamePlays, quartersFromPlays } from "./playRows";
 import { activeFranchise, teamsById, MAX_SEASONS } from "../lib/franchise";
 import {
   vGameRow,
@@ -70,6 +71,8 @@ export const get = query({
         weather: v.union(v.string(), v.null()),
         neutralSite: v.boolean(),
         lineScore: v.union(vLineScore, v.null()),
+        /** The quarters were worked out from the scoring plays, so there is nothing to type. */
+        quartersFromPlays: v.boolean(),
       }),
       stars: v.array(vStarView),
       userRecordBefore: vWlt,
@@ -113,6 +116,7 @@ export const get = query({
         weather: game.weather ?? null,
         neutralSite: game.neutralSite ?? false,
         lineScore: game.lineScore ?? null,
+        quartersFromPlays: quartersFromPlays(game, await gamePlays(ctx, game._id)),
       },
       stars: starViews(game, players),
       userRecordBefore: recordBefore(games, game.weekKey),
@@ -153,6 +157,9 @@ export const setLineScore = mutation({
   handler: async (ctx, { gameId, lineScore }) => {
     await requireOwner(ctx);
     const { game } = await ownGame(ctx, gameId);
+    if (quartersFromPlays(game, await gamePlays(ctx, gameId))) {
+      throw invalid("These quarters come from the game's scoring plays; fix the plays instead");
+    }
     if (lineScore) {
       const error = lineScoreError(lineScore, {
         home: game.homeScore ?? null,

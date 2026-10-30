@@ -23,9 +23,11 @@ import {
 import { commitRecordsList } from "./commitRecordRows";
 import type { RowCommit, RowCommitResult, StoredRowsDraft } from "./rowCommit";
 import { commitLeagueSchedule } from "./commitSchedule";
+import { commitScoringPlays } from "./commitScoringPlays";
 import { commitTeamHistory } from "./commitTeamHistory";
 
 const COMMITS: Record<RowTargetKey, (ctx: MutationCtx, commit: RowCommit) => Promise<RowCommitResult>> = {
+  scoring_plays: commitScoringPlays,
   season_player_stats: commitSeasonStats,
   league_leaders: commitLeagueLeaders,
   records_list: commitRecordsList,
@@ -57,6 +59,7 @@ export async function commitRows(
   return await COMMITS[draft.target](ctx, {
     franchise,
     season,
+    gameId: game?._id,
     weekKey: game?.weekKey ?? context.weekKey,
     meta: draft.meta,
     rows: draft.rows.filter((r) => r.accepted),

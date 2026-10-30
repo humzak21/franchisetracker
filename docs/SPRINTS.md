@@ -351,13 +351,40 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 ---
 
-## Proposed: Sprints 14 to 23
+## Sprint 14 — Scoring plays (M)
+
+**Goal:** a game's scoring summary becomes a play list, so the app knows when things happened: quarter scores fill themselves, the game-winner has a name, and a missing name takes one tap to fix.
+
+- `scoring_plays`, the first row target tied to a game, read over several screens and merged by quarter, clock and team.
+- `scoringPlays` table, committed as a set per game; `lineScore` derived from it.
+- Checks against the game: each play worth what its kind says, the running score, the final, the box score's touchdowns.
+- A row with no name assigned from the box score, in review or on the game page, without ever blocking a commit.
+- Scoring summary and `ScoreWorm` on game detail, period and clock marks in the player game log, scoring entries in records, milestones and team records.
+
+**Done when:** a game's scoring summary goes from photos to a play list in review, a row with a missing name is assigned in one tap to the only receiver with a touchdown, the quarter scores fill themselves, and the game page says who had the game-winning score.
+
+**As built:**
+
+- `shared/ingestion/rows/scoringSpec.ts` is the target; `RowSpec.optionalPlayer` lets a row stand with no player and `RowSpec.order` keeps rows in game order. `RowSpec.rules` now also receives the game (`RowGameContext`, null when there is none, undefined until known), and `validateDraft` passes it on. Review reads it live (`games/scoring:reviewContext`) rather than from the draft, so a game log committed while the summary waits for review counts; commit reads it again and enforces the same errors.
+- Wrong points, a score that does not add up and a last play that misses the final are errors. A box score disagreement is a warning; a missing name is a warning that never blocks.
+- A scoring row never creates a player: a printed name that matches nobody stays as `rawName`, since "K. Boutte" alone is too thin to know a new person by. The review picker has no new-player option here.
+- `ingestion/commitScoringPlays` rewrites the game's plays as a set, keeps a player assigned on the game page through a re-read of the same play, and fills in a final the game does not have yet. A week with no game refuses the commit.
+- `passer` is stored flat (`passerId`, `passerName`) rather than as the nested ref `STATS-HUB.md` 4.10 sketched, so a player merge finds a player's passes by index. The index is `by_playerId_and_seasonId`, which the player game log reads, in place of `by_playerId`.
+- Quarters worked out from plays cannot be typed over: `games/schedule:setLineScore` refuses and the editor is hidden, with "From the scoring plays" under the table. Editing the game's final stops the quarters standing, and typing works again.
+- `scoringBoards` holds the scoring records (`shared/stats/scoringBoards.ts`): the longest score of each kind, most touchdowns in a quarter, game-winners and connections by season and career, and for the team the best quarter, the largest comeback and the largest lead lost. They show under the books on Stats → Records. The team lists live here until Sprint 15's `teamRecords`. Boards are rebuilt from the plays, so they are not backed up; plays are.
+- Milestones `first_td`, `game_winner` and `connection` (10, 25, 50, 75 and 100 touchdowns) come from `stats/scoring:afterPlays`, which rebuilds on every change, so a game-winner that changes hands moves its milestone.
+- The game page asks for a player on a nameless play, or on the user's own unmatched scorer. An opponent's printed name stands, since that box score is often not captured.
+- The stars editor lists the game-winner first.
+- Left for the sprints that show them: `playerScoring`, `kicking` and `teamScoring` in `shared/stats/scoring.ts`, `stats/scoring:player` and `stats/scoring:team`, and the Trends and Overview uses in `STATS-HUB.md` 4.10. Nothing reads them yet.
+
+---
+
+## Proposed: Sprints 15 to 23
 
 Planned after the platform audit of October 2026, not yet scheduled or built. The statistics hub plan is `docs/STATS-HUB.md`; the audit with every gap and the reasoning behind the order is `docs/PLATFORM-AUDIT.md`. When one of these is picked up, it gets a full section above with a goal, a "Done when" and, once built, its "As built" notes, and the stable behaviour moves into `FEATURES.md`.
 
 | Sprint | Theme | Size | Source |
 |---|---|---|---|
-| 14 | Scoring plays: the `scoring_plays` target for Madden's scoring summary screen, a `scoringPlays` table, player assignment for lines the glitch leaves nameless (candidates ranked by the touchdown the box score shows), quarter scores derived from the plays, a scoring summary and score worm on game detail, game-winning scores, connections and the longest touchdowns in records and milestones | M | `STATS-HUB.md` 4.10 and Sprint 14 |
 | 15 | Stats engines and storage: running totals, marks ("fastest to"), best N-game spans, pace, year over year, splits, quarter scoring, team records, streaks with dates | M | `STATS-HUB.md` 8, Sprint 15 |
 | 16 | Identity for the created era: player provenance and a real derived `isReal`, proper name splitting and alias search, game-aware name resolution, draft class matching, commit guards for new and ambiguous names, identity tools over every player | M | `PLATFORM-AUDIT.md` 2.2 A to D, G, H |
 | 17 | Stats hub: Overview, pace columns and the Home pace line, Countdowns card, Trends view, player page Pace, Trends and Cumulative | M | `STATS-HUB.md` 8, Sprint 16 |
@@ -372,6 +399,6 @@ Planned after the platform audit of October 2026, not yet scheduled or built. Th
 
 ## Later (not scheduled)
 
-- Drive charts, if a Madden screen provides drive data cleanly (scoring plays are proposed Sprint 14).
+- Drive charts, if a Madden screen provides drive data cleanly (scoring plays are Sprint 14).
 - Shareable read-only season recap pages.
 - Live Text on-device OCR as a pre-pass to improve digit accuracy.

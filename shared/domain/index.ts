@@ -5,4 +5,5 @@ export * from "./coaching";
 export * from "./goals";
 export * from "./positions";
 export * from "./roster";
+export * from "./scoring";
 export * from "./teams";

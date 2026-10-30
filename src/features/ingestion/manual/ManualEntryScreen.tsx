@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/misc";
 import { useQuery } from "@/lib/convex/useQuery";
 import { DraftEditor } from "../review/DraftEditor";
 import { ReviewDraftProvider, type ReviewDraft } from "../review/reviewDraft";
+import { useRowGame } from "../review/useRowGame";
 import { ManualActions } from "./ManualActions";
 
 const noteClass =
@@ -25,6 +26,7 @@ export function ManualEntryScreen({ draftId }: { draftId: Id<"manualDrafts"> }) 
   const entry = useQuery(api.ingestion.manual.get, { draftId });
   const saveDraft = useMutation(api.ingestion.manualCommit.saveDraft);
   const save = useCallback((draft: ReviewDraft) => saveDraft({ draftId, draft }), [saveDraft, draftId]);
+  const game = useRowGame(entry?.targetKey, entry?.game?._id);
   const back = { to: "/inbox", label: "Inbox" };
 
   if (entry === undefined) {
@@ -61,7 +63,9 @@ export function ManualEntryScreen({ draftId }: { draftId: Id<"manualDrafts"> }) 
       ? entry.game?.hasBoxScore || entry.game?.hasTeamStats
       : entry.targetKey === "game_box_score"
         ? entry.game?.hasBoxScore
-        : entry.targetKey === "team_game_stats" && entry.game?.hasTeamStats;
+        : entry.targetKey === "scoring_plays"
+          ? entry.game?.hasScoringPlays
+          : entry.targetKey === "team_game_stats" && entry.game?.hasTeamStats;
 
   return (
     <Page title={target.label} eyebrow={eyebrow} back={back}>
@@ -77,6 +81,7 @@ export function ManualEntryScreen({ draftId }: { draftId: Id<"manualDrafts"> }) 
             initial={entry.draft}
             confidence={[]}
             extractionNotes={[]}
+            game={game}
           >
             {replaces && (
               <p role="status" className={`${noteClass} border-warn/40 bg-warn/10`}>
@@ -86,7 +91,9 @@ export function ManualEntryScreen({ draftId }: { draftId: Id<"manualDrafts"> }) 
                   ? "game stats"
                   : entry.targetKey === "game_box_score"
                     ? "a box score"
-                    : "team stats"}
+                    : entry.targetKey === "scoring_plays"
+                      ? "a scoring summary"
+                      : "team stats"}
                 {entry.game?.opponentAbbr ? ` against ${entry.game.opponentAbbr}` : ""}. Committing replaces
                 it.
               </p>

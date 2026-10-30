@@ -14,6 +14,7 @@ import {
 import { leagueTeamStatsSpec } from "./leagueTeamSpec";
 import { recordsListSpec } from "./recordsSpec";
 import { leagueScheduleSpec } from "./scheduleSpec";
+import { scoringPlaysSpec } from "./scoringSpec";
 import { teamHistorySpec } from "./teamHistorySpec";
 import { leagueLeadersSpec, seasonPlayerStatsSpec, standingsSpec, teamSeasonStatsSpec } from "./statSpecs";
 import type { RowSpec } from "./types";
@@ -36,6 +37,21 @@ export type RowTargetDef = {
 const rows = (def: Omit<RowTargetDef, "kind">): RowTargetDef => ({ kind: "rows", ...def });
 
 export const ROW_TARGETS = {
+  scoring_plays: rows({
+    label: "Scoring summary",
+    goesTo: "Schedule → the game's scoring summary and quarter scores",
+    description: "Every score of one game: quarter, clock, team, the play and the score after it",
+    scope: "game",
+    multiImage: true,
+    instructions: [
+      "This is Madden's scoring summary screen for one game: every score in order, each with the quarter, the time left, the team, the play and the score after it. A long game runs over two screens.",
+      "Return one row per score. `team` is the team that scored, from the row's logo or abbreviation.",
+      'Read the play line ("D. Maye 15 yd pass to K. Boutte (A. Borregales kick)") into its parts. `name` is the player who scored: the receiver on a pass, the runner on a run, the kicker on a field goal, the defender or returner on a return. The thrower goes in `passer`, never in `name`. The parenthesis gives `pat`.',
+      "The screen sometimes drops a player's name from a line. Leave `name` null when it does, and never fill one in from another line.",
+      "Copy `description` exactly as printed. Set `home_score` and `away_score` from the score after the play.",
+    ].join(" "),
+    spec: scoringPlaysSpec,
+  }),
   season_player_stats: rows({
     label: "Season stats",
     goesTo: "Stats → League → Players (every team); your team's also in Stats → Reconcile",

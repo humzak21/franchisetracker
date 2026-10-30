@@ -272,16 +272,22 @@ async function resolvePlayers(
     };
   }
   if (!isRowDraft(draft)) return draft as StoredDraft;
+  const spec = rowTarget(draft.target).spec;
   return {
     ...draft,
     rows: draft.rows.map((row) => {
-      if (!row.name) return { ...row, playerId: null, match: null };
+      if (!row.name) {
+        const match = spec.optionalPlayer ? { status: "new" as const, candidates: [] } : null;
+        return { ...row, playerId: null, match };
+      }
       const resolved = resolve(
         { name: row.name, teamAbbr: row.teamAbbr ?? metaTeam ?? userTeamAbbr },
         `rows.${row.id}.name`,
       );
-      // A name the rosters could not settle waits for a decision before it commits.
-      return { ...row, ...resolved, accepted: row.accepted && resolved.match.status !== "ambiguous" };
+      // A name the rosters could not settle waits for a decision before it commits, unless the
+      // row can stand without a player, when it would only hold the rest of the list back.
+      const settled = spec.optionalPlayer || resolved.match.status !== "ambiguous";
+      return { ...row, ...resolved, accepted: row.accepted && settled };
     }),
   };
 }

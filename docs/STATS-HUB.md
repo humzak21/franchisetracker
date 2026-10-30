@@ -152,7 +152,9 @@ Player streak milestones fire at 5, 10, 15 and 20; the "active" board on the hub
 
 `rankStat` with scope `game` ranks each player-season's best game because season rows carry only one best. Store, per season row, the top three games per record stat in `bestGames` (today it keeps one), and let the game-scope ranking take all three. Three per player-season is enough for a top 20 in practice; the record itself was already exact. The explorer's full list reads game lines directly for one stat and one season (bounded).
 
-### 4.10 Scoring plays: the game as a sequence (priority)
+### 4.10 Scoring plays: the game as a sequence (built in Sprint 14)
+
+Built, with the differences and the parts left for later in `SPRINTS.md`, Sprint 14 "As built". What follows is the plan as written.
 
 Madden's scoring summary screen lists every score of a game: quarter, clock, team, the play ("D. Maye 15 yd pass to K. Boutte (A. Borregales kick)"), and the score after it. Occasionally a glitch drops the player's name from a line. That screen becomes an ingestion target, the plays become rows in a new table, and everything in this hub that is about *when* something happened reads them.
 

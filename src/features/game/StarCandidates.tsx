@@ -118,7 +118,11 @@ export function StarCandidates({ candidates, picked, onAdd, user, opponent }: St
                   className="flex-1"
                 />
                 <span className="shrink-0 text-xs text-subtle-foreground">
-                  {c.inGame ? `${teamOf(c.teamId).abbr} box score` : "Roster"}
+                  {c.gameWinner
+                    ? "Game-winning score"
+                    : c.inGame
+                      ? `${teamOf(c.teamId).abbr} box score`
+                      : "Roster"}
                 </span>
                 <Plus className="size-4 shrink-0 text-muted-foreground" />
               </button>

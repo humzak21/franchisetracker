@@ -4,9 +4,11 @@ import {
   playerRefFields,
   vGameResult,
   vGameStatus,
+  vPatResult,
   vPlayoffRound,
   vPosition,
   vRecord,
+  vScoringKind,
   vStatMap,
   vWeekKey,
 } from "../lib/validators";
@@ -75,5 +77,38 @@ export const gameTables = {
     stats: vStatMap,
   })
     .index("by_gameId_and_teamId", ["gameId", "teamId"])
+    .index("by_seasonId_and_teamId", ["seasonId", "teamId"]),
+
+  /**
+   * Every score of a game from Madden's scoring summary, rewritten as a set per game. The scorer
+   * may be missing where the screen dropped the name; the score still counts.
+   */
+  scoringPlays: defineTable({
+    franchiseId: v.id("franchises"),
+    seasonId: v.id("seasons"),
+    gameId: v.id("games"),
+    /** Position in the game, 1-based. */
+    order: v.number(),
+    /** 1 to 4, 5 and up for overtime. */
+    period: v.number(),
+    /** Seconds left in the period. */
+    clock: v.number(),
+    teamId: v.id("teams"),
+    kind: vScoringKind,
+    yards: v.optional(v.number()),
+    /** The scorer: `playerId` once known, `rawName` as printed. */
+    ...playerRefFields,
+    /** Flat rather than a nested ref, so a merge can find a player's passes by index. */
+    passerId: v.optional(v.id("players")),
+    passerName: v.optional(v.string()),
+    pat: v.optional(vPatResult),
+    homeScore: v.number(),
+    awayScore: v.number(),
+    /** The line as printed, for the review diff and the tooltip on the game page. */
+    description: v.optional(v.string()),
+  })
+    .index("by_gameId_and_order", ["gameId", "order"])
+    .index("by_playerId_and_seasonId", ["playerId", "seasonId"])
+    .index("by_passerId", ["passerId"])
     .index("by_seasonId_and_teamId", ["seasonId", "teamId"]),
 };

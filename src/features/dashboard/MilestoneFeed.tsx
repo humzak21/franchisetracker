@@ -1,7 +1,17 @@
 import { Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { Award, Check, CheckCheck, Flame, Sparkles, TrendingUp, Trophy } from "lucide-react";
+import {
+  Award,
+  Check,
+  CheckCheck,
+  Flame,
+  Handshake,
+  PartyPopper,
+  Sparkles,
+  TrendingUp,
+  Trophy,
+} from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { weekLabel } from "@shared/domain";
 import { Button } from "@/components/ui/button";
@@ -16,6 +26,9 @@ const ICONS = {
   threshold_game: Sparkles,
   first_threshold_season: Award,
   streak: Flame,
+  first_td: PartyPopper,
+  game_winner: Trophy,
+  connection: Handshake,
   custom: Sparkles,
 } satisfies Record<Milestone["kind"], unknown>;
 

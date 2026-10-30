@@ -18,6 +18,8 @@ type PlayerPickerSheetProps = {
   value: Id<"players"> | null;
   /** The row is a draft pick: search college football too, since he may be a real prospect. */
   prospects?: boolean;
+  /** The row stays as printed rather than creating a player; its candidates come from the box score. */
+  noNewPlayers?: boolean;
   onChange: (choice: PlayerChoice) => void;
 };
 
@@ -32,6 +34,7 @@ export function PlayerPickerSheet({
   match,
   value,
   prospects = false,
+  noNewPlayers = false,
   onChange,
 }: PlayerPickerSheetProps) {
   const [text, setText] = useState("");
@@ -65,28 +68,30 @@ export function PlayerPickerSheet({
             spellCheck={false}
           />
         </label>
-        <ul aria-label="New player" className="space-y-1">
-          {typed.length >= 2 && typed !== printedName && (
+        {!noNewPlayers && (
+          <ul aria-label="New player" className="space-y-1">
+            {typed.length >= 2 && typed !== printedName && (
+              <PickerOption
+                icon={<UserPlus className="size-4 shrink-0 text-primary" />}
+                label={`Add “${typed}” as a new player`}
+                onClick={() => choose({ kind: "new", name: typed })}
+              />
+            )}
             <PickerOption
               icon={<UserPlus className="size-4 shrink-0 text-primary" />}
-              label={`Add “${typed}” as a new player`}
-              onClick={() => choose({ kind: "new", name: typed })}
+              label={typed ? `Keep “${printedName}” as a new player` : "Add as a new player"}
+              selected={value === null}
+              onClick={() => choose({ kind: "new", name: printedName })}
             />
-          )}
-          <PickerOption
-            icon={<UserPlus className="size-4 shrink-0 text-primary" />}
-            label={typed ? `Keep “${printedName}” as a new player` : "Add as a new player"}
-            selected={value === null}
-            onClick={() => choose({ kind: "new", name: printedName })}
-          />
-        </ul>
+          </ul>
+        )}
         {match.candidates.length > 0 && (
           <PickerGroup label="Likely players" searching={false} empty="" count={match.candidates.length}>
             {match.candidates.map((c) => (
               <PickerOption
                 key={c.playerId}
                 label={c.name}
-                detail={`${Math.round(c.score * 100)}% match`}
+                detail={noNewPlayers ? "In the box score" : `${Math.round(c.score * 100)}% match`}
                 selected={value === c.playerId}
                 onClick={() => choose({ kind: "player", _id: c.playerId, name: c.name })}
               />

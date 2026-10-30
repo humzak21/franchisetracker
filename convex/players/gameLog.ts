@@ -1,14 +1,17 @@
 /** A player's game-by-game lines for one season, each with its game's opponent and score. */
 import { v } from "convex/values";
+import { isTouchdown } from "../../shared/domain";
 import { sortByWeek, userScore } from "../../shared/games/summary";
 import { query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { activeFranchise, teamsById } from "../lib/franchise";
 import { toTeamRef, vTeamRef } from "../lib/refs";
-import { vGameResult, vStatMap, vWeekKey } from "../lib/validators";
+import { vGameResult, vScoringKind, vStatMap, vWeekKey } from "../lib/validators";
 
 /** A season plus playoffs, with room for a preseason. */
 const MAX_LINES = 40;
+/** Touchdowns in a season: a monster year stays well under this. */
+const MAX_PLAYS = 100;
 
 export const bySeason = query({
   args: { playerId: v.id("players"), seasonId: v.id("seasons") },
@@ -21,6 +24,8 @@ export const bySeason = query({
       result: v.union(vGameResult, v.null()),
       score: v.union(v.object({ us: v.number(), them: v.number() }), v.null()),
       stats: vStatMap,
+      /** His touchdowns in the game, where its scoring summary was captured. */
+      touchdowns: v.array(v.object({ period: v.number(), clock: v.number(), kind: vScoringKind })),
     }),
   ),
   handler: async (ctx, { playerId, seasonId }) => {
@@ -30,6 +35,10 @@ export const bySeason = query({
       .query("gameStatLines")
       .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId).eq("seasonId", seasonId))
       .take(MAX_LINES);
+    const plays = await ctx.db
+      .query("scoringPlays")
+      .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId).eq("seasonId", seasonId))
+      .take(MAX_PLAYS);
     const rows = await Promise.all(
       sortByWeek(lines).map(async (line) => {
         const game = await ctx.db.get("games", line.gameId);
@@ -48,6 +57,9 @@ export const bySeason = query({
           result: score ? (score.us > score.them ? "W" : score.us < score.them ? "L" : "T") : null,
           score,
           stats: line.stats,
+          touchdowns: plays
+            .filter((p) => p.gameId === game._id && isTouchdown(p.kind))
+            .map(({ period, clock, kind }) => ({ period, clock, kind })),
         } as const;
       }),
     );

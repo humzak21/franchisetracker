@@ -103,10 +103,25 @@ async function mergeGameLines(ctx: MutationCtx, from: Id<"players">, to: Id<"pla
   return lines;
 }
 
+/** Scores made and touchdowns thrown follow the kept player. */
+async function mergeScoringPlays(ctx: MutationCtx, from: Id<"players">, to: Id<"players">) {
+  const scored = await ctx.db
+    .query("scoringPlays")
+    .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", from))
+    .take(MAX_REFS);
+  for (const play of scored) await ctx.db.patch("scoringPlays", play._id, { playerId: to });
+  const thrown = await ctx.db
+    .query("scoringPlays")
+    .withIndex("by_passerId", (q) => q.eq("passerId", from))
+    .take(MAX_REFS);
+  for (const play of thrown) await ctx.db.patch("scoringPlays", play._id, { passerId: to });
+}
+
 export async function mergePlayers(ctx: MutationCtx, source: Doc<"players">, target: Doc<"players">) {
   const from = source._id;
   const to = target._id;
   const lines = await mergeGameLines(ctx, from, to);
+  await mergeScoringPlays(ctx, from, to);
   await mergeSeasonRows(ctx, "rosterEntries", from, to);
   await mergeSeasonRows(ctx, "playerSnapshots", from, to);
   await mergeSeasonRows(ctx, "reportedSeasonStats", from, to);

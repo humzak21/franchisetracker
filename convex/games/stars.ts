@@ -5,7 +5,7 @@
 import { v } from "convex/values";
 import { starStatLine } from "../../shared/games/starLine";
 import { cleanStars, MAX_STARS, toggleStar } from "../../shared/games/stars";
-import type { StatLine } from "../../shared/stats";
+import { gameFlow, type StatLine } from "../../shared/stats";
 import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
@@ -14,6 +14,7 @@ import { playersById } from "../lib/franchise";
 import { headshotUrls } from "../lib/refs";
 import { vPosition } from "../lib/validators";
 import { ownGame } from "./access";
+import { gamePlays } from "./playRows";
 
 const MAX_LINES_PER_TEAM = 100;
 /** A 53-man roster plus practice squad and injured reserve, with room for in-season moves. */
@@ -34,6 +35,8 @@ export const candidates = query({
       teamId: v.id("teams"),
       inGame: v.boolean(),
       statLine: v.union(v.string(), v.null()),
+      /** He had the game-winning score, so he is an easy suggestion. */
+      gameWinner: v.boolean(),
     }),
   ),
   handler: async (ctx, { gameId }) => {
@@ -71,6 +74,7 @@ export const candidates = query({
       picks.map((p) => p.playerId),
     );
     const headshots = await headshotUrls(ctx, players.values());
+    const winnerId = gameFlow(await gamePlays(ctx, gameId)).gameWinner?.playerId;
     const out = picks.flatMap(({ line, ...pick }) => {
       const player = players.get(pick.playerId);
       return player
@@ -81,12 +85,14 @@ export const candidates = query({
               position: player.position,
               headshotUrl: headshots.get(player._id) ?? null,
               statLine: line ? starStatLine(line.position ?? player.position, line.stats as StatLine) : null,
+              gameWinner: player._id === winnerId,
             },
           ]
         : [];
     });
     const rosterOnly = out.filter((p) => !p.inGame).sort((a, b) => a.name.localeCompare(b.name));
-    return [...out.filter((p) => p.inGame), ...rosterOnly];
+    const inGame = out.filter((p) => p.inGame).sort((a, b) => Number(b.gameWinner) - Number(a.gameWinner));
+    return [...inGame, ...rosterOnly];
   },
 });
 

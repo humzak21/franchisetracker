@@ -12,6 +12,8 @@ export type QuarterSide = { team: TeamLike; score: number | null };
 type QuarterScoresProps = {
   gameId: Id<"games">;
   lineScore: LineScore | null;
+  /** The quarters come from the scoring plays, which win over anything typed. */
+  fromPlays: boolean;
   away: QuarterSide;
   home: QuarterSide;
 };
@@ -19,7 +21,7 @@ type QuarterScoresProps = {
 const cell = "num w-9 px-1 py-1.5 text-center @tablet:w-11";
 
 /** Scoring by quarter under the score bug, away team on top like the bug; Edit types it in. */
-export function QuarterScores({ gameId, lineScore, away, home }: QuarterScoresProps) {
+export function QuarterScores({ gameId, lineScore, fromPlays, away, home }: QuarterScoresProps) {
   const [editing, setEditing] = useState(false);
   if (editing) {
     return (
@@ -81,15 +83,22 @@ export function QuarterScores({ gameId, lineScore, away, home }: QuarterScoresPr
             </tr>
           ))}
         </tbody>
+        {fromPlays && (
+          <caption className="caption-bottom pt-1 text-left text-xs text-muted-foreground">
+            From the scoring plays
+          </caption>
+        )}
       </table>
-      <Button
-        size="icon-sm"
-        variant="ghost"
-        aria-label="Edit quarter scores"
-        onClick={() => setEditing(true)}
-      >
-        <Pencil />
-      </Button>
+      {!fromPlays && (
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          aria-label="Edit quarter scores"
+          onClick={() => setEditing(true)}
+        >
+          <Pencil />
+        </Button>
+      )}
     </div>
   );
 }

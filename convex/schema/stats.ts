@@ -176,6 +176,30 @@ export const statTables = {
     finishedAt: v.optional(v.number()),
   }).index("by_franchiseId", ["franchiseId"]),
 
+  /**
+   * The scoring records (`shared/stats/scoringBoards.ts`): the best entries of each list, worked
+   * out from every scoring play of the user's team and rewritten when a game's plays change.
+   */
+  scoringBoards: defineTable({
+    franchiseId: v.id("franchises"),
+    split: vStatSplit,
+    list: v.string(),
+    top: v.array(
+      v.object({
+        value: v.number(),
+        playerId: v.optional(v.id("players")),
+        rawName: v.optional(v.string()),
+        passerId: v.optional(v.id("players")),
+        seasonId: v.id("seasons"),
+        year: v.number(),
+        gameId: v.optional(v.id("games")),
+        weekKey: v.optional(vWeekKey),
+        opponentTeamId: v.optional(v.id("teams")),
+        period: v.optional(v.number()),
+      }),
+    ),
+  }).index("by_franchiseId_and_split_and_list", ["franchiseId", "split", "list"]),
+
   /** Team and player streaks, current and longest, refreshed on every commit. */
   streaks: defineTable({
     franchiseId: v.id("franchises"),
