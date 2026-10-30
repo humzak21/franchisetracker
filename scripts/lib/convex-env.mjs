@@ -2,12 +2,13 @@
 import { execFileSync } from "node:child_process";
 import { exportJWK, exportPKCS8, generateKeyPair } from "jose";
 
-/** `extra` carries flags such as `--prod` through to every call. */
-export function convexEnv(extra = []) {
+/** `extra` carries flags such as `--prod` through to every call; `spawn` sets its `cwd` and `env`. */
+export function convexEnv(extra = [], spawn = {}) {
   const run = (...args) =>
     execFileSync("npx", ["convex", "env", ...args, ...extra], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "inherit"],
+      ...spawn,
     });
   const current = run("list");
   return {

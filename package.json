@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.18"
   },
   "scripts": {
     "dev": "run-p --race dev:backend dev:frontend",
@@ -13,6 +13,9 @@
     "local:setup": "CONVEX_AGENT_MODE=anonymous CONVEX_DEPLOYMENT=anonymous:anonymous-agent convex dev --once && node scripts/local-auth-env.mjs",
     "use:local": "npm run local:setup && convex run league/seed:seedTeams",
     "use:cloud": "CONVEX_DEPLOYMENT=dev:prestigious-iguana-83 convex dev --once",
+    "snapshot:prod": "node scripts/prod-copy/snapshot.mjs",
+    "use:prod-copy": "node scripts/prod-copy/use.mjs",
+    "dev:prod-copy": "node scripts/prod-copy/dev.mjs",
     "auth:keys": "node scripts/auth-keys.mjs",
     "seed": "convex run league/seed:seedTeams",
     "build": "tsc -b && vite build",

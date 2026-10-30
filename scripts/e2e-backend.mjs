@@ -5,10 +5,12 @@
  * readiness port. Playwright waits on that port, so tests never start while setup is still
  * restarting the backend (Playwright treats any open port as ready).
  *
- * Reuses a local backend that is already running (`npm run dev`) instead of starting another.
+ * Reuses a local backend that is already running (`npm run dev`) instead of starting another,
+ * unless it is the production copy: tests write, and they only ever run on sample data.
  */
 import { execFileSync, spawn } from "node:child_process";
 import { createServer, createConnection } from "node:net";
+import { PROD_COPY_INSTANCE } from "../shared/ops/prodCopy.ts";
 
 const BACKEND_PORT = 3210;
 const READY_PORT = Number(process.env.E2E_READY_PORT ?? 3299);
@@ -70,6 +72,10 @@ function startBackend() {
 }
 
 if (await listening(BACKEND_PORT)) {
+  const instance = await fetch(`http://127.0.0.1:${BACKEND_PORT}/instance_name`).then((res) => res.text());
+  if (instance === PROD_COPY_INSTANCE) {
+    throw new Error("Port 3210 is serving the production copy: Playwright only runs on sample data.");
+  }
   // Its own `convex dev` keeps pushing code changes, so only setup and seeding run here.
   console.log("Reusing the local backend already running on port 3210.");
 } else {

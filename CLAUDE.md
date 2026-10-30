@@ -12,6 +12,9 @@ A Football Manager style front end for a Madden franchise. Single user, Convex b
 | Install | `npm install`, then `npx playwright install chromium webkit` once |
 | Point this checkout at the local backend (default) | `npm run use:local` (anonymous local Convex on 127.0.0.1:3210, pushed and seeded) |
 | Point it at the shared cloud dev deployment | `npm run use:cloud` (use this to try the app on the phone) |
+| Take a read-only, scrubbed snapshot of production | `npm run snapshot:prod` (stored in `~/.franchisetracker/prod-snapshots`, shared by every checkout; `docs/PROD-COPY.md`) |
+| Load the latest snapshot into this checkout's copy | `npm run use:prod-copy` (replaces the copy; leaves `.env.local` and the sample backend alone) |
+| Open the copy | `npm run dev:prod-copy` (its own backend and port, printed on start; sign in with the test owner button) |
 | Dev (Convex + Vite together) | `npm run dev` (Vite on http://localhost:5173, `convex dev` pushes to whichever backend `.env.local` selects) |
 | Front end only (backend already pushed) | `npm run dev:frontend` |
 | Seed the selected deployment | `npm run seed` (idempotent) |
@@ -26,12 +29,13 @@ A Football Manager style front end for a Madden franchise. Single user, Convex b
 Environments:
 
 - **Local (default for development and all automated tests):** an anonymous Convex backend on this machine, no account needed. Its data lives in `.convex/` (git-ignored); delete that folder to start clean, then `npm run use:local`.
+- **Production copy:** a scrubbed copy of production's data on this machine (`docs/PROD-COPY.md`). It runs beside the local backend, from `.convex/prod-copy` on a port worked out from the checkout's path: `127.0.0.1` only, no secrets, no outside calls. It is for trying work against a full franchise; automated tests never use it.
 - **Cloud dev (`prestigious-iguana-83`):** shared staging, reachable from the phone. Switch with `npm run use:cloud`.
 - **Production:** Vercel plus the Convex production deployment, deployed only from `main`.
 
 Real NFL history imports from nflverse when a franchise is created (`docs/NFL-HISTORY.md`); a franchise that predates the import starts it from Settings or with `npx convex run history/importJob:restart`. The sample franchise loads a bundled slice instead, so tests never fetch nflverse.
 
-`.env.local` (git-ignored, rewritten by `convex dev`) selects the backend for `npm run dev`. Playwright never reads it: it starts its own local backend, builds the app in `e2e` mode (`.env.e2e`, committed) and serves the build on port 5174, so tests cannot touch cloud data. Each signed-in test gets its own test-owner session (`e2e/ownerSession.ts`); never share one saved session across tests, because Convex Auth revokes a session whose refresh token is replayed. CI is kept small for the GitHub Free plan (`.github/workflows/ci.yml`): pull requests only, one static job and one desktop Playwright job; the phone layout checks run locally. Never run `convex deploy`, or anything else that writes to production, without the user's explicit go-ahead. Secrets (OpenRouter key, Shortcut tokens, OAuth client secrets) live in Convex env vars, never in the client or the repo.
+`.env.local` (git-ignored, rewritten by `convex dev`) selects the backend for `npm run dev`. Playwright never reads it: it starts its own local backend, builds the app in `e2e` mode (`.env.e2e`, committed) and serves the build on port 5174, so tests cannot touch cloud data or the production copy (`scripts/e2e-backend.mjs` refuses it, should one ever be on port 3210). Each signed-in test gets its own test-owner session (`e2e/ownerSession.ts`); never share one saved session across tests, because Convex Auth revokes a session whose refresh token is replayed. CI is kept small for the GitHub Free plan (`.github/workflows/ci.yml`): pull requests only, one static job and one desktop Playwright job; the phone layout checks run locally. Never run `convex deploy`, or anything else that writes to production, without the user's explicit go-ahead. Secrets (OpenRouter key, Shortcut tokens, OAuth client secrets) live in Convex env vars, never in the client or the repo.
 
 ## Architecture and layering
 
