@@ -40,3 +40,9 @@ test("game highlights sit under the season highlights with their own defaults", 
   await expect(page.getByLabel("Single-game Passing yards tier 1")).toHaveValue("300");
   await expect(page.getByLabel("Single-game Passing yards tier 2")).toHaveValue("500");
 });
+
+test("the data section offers a stats rebuild without overflow", async ({ page }) => {
+  await page.goto("/settings");
+  await expect(page.getByRole("button", { name: /^(Rebuild stats|Rebuilding…)$/ })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});

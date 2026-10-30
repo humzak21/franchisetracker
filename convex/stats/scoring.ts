@@ -27,10 +27,12 @@ import { vPosition, vStatSplit, vWeekKey } from "../lib/validators";
 
 /** A season of scores for both teams, playoffs included: 40 games at 40 plays at the very most. */
 const MAX_PLAYS_PER_SEASON = 1600;
-/** Two splits of every list. */
-const MAX_BOARDS = 2 * SCORING_LIST_KEYS.length;
+/** Two splits of every list, with room for lists that have since moved. */
+const MAX_BOARDS = 2 * SCORING_LIST_KEYS.length + 10;
 /** Rows a player can have: regular season and playoffs. */
 const MAX_CAREER_ROWS = 2;
+
+const known = new Set<string>(SCORING_LIST_KEYS);
 
 const SCORING_MILESTONES = new Set<Doc<"milestones">["kind"]>(["first_td", "game_winner", "connection"]);
 
@@ -76,6 +78,10 @@ async function writeBoards(ctx: MutationCtx, franchise: Doc<"franchises">, games
     .withIndex("by_franchiseId_and_split_and_list", (q) => q.eq("franchiseId", franchise._id))
     .take(MAX_BOARDS);
   const stored = new Map(existing.map((b) => [`${b.split}|${b.list}`, b]));
+  // Lists that moved elsewhere (the team's went to `teamRecords`) leave no rows behind.
+  for (const board of existing) {
+    if (!known.has(board.list)) await ctx.db.delete("scoringBoards", board._id);
+  }
   for (const split of ["regular", "postseason"] as const) {
     for (const list of SCORING_LIST_KEYS) {
       const top = boards[split][list] ?? [];
@@ -265,23 +271,25 @@ export const records = query({
       const p = id ? players.get(id) : undefined;
       return p ? { playerId: p._id, name: p.displayName, position: p.position } : null;
     };
-    return boards.map((b) => ({
-      list: b.list,
-      entries: b.top.map((e, i) => {
-        const opponent = e.opponentTeamId ? teams.get(e.opponentTeamId) : undefined;
-        return {
-          rank: i + 1,
-          value: e.value,
-          player: person(e.playerId),
-          rawName: e.rawName ?? null,
-          passer: person(e.passerId),
-          year: e.year,
-          gameId: e.gameId ?? null,
-          weekKey: e.weekKey ?? null,
-          opponent: opponent ? toTeamRef(opponent) : null,
-          period: e.period ?? null,
-        };
-      }),
-    }));
+    return boards
+      .filter((b) => known.has(b.list))
+      .map((b) => ({
+        list: b.list,
+        entries: b.top.map((e, i) => {
+          const opponent = e.opponentTeamId ? teams.get(e.opponentTeamId) : undefined;
+          return {
+            rank: i + 1,
+            value: e.value,
+            player: person(e.playerId),
+            rawName: e.rawName ?? null,
+            passer: person(e.passerId),
+            year: e.year,
+            gameId: e.gameId ?? null,
+            weekKey: e.weekKey ?? null,
+            opponent: opponent ? toTeamRef(opponent) : null,
+            period: e.period ?? null,
+          };
+        }),
+      }));
   },
 });

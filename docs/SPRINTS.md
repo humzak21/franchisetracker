@@ -380,13 +380,40 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 ---
 
-## Proposed: Sprints 15 to 23
+## Sprint 15 — Stats engines and storage (M)
+
+**Goal:** the numbers the stats hub needs exist and stay current, so every later view is one read: running totals, marks, best spans, pace, year over year, splits, quarter scoring, team records and streaks with dates.
+
+- `ledger`, `marks`, `spans`, `pace`, `yoy`, `splits`, `quarters` and `teamRecords` in `shared/stats`, plus extended `streaks`, all unit tested.
+- Storage for marks, spans and team records, kept current after every game.
+- `recordBuild` extended, `stats/rebuild:all` growing with it, and a Settings button so nothing is CLI-only.
+- `players/gameLog:career`, and backup coverage.
+
+**Done when:** a committed game sets a mark, improves a span, dates a streak and sets a team record, recommitting changes nothing, and a rebuild from scratch matches the incremental result.
+
+**As built:**
+
+- Marks and spans do not add scopes to the records tables, as `STATS-HUB.md` 5 sketched: their entries have a different shape, and every book screen would have had to learn about them. `playerMarks` holds every mark reached; its index ends in `gamesToReach`, so a fastest-to list is one ordered read with no board. `spanBoards` holds each stat and window's top entries, a player's best and his next best that does not overlap it. When Sprint 17 lists them it reads these directly; typed entries and placements for them are that sprint's to add.
+- Marks and spans count the user team's games only, regular season for marks and each split apart for spans: other teams' lines come from box scores against us, so a count over them would be wrong. Imported seasons are a starting total and a game count, and a mark they already passed has no game to name, so it is left out.
+- `MARKS` keys also give the span stats (`SPAN_STATS`), rather than every summed record stat, so a game reads 156 boards at most, not several times that.
+- `stats/performance:afterGame` runs after `refreshAfterGame`, eight players a step, then the team. The plan ran it inside `afterGame`; a career's folds across 13 stats and 6 windows do not fit there comfortably.
+- `teamRecords` lists are rewritten a season at a time (`stats/teamRecords:writeTeamRecords`). The three team lists that lived in `scoringBoards` moved here (`pointsInQuarter`, `comeback`, `blownLead`) and still show on Stats → Records. `stats/scoring` drops the old rows when it next writes, and never shows them. Team stats that were not captured leave a game off a list rather than counting as zero.
+- Streak rows keep `currentFrom`, `longestFrom` and `longestTo`. Eight player kinds, five team kinds and four season-long kinds are new. Season-long runs count seasons with status `complete`; a division title reads the standings row's division rank, so it needs the standings captured. The per-season streak rows in the plan are left for Sprint 17's season filter, which can work them out from the games.
+- New milestone kinds `mark`, `player_streak` (5, 10, 15, 20) and `team_record`. A team record needs an earlier entry to beat, so the first game on a list raises nothing, and season lists raise nothing because a running total would fire every week.
+- `recordBuild` gains the phases `logs` (every season row, which replaces the `stats/rebuild:franchise` chain), `performance` and `teams`. Settings → Data → Rebuild stats starts it from `logs` and shows while it runs. **After deploying, run it once:** marks and spans fill in per player as they next play, but earlier seasons reach `teamRecords` only through a rebuild, and until then the team lists on Stats → Records are empty.
+- `playerMarks`, `spanBoards` and `teamRecords` are not backed up, being rebuilt from the logs; run Rebuild stats after a restore.
+- `players/gameLog:career` reads every season, with `filter: { statKey, min }` applied on the server. `shared/stats/math.ts:pace` moved to `pace.ts` as `seasonPace`.
+- `pace`, `yoy`, `splits`, `quarterScoring` and `runningTotals` have no screen yet: Sprints 16 to 18 show them.
+- Left for Sprint 17 as planned: `bestGames` keeping three games per stat, and the list queries for marks and spans.
+
+---
+
+## Proposed: Sprints 16 to 23
 
 Planned after the platform audit of October 2026, not yet scheduled or built. The statistics hub plan is `docs/STATS-HUB.md`; the audit with every gap and the reasoning behind the order is `docs/PLATFORM-AUDIT.md`. When one of these is picked up, it gets a full section above with a goal, a "Done when" and, once built, its "As built" notes, and the stable behaviour moves into `FEATURES.md`.
 
 | Sprint | Theme | Size | Source |
 |---|---|---|---|
-| 15 | Stats engines and storage: running totals, marks ("fastest to"), best N-game spans, pace, year over year, splits, quarter scoring, team records, streaks with dates | M | `STATS-HUB.md` 8, Sprint 15 |
 | 16 | Identity for the created era: player provenance and a real derived `isReal`, proper name splitting and alias search, game-aware name resolution, draft class matching, commit guards for new and ambiguous names, identity tools over every player | M | `PLATFORM-AUDIT.md` 2.2 A to D, G, H |
 | 17 | Stats hub: Overview, pace columns and the Home pace line, Countdowns card, Trends view, player page Pace, Trends and Cumulative | M | `STATS-HUB.md` 8, Sprint 16 |
 | 18 | Roster truth and the season checklist: the roster page as the truth for a team and season, carry-over that ages contracts and prunes ghosts, retirements step, depth chart, roster diff, team switcher, coverage strip | M | `PLATFORM-AUDIT.md` 2.2 E, F and 3 |

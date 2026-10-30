@@ -12,7 +12,6 @@ import {
   formatStat,
   gameHighlights,
   passerRating,
-  pace,
   statValue,
   type StatLine,
 } from "./index";
@@ -67,9 +66,6 @@ describe("aggregation", () => {
   });
   it("returns null for raw stats that were never recorded", () => {
     expect(statValue("sacks", {})).toBeNull();
-  });
-  it("projects pace over a full season", () => {
-    expect(pace(500, 5)).toBe(1700);
   });
 });
 

@@ -1,8 +1,9 @@
 /**
  * Builds the team and all-time records books from scratch, a chain of scheduled steps small
  * enough for one transaction each: clear the boards, every player's career (recomputed on the
- * way, which also records his main team), every season's rows, then every list's placements.
- * Runs after the history import, from the Records screen, or with
+ * way, which also records his main team), every season's rows, marks and spans, the team's
+ * lists, then every list's placements. `stats/rebuild` starts one step earlier, rebuilding every
+ * season row from the logs first. Runs after the history import, from the Records screen, or with
  * `npx convex run stats/recordBuild:start`. After that each game updates the books for its
  * players alone (`afterGame`). A newer run supersedes an older one's remaining steps.
  */
@@ -25,9 +26,14 @@ import { activeFranchise } from "../lib/franchise";
 import { mergeBoards, writePlacements, type BoardUpdate, type ListKey } from "./boards";
 import { careerBoards, playerBoards, seasonBoards } from "./boardCandidates";
 import { franchiseSeasons, type Split } from "./load";
+import { clearPerformance, performancePage } from "./performance";
+import { rebuildPlayer } from "./recompute";
+import { writeTeamRecords } from "./teamRecords";
 
 /** Players per step: each reads his season rows and rewrites his career. */
 const PLAYER_PAGE = 150;
+/** Players one step rebuilds from their logs: a long career reads a few hundred lines. */
+const LOG_PAGE = 20;
 const SPLITS = ["regular", "postseason"] as const;
 const MAX_BOARDS = 1000;
 /** Lists whose placements one step rewrites: twenty-odd writes each, well inside a mutation's time. */
@@ -83,25 +89,32 @@ export async function booksBuilt(ctx: QueryCtx, franchiseId: Id<"franchises">): 
 }
 
 /** Starts a build, superseding any running one. */
-export async function startRecordBuild(ctx: MutationCtx, franchiseId: Id<"franchises">) {
+export async function startRecordBuild(
+  ctx: MutationCtx,
+  franchiseId: Id<"franchises">,
+  phase: "clear" | "logs" = "clear",
+) {
   const job = await jobFor(ctx, franchiseId);
   const run = (job?.run ?? 0) + 1;
   const fields = {
     run,
     status: "running" as const,
-    phase: "clear",
+    phase,
     startedAt: Date.now(),
     finishedAt: undefined,
   };
   if (job) await ctx.db.patch("recordBuilds", job._id, fields);
   else await ctx.db.insert("recordBuilds", { franchiseId, ...fields });
-  await ctx.scheduler.runAfter(0, internal.stats.recordBuild.step, { franchiseId, run, phase: "clear" });
+  await ctx.scheduler.runAfter(0, internal.stats.recordBuild.step, { franchiseId, run, phase });
 }
 
 const vPhase = v.union(
+  v.literal("logs"),
   v.literal("clear"),
   v.literal("players"),
   v.literal("seasons"),
+  v.literal("performance"),
+  v.literal("teams"),
   v.literal("placements"),
 );
 
@@ -128,7 +141,15 @@ export const step = internalMutation({
       });
     };
 
-    if (args.phase === "clear") {
+    if (args.phase === "logs") {
+      const page = await ctx.db
+        .query("players")
+        .withIndex("by_franchiseId_and_lastName", (q) => q.eq("franchiseId", franchise._id))
+        .paginate({ numItems: LOG_PAGE, cursor: args.cursor ?? null });
+      for (const player of page.page) await rebuildPlayer(ctx, player);
+      if (page.isDone) await next("clear");
+      else await next("logs", { cursor: page.continueCursor });
+    } else if (args.phase === "clear") {
       const boards = await ctx.db
         .query("recordBoards")
         .withIndex("by_franchiseId_and_book_and_split_and_scope_and_statKey", (q) =>
@@ -136,6 +157,7 @@ export const step = internalMutation({
         )
         .take(MAX_BOARDS);
       for (const b of boards) await ctx.db.delete("recordBoards", b._id);
+      await clearPerformance(ctx, franchise._id);
       if (boards.length === MAX_BOARDS) await next("clear");
       else await next("players", { cursor: null });
     } else if (args.phase === "players") {
@@ -151,10 +173,22 @@ export const step = internalMutation({
     } else if (args.phase === "seasons") {
       const seasons = [...(await franchiseSeasons(ctx, franchise._id))].sort((a, b) => a.year - b.year);
       const season = seasons[args.index ?? 0];
-      if (!season) await next("placements", { index: 0 });
+      if (!season) await next("performance", { cursor: null });
       else {
         await mergeBoards(ctx, franchise._id, await seasonBoards(ctx, franchise, season));
         await next("seasons", { index: (args.index ?? 0) + 1 });
+      }
+    } else if (args.phase === "performance") {
+      const cursor = await performancePage(ctx, franchise, args.cursor ?? null);
+      if (cursor === null) await next("teams", { index: 0 });
+      else await next("performance", { cursor });
+    } else if (args.phase === "teams") {
+      const seasons = [...(await franchiseSeasons(ctx, franchise._id))].sort((a, b) => a.year - b.year);
+      const season = seasons[args.index ?? 0];
+      if (!season) await next("placements", { index: 0 });
+      else {
+        await writeTeamRecords(ctx, franchise, season);
+        await next("teams", { index: (args.index ?? 0) + 1 });
       }
     } else {
       const offset = args.index ?? 0;

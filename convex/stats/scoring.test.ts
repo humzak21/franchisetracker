@@ -90,7 +90,7 @@ describe("scoring records and milestones", () => {
     expect(winners[0]?.gameId).toBe(game._id);
     const lists = await owner.query(api.stats.scoring.records, { split: "regular" });
     expect(lists.map((l) => l.list)).toEqual(
-      expect.arrayContaining(["longest_pass_td", "game_winners_season", "team_points_quarter"]),
+      expect.arrayContaining(["longest_pass_td", "game_winners_season"]),
     );
   });
 

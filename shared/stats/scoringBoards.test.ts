@@ -80,12 +80,6 @@ describe("scoring boards", () => {
     expect(boards.connection_career?.[0]).toMatchObject({ playerId: "wr", passerId: "qb", value: 2 });
   });
 
-  test("team lists: the best quarter, the comeback and the lead lost", () => {
-    expect(boards.team_points_quarter?.[0]).toMatchObject({ value: 14, period: 2, gameId: "g1" });
-    expect(boards.team_comeback?.[0]).toMatchObject({ value: 3, gameId: "g1", opponentTeamId: them });
-    expect(boards.team_blown_lead?.[0]).toMatchObject({ value: 7, gameId: "g2" });
-  });
-
   test("an empty list is left out rather than stored empty", () => {
     expect(boards.longest_punt_return_td).toBeUndefined();
   });
@@ -103,7 +97,6 @@ test("an away game reads from the user's side", () => {
   const away = game("g6", 2026, "w3", [td({ teamId: us, homeScore: 0, awayScore: 7, playerId: "hb" })], them);
   const boards = buildScoringBoards([away], us).regular;
   expect(boards.game_winners_season?.[0]).toMatchObject({ playerId: "hb", value: 1 });
-  expect(boards.team_points_quarter?.[0]).toMatchObject({ value: 7, opponentTeamId: them });
 });
 
 test("a connection crossing a mark is reported once", () => {

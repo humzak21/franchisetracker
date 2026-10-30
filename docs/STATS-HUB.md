@@ -293,7 +293,7 @@ Five sprints, each demoable and each ending with the phone check, Playwright smo
 **Sprint 14: scoring plays (M)**
 The `scoring_plays` row target with game scope and multi-screen merge, `scoringPlays` table and commit, resolution against the game's box score with the kind-aware picker, "needs a player" on the game page, `lineScore` derived from plays, `shared/stats/scoring.ts` with unit tests, the Scoring summary and `ScoreWorm` on game detail (both themes, phone), the player game log's period and clock marks, and the scoring entries in records, milestones and team records. Done when a game's scoring summary goes from photos to a play list in review, a row with a missing name is assigned in one tap to the only receiver with a touchdown, the quarter scores fill themselves, and the game page says who had the game-winning score.
 
-**Sprint 15: engines and storage (M)**
+**Sprint 15: engines and storage (M)** (built; the differences are in `SPRINTS.md`, Sprint 15 "As built")
 `ledger`, `marks`, `spans`, `pace`, `yoy`, `splits`, `quarters` (reading scoring plays where a game has them), `teamRecords`, extended `streaks` in `shared/stats` with unit tests at the current coverage bar; schema additions; `afterGame` and `recordBuild` extended; `rebuild:all` and a Settings button; `players/gameLog:career`; backup coverage. Done when a committed game sets a mark, improves a span, dates a streak and sets a team record, recommitting changes nothing, and a rebuild from scratch matches the incremental result.
 
 **Sprint 16: hub overview, pace, trends (M)**

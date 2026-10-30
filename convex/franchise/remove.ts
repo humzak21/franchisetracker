@@ -17,12 +17,19 @@ import { literals } from "../lib/validators";
  * Every table holding a franchise's rows, the franchise itself last. Shortcut tokens stay: they
  * belong to the owner, not to the franchise that was active when they were made.
  */
-const SWEEP_TABLES = [
+export const SWEEP_TABLES = [
   ...BACKUP_TABLES.filter((t) => t !== "franchises"),
   "uploads",
   "extractions",
   "corrections",
   "manualDrafts",
+  "recordBoards",
+  "recordPlacements",
+  "recordBuilds",
+  "scoringBoards",
+  "playerMarks",
+  "spanBoards",
+  "teamRecords",
 ] as const;
 type SweepTable = (typeof SWEEP_TABLES)[number];
 // The spread loses the tuple's non-empty type that `literals` wants; the list above is never empty.

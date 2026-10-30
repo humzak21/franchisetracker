@@ -2,35 +2,82 @@
 import { v } from "convex/values";
 import { isTouchdown } from "../../shared/domain";
 import { sortByWeek, userScore } from "../../shared/games/summary";
-import { query } from "../_generated/server";
+import { inCareerOrder, isStatKey, statValue, type StatLine } from "../../shared/stats";
+import type { Doc } from "../_generated/dataModel";
+import { query, type QueryCtx } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
+import { invalid } from "../lib/errors";
 import { activeFranchise, teamsById } from "../lib/franchise";
-import { toTeamRef, vTeamRef } from "../lib/refs";
+import { seasonYears, toTeamRef, vTeamRef } from "../lib/refs";
 import { vGameResult, vScoringKind, vStatMap, vWeekKey } from "../lib/validators";
 
 /** A season plus playoffs, with room for a preseason. */
 const MAX_LINES = 40;
 /** Touchdowns in a season: a monster year stays well under this. */
 const MAX_PLAYS = 100;
+/** Twenty seasons of a long career, playoffs included. */
+const MAX_CAREER_LINES = 600;
+const MAX_CAREER_PLAYS = 600;
+
+const vLogRow = v.object({
+  gameId: v.id("games"),
+  seasonId: v.id("seasons"),
+  year: v.number(),
+  weekKey: vWeekKey,
+  opponent: v.union(vTeamRef, v.null()),
+  home: v.boolean(),
+  result: v.union(vGameResult, v.null()),
+  score: v.union(v.object({ us: v.number(), them: v.number() }), v.null()),
+  stats: vStatMap,
+  /** Touchdowns in the game, where its scoring summary was captured. */
+  touchdowns: v.array(v.object({ period: v.number(), clock: v.number(), kind: vScoringKind })),
+});
+
+/** Lines as a game log shows them, each with its game's opponent, score and touchdowns. */
+async function logRows(
+  ctx: QueryCtx,
+  lines: readonly Doc<"gameStatLines">[],
+  plays: readonly Doc<"scoringPlays">[],
+) {
+  const [franchise, teams] = await Promise.all([activeFranchise(ctx), teamsById(ctx)]);
+  const years = await seasonYears(
+    ctx,
+    lines.map((l) => l.seasonId),
+  );
+  const rows = await Promise.all(
+    lines.map(async (line) => {
+      const game = await ctx.db.get("games", line.gameId);
+      if (!game) return null;
+      // Box scores hold both teams; flip the user's point of view for an opponent's player.
+      const mine = line.teamId === franchise.userTeamId;
+      const forUser = userScore(game);
+      const score = forUser && (mine ? forUser : { us: forUser.them, them: forUser.us });
+      const opponentId = game.homeTeamId === line.teamId ? game.awayTeamId : game.homeTeamId;
+      const opponent = opponentId ? teams.get(opponentId) : undefined;
+      return {
+        gameId: game._id,
+        seasonId: line.seasonId,
+        year: years.get(line.seasonId) ?? 0,
+        weekKey: line.weekKey,
+        opponent: opponent ? toTeamRef(opponent) : null,
+        home: game.homeTeamId === line.teamId,
+        result: score ? (score.us > score.them ? "W" : score.us < score.them ? "L" : "T") : null,
+        score,
+        stats: line.stats,
+        touchdowns: plays
+          .filter((p) => p.gameId === game._id && isTouchdown(p.kind))
+          .map(({ period, clock, kind }) => ({ period, clock, kind })),
+      } as const;
+    }),
+  );
+  return rows.filter((r) => r !== null);
+}
 
 export const bySeason = query({
   args: { playerId: v.id("players"), seasonId: v.id("seasons") },
-  returns: v.array(
-    v.object({
-      gameId: v.id("games"),
-      weekKey: vWeekKey,
-      opponent: v.union(vTeamRef, v.null()),
-      home: v.boolean(),
-      result: v.union(vGameResult, v.null()),
-      score: v.union(v.object({ us: v.number(), them: v.number() }), v.null()),
-      stats: vStatMap,
-      /** His touchdowns in the game, where its scoring summary was captured. */
-      touchdowns: v.array(v.object({ period: v.number(), clock: v.number(), kind: vScoringKind })),
-    }),
-  ),
+  returns: v.array(vLogRow),
   handler: async (ctx, { playerId, seasonId }) => {
     await requireOwner(ctx);
-    const [franchise, teams] = await Promise.all([activeFranchise(ctx), teamsById(ctx)]);
     const lines = await ctx.db
       .query("gameStatLines")
       .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId).eq("seasonId", seasonId))
@@ -39,30 +86,34 @@ export const bySeason = query({
       .query("scoringPlays")
       .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId).eq("seasonId", seasonId))
       .take(MAX_PLAYS);
-    const rows = await Promise.all(
-      sortByWeek(lines).map(async (line) => {
-        const game = await ctx.db.get("games", line.gameId);
-        if (!game) return null;
-        // Box scores hold both teams; flip the user's point of view for an opponent's player.
-        const mine = line.teamId === franchise.userTeamId;
-        const forUser = userScore(game);
-        const score = forUser && (mine ? forUser : { us: forUser.them, them: forUser.us });
-        const opponentId = game.homeTeamId === line.teamId ? game.awayTeamId : game.homeTeamId;
-        const opponent = opponentId ? teams.get(opponentId) : undefined;
-        return {
-          gameId: game._id,
-          weekKey: line.weekKey,
-          opponent: opponent ? toTeamRef(opponent) : null,
-          home: game.homeTeamId === line.teamId,
-          result: score ? (score.us > score.them ? "W" : score.us < score.them ? "L" : "T") : null,
-          score,
-          stats: line.stats,
-          touchdowns: plays
-            .filter((p) => p.gameId === game._id && isTouchdown(p.kind))
-            .map(({ period, clock, kind }) => ({ period, clock, kind })),
-        } as const;
-      }),
-    );
-    return rows.filter((r) => r !== null);
+    return await logRows(ctx, sortByWeek(lines), plays);
+  },
+});
+
+/** Every game of a career, oldest first; `filter` keeps the games with at least `min` of a stat. */
+export const career = query({
+  args: {
+    playerId: v.id("players"),
+    filter: v.optional(v.object({ statKey: v.string(), min: v.number() })),
+  },
+  returns: v.array(vLogRow),
+  handler: async (ctx, { playerId, filter }) => {
+    await requireOwner(ctx);
+    const { statKey } = filter ?? {};
+    if (statKey !== undefined && !isStatKey(statKey)) throw invalid(`Unknown stat ${statKey}`);
+    const lines = await ctx.db
+      .query("gameStatLines")
+      .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId))
+      .take(MAX_CAREER_LINES);
+    const plays = await ctx.db
+      .query("scoringPlays")
+      .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId))
+      .take(MAX_CAREER_PLAYS);
+    const kept =
+      filter && statKey !== undefined && isStatKey(statKey)
+        ? lines.filter((l) => (statValue(statKey, l.stats as StatLine) ?? 0) >= filter.min)
+        : lines;
+    const rows = await logRows(ctx, kept, plays);
+    return inCareerOrder(rows);
   },
 });

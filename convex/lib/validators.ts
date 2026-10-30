@@ -30,7 +30,9 @@ import {
   WEEK_KEYS,
 } from "../../shared/domain";
 import { RECONCILE_RESOLUTIONS } from "../../shared/ingestion/reconcile";
+import { MARK_HORIZONS } from "../../shared/stats/marks";
 import { BOARD_BOOKS, RECORD_BOOKS } from "../../shared/stats/recordBoards";
+import { TEAM_RECORD_SCOPES } from "../../shared/stats/teamRecords";
 import { STAT_CATEGORIES } from "../../shared/stats/registry";
 import { ESPN_LEAGUES } from "../../shared/players/espnMatch";
 
@@ -65,6 +67,9 @@ export const MILESTONE_KINDS = [
   "first_td",
   "game_winner",
   "connection",
+  "mark",
+  "player_streak",
+  "team_record",
   "custom",
 ] as const;
 export const WARNING_SEVERITIES = ["info", "warning", "error"] as const;
@@ -102,6 +107,8 @@ export const vUploadSource = literals(UPLOAD_SOURCES);
 export const vStatSource = literals(STAT_SOURCES);
 export const vStatSplit = literals(STAT_SPLITS);
 export const vRecordScope = literals(RECORD_SCOPES);
+export const vTeamRecordScope = literals(TEAM_RECORD_SCOPES);
+export const vMarkHorizon = literals(MARK_HORIZONS);
 export const vRecordBook = literals(RECORD_BOOKS);
 export const vBoardBook = literals(BOARD_BOOKS);
 export const vStatCategory = literals(STAT_CATEGORIES);

@@ -15,12 +15,6 @@ export function perGame(total: number, games: number): number | null {
   return safeDiv(total, games);
 }
 
-/** Projects a partial-season total onto a full season. */
-export function pace(total: number, gamesPlayed: number, seasonGames = 17): number | null {
-  const rate = safeDiv(total, gamesPlayed);
-  return rate === null ? null : rate * seasonGames;
-}
-
 export const PERFECT_PASSER_RATING = 158.3;
 
 type PasserLine = { cmp: number; att: number; yds: number; td: number; int: number };

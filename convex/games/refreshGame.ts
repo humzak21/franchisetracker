@@ -91,6 +91,11 @@ export const afterDelete = internalMutation({
     }
     await refreshTeamStreaks(ctx, franchise);
     await ctx.scheduler.runAfter(0, internal.stats.scoring.boards, { franchiseId: franchise._id });
+    await ctx.scheduler.runAfter(0, internal.stats.performance.afterGame, {
+      franchiseId: franchise._id,
+      seasonId: game.seasonId,
+      playerIds,
+    });
     return null;
   },
 });

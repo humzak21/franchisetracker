@@ -6,6 +6,7 @@ import {
   Check,
   CheckCheck,
   Flame,
+  Gauge,
   Handshake,
   PartyPopper,
   Sparkles,
@@ -29,6 +30,9 @@ const ICONS = {
   first_td: PartyPopper,
   game_winner: Trophy,
   connection: Handshake,
+  mark: Gauge,
+  player_streak: Flame,
+  team_record: Trophy,
   custom: Sparkles,
 } satisfies Record<Milestone["kind"], unknown>;
 

@@ -153,7 +153,7 @@ export async function mergePlayers(ctx: MutationCtx, source: Doc<"players">, tar
     if (keep) await ctx.db.patch("seasonPlayerStats", row._id, { playerId: to });
     else await ctx.db.delete("seasonPlayerStats", row._id);
   }
-  for (const table of ["careerPlayerStats", "streaks"] as const) {
+  for (const table of ["careerPlayerStats", "streaks", "playerMarks"] as const) {
     const rows = await ctx.db
       .query(table)
       .withIndex("by_playerId", (q) => q.eq("playerId", from))

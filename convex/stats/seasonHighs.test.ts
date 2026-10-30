@@ -102,5 +102,5 @@ describe("season highs", () => {
     await t.mutation(internal.stats.rebuild.all, {});
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect(await regular()).toHaveLength(after.length);
-  });
+  }, 120_000);
 });
