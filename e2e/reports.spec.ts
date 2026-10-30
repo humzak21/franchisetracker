@@ -160,11 +160,9 @@ test("a team goal is set, marked by hand, shown on Home, and removed", async ({ 
   await expect(row).toHaveCount(0);
 });
 
-// Projects share one backend, so each sets its own target to find its own goal.
-const YARDS_TARGET: Record<string, number> = { desktop: 1000, phone: 1001, "phone-large": 1002 };
-
-test("a player stat goal reads his season totals and shows on Stats", async ({ page }, testInfo) => {
-  const target = YARDS_TARGET[testInfo.project.name] ?? 1003;
+test("a player stat goal reads his season totals and shows on Stats", async ({ page }) => {
+  // A new target each run: the backend keeps earlier runs' goals, and the title finds this one.
+  const target = 1000 + (Date.now() % 400);
   const title = `Passing yards ≥ ${target.toLocaleString("en-US")}`;
   await page.goto(`/history/reports/${SAMPLE_YEAR}`);
   await page.getByRole("button", { name: "Add goal" }).click();

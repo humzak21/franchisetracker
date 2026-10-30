@@ -10,13 +10,17 @@ const E2E_PORT = 5174;
  */
 export default defineConfig({
   testDir: "e2e",
+  globalSetup: "./e2e/globalSetup.ts",
   fullyParallel: true,
   forbidOnly: CI,
   retries: CI ? 1 : 0,
-  workers: CI ? 2 : undefined,
-  // CI runners have 2 vCPUs for the backend, the server and two browsers: a screen's first data
-  // can take longer than the 5 s default there. Only failing waits get slower.
-  expect: { timeout: CI ? 10_000 : 5_000 },
+  // Each worker is a browser. Memory runs out on this Mac long before its CPUs do, and then the
+  // backend stalls too, so more workers made runs slower as well as flakier.
+  workers: CI ? 2 : 3,
+  // Generous everywhere, not only on CI's 2 vCPUs: a Mac short of memory stalls for seconds at a
+  // time without its CPUs being busy, and these numbers only slow down a wait that was failing.
+  timeout: 60_000,
+  expect: { timeout: 10_000 },
   reporter: CI ? [["github"], ["html", { open: "never" }]] : [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: `http://localhost:${E2E_PORT}`,
@@ -35,6 +39,9 @@ export default defineConfig({
     {
       name: "phone",
       grep: /without overflow/,
+      // WebKit is by far the heaviest browser here, and running it wide is what tips a busy Mac
+      // into swapping: load went from 100 to 500 when this project started.
+      workers: 2,
       use: { ...devices["iPhone 13"], viewport: { width: 390, height: 844 } },
     },
   ],

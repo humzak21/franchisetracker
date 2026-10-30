@@ -15,6 +15,8 @@ for (const theme of ["dark", "light"] as const) {
     });
 
     test("every screen loads without overflow", async ({ page }) => {
+      // One test walking every screen, so one screen's budget is not enough for all of them.
+      test.slow();
       for (const item of NAV_ITEMS) {
         await page.goto(item.to);
         await expect(page.getByRole("heading", { level: 1, name: item.label })).toBeVisible();
