@@ -351,26 +351,27 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 ---
 
-## Proposed: Sprints 14 to 22
+## Proposed: Sprints 14 to 23
 
 Planned after the platform audit of October 2026, not yet scheduled or built. The statistics hub plan is `docs/STATS-HUB.md`; the audit with every gap and the reasoning behind the order is `docs/PLATFORM-AUDIT.md`. When one of these is picked up, it gets a full section above with a goal, a "Done when" and, once built, its "As built" notes, and the stable behaviour moves into `FEATURES.md`.
 
 | Sprint | Theme | Size | Source |
 |---|---|---|---|
-| 14 | Stats engines and storage: running totals, marks ("fastest to"), best N-game spans, pace, year over year, splits, quarter scoring, team records, streaks with dates | M | `STATS-HUB.md` 8, Sprint 14 |
-| 15 | Identity for the created era: player provenance and a real derived `isReal`, proper name splitting and alias search, game-aware name resolution, draft class matching, commit guards for new and ambiguous names, identity tools over every player | M | `PLATFORM-AUDIT.md` 2.2 A to D, G, H |
-| 16 | Stats hub: Overview, pace columns and the Home pace line, Countdowns card, Trends view, player page Pace, Trends and Cumulative | M | `STATS-HUB.md` 8, Sprint 15 |
-| 17 | Roster truth and the season checklist: the roster page as the truth for a team and season, carry-over that ages contracts and prunes ghosts, retirements step, depth chart, roster diff, team switcher, coverage strip | M | `PLATFORM-AUDIT.md` 2.2 E, F and 3 |
-| 18 | Records and streaks depth: fastest-to and span lists, full single-game lists, team records, streak dates and new kinds, milestone timeline, imported league leaders with "where we rank", player milestones | M | `STATS-HUB.md` 8, Sprint 16 |
-| 19 | Operations without a terminal: maintenance panel, retention crons, boards rebuilt after restore, scale test on a synthetic 20-season franchise, scheduled-job errors surfaced, extraction budget, duplicate screenshot hash | S | `PLATFORM-AUDIT.md` 4 and 6 |
-| 20 | Splits and the stat explorer | M | `STATS-HUB.md` 8, Sprint 17 |
-| 21 | Fun layer: season recaps, awards race, rivalry pages, weekly digest, Hall of Fame cases, contract year | M | `PLATFORM-AUDIT.md` 5.2 |
-| 22 | Spec sweep: Appearance and franchise settings, swipe between weeks and seasons, long-press row actions, headshot upload, Shortcut test button, ratings capture | S | `PLATFORM-AUDIT.md` 5.1 |
+| 14 | Scoring plays: the `scoring_plays` target for Madden's scoring summary screen, a `scoringPlays` table, player assignment for lines the glitch leaves nameless (candidates ranked by the touchdown the box score shows), quarter scores derived from the plays, a scoring summary and score worm on game detail, game-winning scores, connections and the longest touchdowns in records and milestones | M | `STATS-HUB.md` 4.10 and Sprint 14 |
+| 15 | Stats engines and storage: running totals, marks ("fastest to"), best N-game spans, pace, year over year, splits, quarter scoring, team records, streaks with dates | M | `STATS-HUB.md` 8, Sprint 15 |
+| 16 | Identity for the created era: player provenance and a real derived `isReal`, proper name splitting and alias search, game-aware name resolution, draft class matching, commit guards for new and ambiguous names, identity tools over every player | M | `PLATFORM-AUDIT.md` 2.2 A to D, G, H |
+| 17 | Stats hub: Overview, pace columns and the Home pace line, Countdowns card, Trends view, player page Pace, Trends and Cumulative | M | `STATS-HUB.md` 8, Sprint 16 |
+| 18 | Roster truth and the season checklist: the roster page as the truth for a team and season, carry-over that ages contracts and prunes ghosts, retirements step, depth chart, roster diff, team switcher, coverage strip | M | `PLATFORM-AUDIT.md` 2.2 E, F and 3 |
+| 19 | Records and streaks depth: fastest-to and span lists, full single-game lists, team records, streak dates and new kinds, milestone timeline, imported league leaders with "where we rank", player milestones | M | `STATS-HUB.md` 8, Sprint 17 |
+| 20 | Operations without a terminal: maintenance panel, retention crons, boards rebuilt after restore, scale test on a synthetic 20-season franchise, scheduled-job errors surfaced, extraction budget, duplicate screenshot hash | S | `PLATFORM-AUDIT.md` 4 and 6 |
+| 21 | Splits and the stat explorer | M | `STATS-HUB.md` 8, Sprint 18 |
+| 22 | Fun layer: season recaps, awards race, rivalry pages, weekly digest, Hall of Fame cases, contract year | M | `PLATFORM-AUDIT.md` 5.2 |
+| 23 | Spec sweep: Appearance and franchise settings, swipe between weeks and seasons, long-press row actions, headshot upload, Shortcut test button, ratings capture | S | `PLATFORM-AUDIT.md` 5.1 |
 
 ---
 
 ## Later (not scheduled)
 
-- Scoring plays and drive charts if a Madden screen provides them cleanly.
+- Drive charts, if a Madden screen provides drive data cleanly (scoring plays are proposed Sprint 14).
 - Shareable read-only season recap pages.
 - Live Text on-device OCR as a pre-pass to improve digit accuracy.

@@ -138,7 +138,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - `games`: season, weekKey, date label, homeTeamId, awayTeamId, userIsHome, scores, overtime, result for user team, opponent record at kickoff, playoffRound, stadium or neutral flag, weather, notes (narrative), stars[] (any number, ordered, picked by hand: playerId or typed name, team, optional note; the stat line is read from the box score, never stored), status (`scheduled`, `played`, `bye`).
 - `gameStatLines`: per game per player per team: a flat map of stat keys from the registry (pass, rush, rec, def, kick, punt, return). One row per player per game. This is the source of truth for everything downstream.
 - `gameTeamStats`: per game per team: first downs, total yards, pass yards, rush yards, turnovers, penalties, time of possession, third down, fourth down, red zone, sacks, etc.
-- `scoringPlays` (optional, phase 2): quarter, clock, team, description, score after.
+- `scoringPlays` (planned, `docs/STATS-HUB.md` 4.10): every score of a game from Madden's scoring summary screen: period, clock, team, kind (pass, rush, field goal, safety, return or defensive touchdown), yards, scorer and passer as player references (a scorer may be missing where the screen's glitch dropped the name, and is assigned afterwards), PAT result, score after, the description as printed. Source for the line score, game flow and clutch scoring.
 
 ### 4.5 Derived and cached
 

@@ -32,6 +32,7 @@ What does not exist, anywhere:
 | Team records | No team-level record lists (most points in a game, biggest win, biggest comeback, best season differential). `lineScore` (points by quarter) is captured but never aggregated. |
 | Cross-season game log | The only game-log query is per season; career game logs, filters ("every 100-yard game") and sorts do not exist. |
 | Countdowns | Nothing says "87 yards from 10,000" before it happens; milestones fire after the fact. |
+| Scoring plays | Madden's scoring summary screen is not captured. Without it there is no play-by-play of a game, no exact quarter scoring, no game-winning score, no QB-to-receiver connection count, no longest touchdown, no clutch field goal. `scoringPlays` has sat in `FEATURES.md` 4.4 as "optional, phase 2" since Sprint 0. |
 
 ---
 
@@ -56,7 +57,7 @@ What does not exist, anywhere:
 | **Players** | Today's Season view: position-group tables, big games, season highs, goals. Adds a pace column set (`on pace for`) while the season is in progress and a YoY delta toggle. | Extend |
 | **Team** | Today's rank ribbons, plus: season-by-season results chart, points for and against by season and by week, quarter scoring, splits (home/away, division, one-score games, overtime, by opponent), team single-game and season records. | Extend |
 | **Trends** | Multi-year charts for any player on the roster or the team: per-stat lines across seasons with YoY deltas, cumulative season overlays (this year against last year against the best year), per-game rolling averages. | New |
-| **Records** | Today's three books, plus the new scopes: **fastest to** a mark, **best N-game span**, team records, and the full single-game list (every game, not one per season). | Extend |
+| **Records** | Today's three books, plus the new scopes: **fastest to** a mark, **best N-game span**, team records, scoring records (longest touchdowns, game-winning scores, connections), and the full single-game list (every game, not one per season). | Extend |
 | **Streaks** | Active streaks with start dates, longest ever with their span, per season; new streak kinds. | Extend |
 | **Explorer** | Build a question: stat, scope (game, season, career, span N, fastest to mark), split, position, minimums, season range, and a chart or table of the result, with a share-able URL. The "etc, etc, etc" screen. | New |
 | **League** | Unchanged (other teams' context). | Keep |
@@ -151,9 +152,68 @@ Player streak milestones fire at 5, 10, 15 and 20; the "active" board on the hub
 
 `rankStat` with scope `game` ranks each player-season's best game because season rows carry only one best. Store, per season row, the top three games per record stat in `bestGames` (today it keeps one), and let the game-scope ranking take all three. Three per player-season is enough for a top 20 in practice; the record itself was already exact. The explorer's full list reads game lines directly for one stat and one season (bounded).
 
----
+### 4.10 Scoring plays: the game as a sequence (priority)
 
-## 5. Data model changes (`convex/schema/stats.ts`)
+Madden's scoring summary screen lists every score of a game: quarter, clock, team, the play ("D. Maye 15 yd pass to K. Boutte (A. Borregales kick)"), and the score after it. Occasionally a glitch drops the player's name from a line. That screen becomes an ingestion target, the plays become rows in a new table, and everything in this hub that is about *when* something happened reads them.
+
+**The target** `scoring_plays` is a row target (`shared/ingestion/rows`) with **game scope**, the first row target tied to a game (row targets are season or week scoped today; the scope machinery already exists for the game targets). It accepts several screenshots (a long game spans two screens) and merges rows by `(quarter, clock, team)`. Fields:
+
+| Field | Type | Notes |
+|---|---|---|
+| `quarter` | enum 1, 2, 3, 4, OT, OT2 | required |
+| `clock` | text `mm:ss` left in the period | required; normalized to seconds |
+| `team` | team | required; one of the game's two teams |
+| `kind` | enum `pass_td`, `rush_td`, `fg`, `safety`, `int_td`, `fumble_td`, `kick_return_td`, `punt_return_td`, `blocked_kick_td`, `other` | required; read from the description |
+| `yards` | int | the play's length where printed |
+| scorer (`name`) | player | the row's player; **optional**, because of the glitch |
+| `passer` | player name | the thrower on a pass TD |
+| `pat` | enum `kick`, `kick_failed`, `two`, `two_failed`, `none` | for touchdowns, from the parenthesis |
+| `homeScore`, `awayScore` | int | the score after the play; required |
+
+**Normalizer and validator** (pure, tested): rows sorted by period then clock descending; each row's points must match its kind (6 plus the PAT, 3, 2) and the running score must only go up by that amount; the last row must equal the game's final; when the game has a box score, each team's touchdowns by type must agree with the box score's `passTd`, `rushTd`, `recTd`, `defTd` and return TDs (a mismatch is a warning naming the player and the count); a row with no scorer gets a "needs a player" attention item.
+
+**Resolution for the glitch.** The candidate pool for a scorer is the game's own box score lines for that team, ranked by the stat the kind implies (a `pass_td` scorer is someone with a receiving touchdown in this box score who is not yet on a scoring play, a `rush_td` scorer someone with a rushing TD, a passer someone with a passing TD), then the team's roster. In most games that narrows a missing name to one person, and the picker opens on him. The same picker works on a row whose name was read but matched badly. A row can commit with no scorer: the game page then shows "1 scoring play needs a player" with the picker inline, so a glitch never blocks the game log, and the play's team points still count.
+
+**Storage** (`convex/schema/games.ts`):
+
+```ts
+scoringPlays: defineTable({
+  franchiseId, seasonId, gameId,
+  order: v.number(),                 // position in the game, 1-based
+  period: v.number(),                // 1–4, 5 and up for overtime
+  clock: v.number(),                 // seconds left in the period
+  teamId: v.id("teams"),
+  kind: vScoringKind,
+  yards: v.optional(v.number()),
+  ...playerRefFields,                // the scorer: playerId or rawName, both optional
+  passer: v.optional(v.object(playerRefFields)),
+  pat: v.optional(vPat),
+  homeScore: v.number(), awayScore: v.number(),
+  description: v.optional(v.string()), // as printed, for the review diff and the game page
+})
+  .index("by_gameId", ["gameId"])
+  .index("by_playerId", ["playerId"])
+  .index("by_seasonId_and_teamId", ["seasonId", "teamId"]),
+```
+
+Plays commit through the same `commitRows` dispatch as other row targets; the commit rewrites the game's plays as a set (idempotent per game), recomputes `games.lineScore` from them (plays win over typed quarters when both exist, and the quarter editor says so), and schedules the normal after-game refresh plus the scoring refresh below.
+
+**Engine** `shared/stats/scoring.ts`:
+
+- `lineScoreFromPlays(plays)`: points per period per team.
+- `gameFlow(plays)`: the score after every play, lead changes, ties, largest lead per team, largest deficit overcome, the **game-winning score** (the last score that put the winner ahead for good) and who had it, time of the go-ahead score, whether the team scored first, whether the team trailed entering the fourth and won (an exact comeback, replacing the quarter-based guess in 4.7).
+- `playerScoring(plays, playerId)`: touchdowns by kind and by period, fourth-quarter and overtime touchdowns, game-winning scores, longest touchdown, first touchdown (season and career), touchdowns by opponent.
+- `connections(plays)`: passer-to-scorer pairs with counts and yards, per season and career ("Maye to Boutte: 31 touchdowns").
+- `kicking(plays)`: field goals by distance band and by period, go-ahead and game-winning kicks, kicks in the last two minutes.
+- `teamScoring(plays)`: points by period for and against, scoring plays by kind, average length of a touchdown, points off turnovers (when the kind is `int_td` or `fumble_td` only; drive data is not on the screen), fastest and latest scores.
+
+Scoring plays also become **records** (scope `game` and `season` with the existing books): longest touchdown of each kind, most touchdowns in a period, most game-winning scores in a season and a career, most touchdowns from one connection; **milestones** (first career touchdown, game-winning score, a 50-touchdown connection); **team records** (points in a quarter, largest comeback, largest blown lead); and **splits** (performance when scoring first, when trailing at the half).
+
+**Screens.** Game detail gets a **Scoring summary** under the score bug: plays grouped by period, each with the team logo, clock, the structured description rendered from the fields (never the raw text, which stays as a tooltip), the score after it, a PAT tag, and a tap to assign or change the player; a `ScoreWorm` chart (score margin over game time, the periods marked, touch tooltips on each play) sits beside it on desktop and above it on the phone. The player page's game log marks touchdowns with their period and clock, the Trends view gets "touchdowns by quarter" and the connection table, the Overview tile strip shows this season's game-winning scores. The stars editor suggests the player with the game-winning score.
+
+**Reading back.** `games/scoring:byGame`, `stats/scoring:player(playerId, seasonId | career)`, `stats/scoring:team(seasonId)`, each one index; the player and team folds are bounded by games played.
+
+ (`convex/schema/stats.ts`)
 
 Additions only; nothing existing changes shape except as noted.
 
@@ -165,7 +225,8 @@ Additions only; nothing existing changes shape except as noted.
 | `playerMarks` (new) | `{ franchiseId, playerId, statKey, mark, horizon, gamesToReach, seasonId, weekKey, gameId, teamId }`, indexes `by_playerId`, `by_franchiseId_and_statKey_and_mark_and_horizon` | A player's milestone timeline and the countdown card read one index; the fastest-to board is built from it. |
 | `streaks` | add `longestFrom`, `longestTo`, `currentFrom` (`{ seasonId, year, weekKey }`), `seasonId?` for per-season rows | Dates on streaks. |
 | `teamRecords` (new) | `{ franchiseId, statKey, scope, split, value, gameId?, seasonId?, year, opponentTeamId?, top: [...] }`, index by franchise, split, scope, stat | Team record lists. |
-| `milestones.kind` | add `mark`, `player_streak`, `team_record` | Feed and acknowledge like the rest. |
+| `scoringPlays` (new, `convex/schema/games.ts`) | see 4.10 | Every score of every game; the source for line scores, game flow, connections and clutch scoring. |
+| `milestones.kind` | add `mark`, `player_streak`, `team_record`, `first_td`, `game_winner` | Feed and acknowledge like the rest. |
 
 Row counts stay small: marks are tens per player at most; spans and team records are top-20 boards. Everything joins the backup (`ops/backup`) and the restore map, or is rebuilt (boards) and documented as such.
 
@@ -201,6 +262,8 @@ New primitives, each with a gallery specimen, phone layout from its own width, b
 | `SplitTable` | A `DataTable` preset: one row per split group, the same stat columns as the season table, games as the first stat, phone primaries declared per group. |
 | `QuarterGrid` | 4 + OT columns of points for, against and differential with a bar per cell. |
 | `MilestoneTimeline` | Vertical list of marks reached with season, week, game link and games-to-reach, newest first. |
+| `ScoreWorm` | Score margin over game time from the scoring plays, periods marked, a dot per score with a touch tooltip; stacks above the summary on the phone. |
+| `ScoringSummary` | Period-grouped play list with logo, clock, rendered description, score after, PAT tag and an inline player picker for rows without a scorer. |
 | `QuestionBuilder` | The explorer's controls: stat picker from the registry, scope, split, window or mark, minimums, season range; emits a typed `Question` and writes it to the URL. |
 
 Existing primitives carry the rest: `StatCard` with `trend`, `DataTable` + `statColumn`, `RankTrend`, `PointsChart`, `DivergingBars`, `Tile`/`TileStrip`, `FactChip`, `Highlight`, `RecordList`.
@@ -223,21 +286,24 @@ Phone parity, per `FEATURES.md` 9: charts fewer ticks and tap tooltips, legends 
 
 ## 8. Build order
 
-Four sprints, each demoable and each ending with the phone check, Playwright smoke tests ("… without overflow" names) and `npm run check:all` green.
+Five sprints, each demoable and each ending with the phone check, Playwright smoke tests ("… without overflow" names) and `npm run check:all` green.
 
-**Sprint 14: engines and storage (M)**
-`ledger`, `marks`, `spans`, `pace`, `yoy`, `splits`, `quarters`, `teamRecords`, extended `streaks` in `shared/stats` with unit tests at the current coverage bar; schema additions; `afterGame` and `recordBuild` extended; `rebuild:all` and a Settings button; `players/gameLog:career`; backup coverage. Done when a committed game sets a mark, improves a span, dates a streak and sets a team record, recommitting changes nothing, and a rebuild from scratch matches the incremental result.
+**Sprint 14: scoring plays (M)**
+The `scoring_plays` row target with game scope and multi-screen merge, `scoringPlays` table and commit, resolution against the game's box score with the kind-aware picker, "needs a player" on the game page, `lineScore` derived from plays, `shared/stats/scoring.ts` with unit tests, the Scoring summary and `ScoreWorm` on game detail (both themes, phone), the player game log's period and clock marks, and the scoring entries in records, milestones and team records. Done when a game's scoring summary goes from photos to a play list in review, a row with a missing name is assigned in one tap to the only receiver with a touchdown, the quarter scores fill themselves, and the game page says who had the game-winning score.
 
-**Sprint 15: hub overview, pace, trends (M)**
+**Sprint 15: engines and storage (M)**
+`ledger`, `marks`, `spans`, `pace`, `yoy`, `splits`, `quarters` (reading scoring plays where a game has them), `teamRecords`, extended `streaks` in `shared/stats` with unit tests at the current coverage bar; schema additions; `afterGame` and `recordBuild` extended; `rebuild:all` and a Settings button; `players/gameLog:career`; backup coverage. Done when a committed game sets a mark, improves a span, dates a streak and sets a team record, recommitting changes nothing, and a rebuild from scratch matches the incremental result.
+
+**Sprint 16: hub overview, pace, trends (M)**
 Overview view, pace columns and the Home pace line, Countdowns card, Trends view, player page Pace, Trends and Cumulative sections; `CumulativeChart`, `SeasonBars`, `PaceBar`, `DeltaBadge` in the gallery. Done when Home and Stats say what a season is on pace for and the player page shows a career as curves, not only rows.
 
-**Sprint 16: records and streaks depth (M)**
+**Sprint 17: records and streaks depth (M)**
 Fastest-to and best-span lists in the Records book with typed entries, full single-game lists, team records, Streaks with dates and the new kinds, `MilestoneTimeline` on the player page, mark and streak milestones on Home. Done when "fastest to 1,000 yards in a season", "most TDs in any 5 games" and "most points we ever scored" are each one tap.
 
-**Sprint 17: splits and the explorer (M)**
+**Sprint 18: splits and the explorer (M)**
 `SplitTable`, `QuarterGrid`, team and player splits, the Explorer with URL state, career game log filters. Done when a question with a stat, scope, split and window can be built on the phone and bookmarked.
 
-Order rationale: storage first so every later view is one read; the pace and trend views come next because they need no new storage beyond Sprint 14 and change the app most for the least code; the explorer last because it composes everything before it.
+Order rationale: scoring plays first because they are a new capture (the sooner they are captured, the more seasons have them) and the later engines read them; storage next so every later view is one read; the pace and trend views come next because they need no new storage beyond Sprint 14 and change the app most for the least code; the explorer last because it composes everything before it.
 
 ---
 
@@ -256,6 +322,7 @@ A checklist to test against, in the user's words:
 - The most points, yards, sacks and takeaways the team ever had in a game or a season.
 - Every 100-yard game of a career, sorted, filtered, linked to its box score.
 - How many yards from the next mark, and who on the roster is closest to one.
+- Who scored the game-winner, when, and how many game-winning scores has he had; the longest touchdown of the season; how many touchdowns the QB and his top receiver have together; points by quarter for and against; the biggest comeback and the worst blown lead.
 
 ---
 
@@ -265,4 +332,4 @@ A checklist to test against, in the user's words:
 - **Imported seasons** have no games: fastest-to counts them as a starting total and a game count, cumulative curves start at the franchise, and spans and splits ignore them. Every list says "franchise games only" where that applies.
 - **Missing box scores** make a pace, mark or span low, never wrong in the other direction; the reconcile view's missing-game count shows next to any affected list.
 - **Starts** are not captured (`gamesStarted` is never written), so no per-start rates until a target provides them.
-- Snap counts, advanced stats (EPA, air yards) and scoring plays are not in Madden's screens; out of scope until a screen provides them.
+- Snap counts and advanced stats (EPA, air yards) are not in Madden's screens; out of scope until a screen provides them. Drive data (starts, plays, time of possession per drive) is not on the scoring summary either, so drive charts wait for a screen that shows them.

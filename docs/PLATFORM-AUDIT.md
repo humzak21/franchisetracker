@@ -15,7 +15,7 @@ Status words: **built**, **partial**, **missing**, **risk** (works today, fails 
 5. **Ambiguous box-score names commit as new players** when review does not pick, and the weekly-awards batch auto-commits "will be added as a new player" rows unseen. Fix: ambiguous and new names block commit on game targets until confirmed or explicitly "create", and new-player rows are never auto-committed.
 6. **Several maintenance steps are CLI only** (`stats/rebuild:all`, `stats/recordBuild:start`, `stats/teamTotals:rebuildAll`, `games/clearTypedStarLines`, `history/importJob:restart`, `ingestion/fixMisreads`, `repairSeasonStatsTeams`). The owner should never need a terminal. Fix: a Settings → Maintenance panel with each job, its last run and a progress row, built on the `recordBuilds` pattern.
 7. **Boards and placements are not backed up** and depend on a first build the user has to know to press. Fix: back them up or rebuild automatically after a restore and after the history import (the import already schedules `recordBuild`; make the restore do the same).
-8. **No statistics beyond totals**: no pace, trends, cumulative, splits, spans or fastest-to (`docs/STATS-HUB.md`).
+8. **No statistics beyond totals, and no scoring plays**: no pace, trends, cumulative, splits, spans or fastest-to, and Madden's scoring summary screen is not captured, so a game has no play-by-play, exact quarter scoring, game-winning score or QB-to-receiver connection (`docs/STATS-HUB.md`, 4.10 first).
 9. **Spec items still missing on screens**: roster team switcher, depth chart, roster diff, imported league leaders view with "where we rank", player milestones on the player page, Appearance settings, franchise settings editing, swipe between weeks and seasons, long-press row actions.
 10. **Long-franchise scale is untested.** The after-game refresh and the records build were timed on the sample only ("full-history franchises were not timed"). Fix: a synthetic 20-season fixture and a timing test in CI (section 6).
 
@@ -80,7 +80,7 @@ The owner's point: by the second decade the app, not the owner, has to remember 
 | Who is on the opponent | partial | Partial entries from box scores, leaders, awards and the first-season import; no decay. 2.2 E. |
 | Our depth chart | missing | Write `depthSlot` from the roster page target's order and show a depth chart view (FEATURES 5.3). |
 | Season checklist | missing | A per-season **Season checklist** on Home: offseason (re-signings, free agency, draft class, roster page, carry-over), preseason (depth chart, goals, pre-season report), each week (game log, standings, weekly awards), season end (season stats for each group, team stats, standings, awards, playoffs, post-season report). Each item knows which target satisfies it and shows done or missing from the data, not from a checkbox. It replaces remembering which screens to shoot. |
-| Capture freshness | partial | The reconcile view lists weeks without a box score. Generalize: a "coverage" strip per season (games with a box score, with team stats, with a line score, standings weeks captured, awards weeks captured). |
+| Capture freshness | partial | The reconcile view lists weeks without a box score. Generalize: a "coverage" strip per season (games with a box score, with team stats, with a scoring summary, standings weeks captured, awards weeks captured). |
 | Season switch defaults | built | Remembered per screen. Fine. |
 | Context on a player | partial | The player page has bio, career, moves. Add "how we got him and why" (acquisition story plus the need it resolved, the draft board note, the trade's retrospective), the milestone timeline (STATS-HUB 4.2) and "seen in" (2.2 H). |
 | Franchise memory | partial | Timeline exists. Add season recaps generated from the data (section 5 B) and an "on this week" card on Home (what happened in week N of earlier seasons). |
@@ -124,7 +124,8 @@ The owner's point: by the second decade the app, not the owner, has to remember 
 | Phone 5.13 | Swipe between weeks on Schedule and seasons on History | missing |
 | Phone 9 | Long-press row actions | missing |
 | Keyboard 5.14 | `[` `]` between weeks on Schedule | partial (games only, on game detail) |
-| Later | Scoring plays, drive charts, shareable recaps | missing |
+| Games 4.4 | Scoring plays (Madden's scoring summary screen, with a glitch that sometimes drops the player's name) | missing; now a priority, `STATS-HUB.md` 4.10 and Sprint 14 |
+| Later | Drive charts, shareable recaps | missing |
 
 ### 5.2 Additions that make the franchise more fun
 
@@ -204,14 +205,15 @@ The owner's point: by the second decade the app, not the owner, has to remember 
 
 | Sprint | Theme | Size | Contents |
 |---|---|---|---|
-| 14 | Stats engines and storage | M | `STATS-HUB.md` Sprint 14 |
-| 15 | Identity for the created era | M | 2.2 A, B, C, D, G, H: provenance, names, game-aware resolution, draft matching, commit guards, identity tools |
-| 16 | Hub overview, pace, trends | M | `STATS-HUB.md` Sprint 15, plus Home countdowns |
-| 17 | Roster truth and the season checklist | M | 2.2 E, F; section 3 checklist and coverage strip; depth chart, roster diff, team switcher |
-| 18 | Records and streaks depth | M | `STATS-HUB.md` Sprint 16, league leaders view with "where we rank", player milestones |
-| 19 | Operations without a terminal | S | Maintenance panel, retention crons, backup of boards or auto-rebuild, scale test, error surfacing, budget guard, duplicate image hash |
-| 20 | Splits and the explorer | M | `STATS-HUB.md` Sprint 17 |
-| 21 | Fun layer | M | Season recaps, awards race, rivalry pages, weekly digest, HoF cases, contract year |
-| 22 | Spec sweep | S | Appearance and franchise settings, swipe weeks and seasons, long-press actions, headshot upload, Shortcut test button, ratings capture |
+| 14 | Scoring plays: target, table, kind-aware player assignment for the missing-name glitch, scoring summary and score worm on game detail, scoring records | M | `STATS-HUB.md` 4.10 and Sprint 14 |
+| 15 | Stats engines and storage | M | `STATS-HUB.md` Sprint 15 |
+| 16 | Identity for the created era | M | 2.2 A, B, C, D, G, H: provenance, names, game-aware resolution, draft matching, commit guards, identity tools |
+| 17 | Hub overview, pace, trends | M | `STATS-HUB.md` Sprint 16, plus Home countdowns |
+| 18 | Roster truth and the season checklist | M | 2.2 E, F; section 3 checklist and coverage strip; depth chart, roster diff, team switcher |
+| 19 | Records and streaks depth | M | `STATS-HUB.md` Sprint 17, league leaders view with "where we rank", player milestones |
+| 20 | Operations without a terminal | S | Maintenance panel, retention crons, backup of boards or auto-rebuild, scale test, error surfacing, budget guard, duplicate image hash |
+| 21 | Splits and the explorer | M | `STATS-HUB.md` Sprint 18 |
+| 22 | Fun layer | M | Season recaps, awards race, rivalry pages, weekly digest, HoF cases, contract year |
+| 23 | Spec sweep | S | Appearance and franchise settings, swipe weeks and seasons, long-press actions, headshot upload, Shortcut test button, ratings capture |
 
-Identity (15) is placed second on purpose: every stats feature after it is only as good as the player entities it ranks, and the cost of fixing identity grows with every season captured under the current rules.
+Scoring plays go first because they are a new capture: every season played before the target exists is a season without play-by-play. Identity (16) follows next on purpose: every stats feature after it is only as good as the player entities it ranks, and the cost of fixing identity grows with every season captured under the current rules.
