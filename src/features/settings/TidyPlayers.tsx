@@ -8,7 +8,7 @@ import { errorMessage } from "@/lib/errors";
 
 /**
  * The one-time pass over players from before provenance was kept. Stays out of the way until
- * someone needs it, and reports what it changed once.
+ * someone needs it, then reports what it changed.
  */
 export function TidyPlayers() {
   const status = useQuery(api.players.tidy.status, {});
@@ -26,7 +26,7 @@ export function TidyPlayers() {
             Tidying player records… <span className="num">{job.checked}</span> checked
           </>
         ) : status.pending ? (
-          "Some players predate provenance. Tidy them to date them, mark created players fictional and repair names like “M.Hawkins”."
+          "Some older players have no record of where they came from. Tidy them to date them, mark created players fictional and repair names like “M.Hawkins”."
         ) : (
           <>
             Player records are tidy: <span className="num">{job?.fictional ?? 0}</span> marked fictional,{" "}

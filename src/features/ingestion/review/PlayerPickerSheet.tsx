@@ -5,7 +5,7 @@ import { normalizePosition, ROSTER_STATUS_LABELS } from "@shared/domain";
 import type { PlayerMatch } from "@shared/ingestion/types";
 import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { Input } from "@/components/ui/input";
-import { pickerContext, type PlayerChoice } from "./draftEdit";
+import { getAt, pickerContext, type PlayerChoice } from "./draftEdit";
 import { PickerGroup } from "./PickerGroup";
 import { PickerOption } from "./PickerOption";
 import { usePlayerSearch, useProspectSearch, useTeamRoster } from "./playerSearch";
@@ -46,6 +46,8 @@ export function PlayerPickerSheet({
   const typed = text.trim();
   const { draft, seasonId } = useReviewDraft();
   const { teamAbbr, position } = pickerContext(draft, base);
+  // On a game, no player yet is a question, not a choice of a new player.
+  const newChosen = !base.startsWith("lines.") || getAt(draft, `${base}.confirmedNew`) === true;
   const franchise = usePlayerSearch(text, open);
   const college = useProspectSearch(text, open && prospects);
   const offered = new Set(match.candidates.map((c) => c.playerId));
@@ -92,7 +94,7 @@ export function PlayerPickerSheet({
             <PickerOption
               icon={<UserPlus className="size-4 shrink-0 text-primary" />}
               label={typed ? `Keep “${printedName}” as a new player` : "Add as a new player"}
-              selected={value === null}
+              selected={value === null && newChosen}
               onClick={() => choose({ kind: "new", name: printedName })}
             />
           </ul>

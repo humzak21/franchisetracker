@@ -32,7 +32,9 @@ export function SeenIn({ seen }: { seen: SeenInView }) {
         </ul>
       )}
       {seen.printed.length > 0 && (
-        <p className="text-xs text-muted-foreground">Printed as {seen.printed.join(", ")}</p>
+        <p className="text-xs text-muted-foreground">
+          Printed as <span className="capitalize">{seen.printed.join(", ")}</span>
+        </p>
       )}
     </div>
   );
