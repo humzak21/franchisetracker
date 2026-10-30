@@ -211,14 +211,23 @@ describe("a correction", () => {
     const { gameIn, player, marks, spanBoard, setRushing, owner } = await setup();
     const game = await gameIn("w2");
     const henderson = await player("TreVeyon Henderson");
+    const titles = async () => {
+      const feed = await owner.query(api.stats.milestones.feed, {});
+      return feed
+        .filter((m) => m.kind === "mark" && m.gameId === game._id && m.playerId === henderson._id)
+        .map((m) => m.title)
+        .sort();
+    };
+    // His real seasons can put a career mark in this game already; the correction must restore that.
+    const before = await titles();
     await setRushing(game._id, henderson._id, 1000);
+    const during = await titles();
     await setRushing(game._id, henderson._id, 64);
     const left = await marks(henderson._id);
     expect(left.filter((m) => m.statKey === "rushYds" && m.horizon === "season")).toEqual([]);
     expect((await spanBoard("rushYds", 2))?.top[0]?.value).toBeLessThan(1000);
-    const feed = await owner.query(api.stats.milestones.feed, {});
-    const here = feed.filter((m) => m.kind === "mark" && m.gameId === game._id);
-    expect(here.filter((m) => m.playerId === henderson._id)).toEqual([]);
+    expect(during).not.toEqual(before);
+    expect(await titles()).toEqual(before);
   });
 
   test("a deleted game takes its mark, span and team entries with it", async () => {
