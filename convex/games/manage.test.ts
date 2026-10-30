@@ -65,6 +65,7 @@ describe("games/manage", () => {
       weather: "Snow",
       neutralSite: false,
       lineScore: null,
+      quartersFromPlays: false,
     });
     expect((await season())!.userRecord).toMatchObject({ w: 4, l: 2 });
   });

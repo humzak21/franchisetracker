@@ -22,6 +22,7 @@ export function RowsEditor() {
   if (!isRowDraft(draft)) return null;
   const { spec } = rowTarget(draft.target);
   const fields = spec.fields(draft);
+  const pickFirst = spec.player && !spec.optionalPlayer;
   const accepted = draft.rows.filter((r) => r.accepted).length;
   // One button flips the whole list: accept every row, or clear them all to pick a few.
   const allAccepted = draft.rows.length > 0 && accepted === draft.rows.length;
@@ -51,7 +52,7 @@ export function RowsEditor() {
         actions={
           <div className="flex flex-wrap justify-end gap-2">
             <ImportCsvButton />
-            <Button size="sm" variant="outline" onClick={() => (spec.player ? setAdding(true) : addRow())}>
+            <Button size="sm" variant="outline" onClick={() => (pickFirst ? setAdding(true) : addRow())}>
               <Plus /> Add row
             </Button>
             <Button
@@ -80,7 +81,7 @@ export function RowsEditor() {
           ))}
         </ul>
       </Section>
-      {spec.player && (
+      {pickFirst && (
         <AddPlayerSheet open={adding} onOpenChange={setAdding} title="Add a row" onAdd={addRow} />
       )}
     </div>

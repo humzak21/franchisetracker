@@ -6,7 +6,13 @@
 import { isRowTarget, type TargetKey } from "../../shared/ingestion/targets";
 import { fixtureRows } from "./fixtureRows";
 
-type Teams = { home: string; away: string; userIsHome: boolean };
+type Teams = {
+  home: string;
+  away: string;
+  userIsHome: boolean;
+  homeScore?: number | null;
+  awayScore?: number | null;
+};
 
 const row = (
   team: string,
@@ -23,15 +29,16 @@ const row = (
   ...stats,
 });
 
-export function fixtureAnswer(target: TargetKey, { home, away, userIsHome }: Teams): unknown {
+export function fixtureAnswer(target: TargetKey, teams: Teams): unknown {
+  const { home, away, userIsHome } = teams;
   const us = userIsHome ? home : away;
   const them = userIsHome ? away : home;
   if (target === "game_log")
     return {
-      ...(fixtureAnswer("game_box_score", { home, away, userIsHome }) as object),
-      ...(fixtureAnswer("team_game_stats", { home, away, userIsHome }) as object),
+      ...(fixtureAnswer("game_box_score", teams) as object),
+      ...(fixtureAnswer("team_game_stats", teams) as object),
     };
-  if (isRowTarget(target)) return fixtureRows(target, us, { home, away, userIsHome });
+  if (isRowTarget(target)) return fixtureRows(target, us, teams);
   const header = {
     home_team: home,
     away_team: away,

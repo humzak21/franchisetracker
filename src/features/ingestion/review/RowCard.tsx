@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { Id } from "@convex/_generated/dataModel";
 import { PROSPECT_ESPN_ID } from "@shared/ingestion/rows/peopleSpecs";
 import type { RowField, RowSpec } from "@shared/ingestion/rows/types";
-import type { RowTargetDraft } from "@shared/ingestion/types";
+import type { PlayerMatch, RowTargetDraft } from "@shared/ingestion/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { choosePlayerAt } from "./draftEdit";
@@ -17,46 +17,55 @@ const TEAM: RowField = { key: "teamAbbr", label: "Team", type: "team" };
 
 function Who({
   row,
+  spec,
+  match,
   caption,
   onPick,
   flagged,
 }: {
   row: Row;
+  spec: RowSpec;
+  match: PlayerMatch<Id<"players">> | null;
   caption: string | null;
   onPick: () => void;
   flagged: boolean;
 }) {
-  const chosen = row.match?.candidates.find((c) => c.playerId === row.playerId);
+  const chosen = match?.candidates.find((c) => c.playerId === row.playerId);
   return (
     <button
       type="button"
       onClick={onPick}
       className={cn(
-        "-m-1 flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg p-1 text-left hover:bg-surface-2",
+        "-m-1 flex min-h-11 min-w-0 flex-1 items-center gap-x-2 rounded-lg p-1 text-left hover:bg-surface-2",
         flagged && "bg-warn/10",
       )}
     >
-      <span className="min-w-0">
-        <span className="block truncate font-medium">{row.name}</span>
-        <span className="block truncate text-xs text-muted-foreground">
-          {chosen ? (
-            <>→ {chosen.name}</>
-          ) : row.playerId ? (
-            "→ Chosen player"
-          ) : row.match?.status === "ambiguous" ? (
-            <span className="text-warn">Choose who this is</span>
-          ) : (
-            <span className="inline-flex items-center gap-1">
-              <UserPlus className="size-3" />
-              {typeof row.values[PROSPECT_ESPN_ID] === "number"
-                ? "New player · college prospect"
-                : "New player"}
-            </span>
-          )}
+      {/* The caption drops under the name on a narrow card rather than cutting the name short. */}
+      <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2">
+        <span className="min-w-28 flex-1">
+          <span className="block truncate font-medium">{row.name ?? "Name missing"}</span>
+          <span className="block truncate text-xs text-muted-foreground">
+            {chosen ? (
+              <>→ {chosen.name}</>
+            ) : row.playerId ? (
+              "→ Chosen player"
+            ) : match?.status === "ambiguous" ? (
+              <span className="text-warn">Choose who this is</span>
+            ) : spec.optionalPlayer ? (
+              <span className="text-warn">{row.name ? "Not matched to a player" : "Needs a player"}</span>
+            ) : (
+              <span className="inline-flex items-center gap-1">
+                <UserPlus className="size-3" />
+                {typeof row.values[PROSPECT_ESPN_ID] === "number"
+                  ? "New player · college prospect"
+                  : "New player"}
+              </span>
+            )}
+          </span>
         </span>
+        {caption && <span className="num ml-auto shrink-0 text-xs text-muted-foreground">{caption}</span>}
       </span>
-      {caption && <span className="num ml-auto shrink-0 text-xs text-muted-foreground">{caption}</span>}
-      <ChevronRight className={cn("size-4 shrink-0 text-subtle-foreground", !caption && "ml-auto")} />
+      <ChevronRight className="ml-auto size-4 shrink-0 text-subtle-foreground" />
     </button>
   );
 }
@@ -67,10 +76,11 @@ function Who({
  */
 export function RowCard({ row, spec, fields }: { row: Row; spec: RowSpec; fields: readonly RowField[] }) {
   const { player, rowTeam } = spec;
-  const { set, update, flag } = useReviewDraft();
+  const { set, update, flag, matchOf } = useReviewDraft();
   const [picking, setPicking] = useState(false);
   const [open, setOpen] = useState(false);
   const base = `rows.${row.id}`;
+  const match = matchOf(base);
   // Empty optional fields wait under "more": a passer's card does not lead with blank carries.
   // Which ones had a value is read once, so a field typed into does not jump grids and lose focus.
   const [filled] = useState(
@@ -107,6 +117,8 @@ export function RowCard({ row, spec, fields }: { row: Row; spec: RowSpec; fields
         {player ? (
           <Who
             row={row}
+            spec={spec}
+            match={match}
             caption={spec.caption?.(row) ?? null}
             onPick={() => setPicking(true)}
             flagged={flag(`${base}.name`) !== null}
@@ -172,14 +184,15 @@ export function RowCard({ row, spec, fields }: { row: Row; spec: RowSpec; fields
           </>
         )}
       </div>
-      {player && row.match && (
+      {player && (match ?? spec.optionalPlayer) && (
         <PlayerPickerSheet
           open={picking}
           onOpenChange={setPicking}
-          printedName={row.name ?? ""}
-          match={row.match}
+          printedName={row.name ?? "Which player?"}
+          match={match ?? { status: "new", candidates: [] }}
           value={row.playerId}
           prospects={spec.newPlayers}
+          noNewPlayers={spec.optionalPlayer}
           onChange={(chosen) => update((d) => choosePlayerAt(d, base, chosen))}
         />
       )}

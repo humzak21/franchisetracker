@@ -11,6 +11,7 @@ import {
   type GameInput,
 } from "../../shared/games/gameForm";
 import type { WeekKey } from "../../shared/domain";
+import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, type MutationCtx } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
@@ -18,6 +19,7 @@ import { invalid, must } from "../lib/errors";
 import { ownSeason } from "../lib/reports";
 import { vWeekKey } from "../lib/validators";
 import { ownGame } from "./access";
+import { deleteScoringPlays } from "./playRows";
 import { gameLines, refreshDeletedGame, refreshGame } from "./refreshGame";
 
 const vGameInput = {
@@ -107,6 +109,11 @@ export const update = mutation({
         );
       }
     }
+    // Scores name their team and stand only for this matchup, so a new opponent starts them over.
+    if (droppedTeams(game, fields).length > 0) {
+      await deleteScoringPlays(ctx, gameId);
+      await ctx.scheduler.runAfter(0, internal.stats.scoring.afterPlays, { gameId });
+    }
     // A captured line score only stands while the final score and sides it adds up to do.
     const sameScore =
       fields.homeTeamId === game.homeTeamId &&
@@ -136,7 +143,7 @@ export const update = mutation({
   },
 });
 
-/** Deletes the game, its stat lines, team stats and milestones; its screenshots stay in the inbox. */
+/** Deletes the game, its stat lines, team stats, scoring plays and milestones; its screenshots stay in the inbox. */
 export const remove = mutation({
   args: { gameId: v.id("games") },
   returns: v.null(),
@@ -158,6 +165,7 @@ export const remove = mutation({
       .withIndex("by_gameId", (q) => q.eq("gameId", gameId))
       .take(MAX_PER_GAME);
     for (const m of milestones) await ctx.db.delete("milestones", m._id);
+    await deleteScoringPlays(ctx, gameId);
     // Screenshots keep their season and week, so a later commit finds or creates that week's game.
     const uploads = await ctx.db
       .query("uploads")

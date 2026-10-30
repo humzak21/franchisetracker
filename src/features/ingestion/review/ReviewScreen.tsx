@@ -14,6 +14,7 @@ import { DraftEditor } from "./DraftEditor";
 import { ReviewActions } from "./ReviewActions";
 import { ReviewDraftProvider, type ReviewDraft } from "./reviewDraft";
 import { StatusBanner } from "./StatusBanner";
+import { useRowGame } from "./useRowGame";
 import { useQuery } from "@/lib/convex/useQuery";
 
 /** Review (FEATURES.md 5.11 and 9): screenshots beside the editable draft, two swipeable panes on phones. */
@@ -21,6 +22,7 @@ export function ReviewScreen({ setKey }: { setKey: string }) {
   const data = useQuery(api.ingestion.review.get, { setKey });
   const saveDraft = useMutation(api.ingestion.review.saveDraft);
   const save = useCallback((draft: ReviewDraft) => saveDraft({ setKey, draft }), [saveDraft, setKey]);
+  const game = useRowGame(data?.targetKey, data?.game?._id);
   const back = { to: "/inbox", label: "Inbox" };
 
   if (data === undefined) {
@@ -56,6 +58,7 @@ export function ReviewScreen({ setKey }: { setKey: string }) {
             initial={extraction.draft}
             confidence={extraction.confidence}
             extractionNotes={extraction.warnings}
+            game={game}
           >
             <SplitPane
               ratio="minmax(0, 1fr) minmax(0, 1fr)"

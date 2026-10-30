@@ -12,6 +12,7 @@ import { useReviewDraft } from "./reviewDraft";
 
 const ICON = { error: CircleAlert, warning: TriangleAlert, info: Info } as const;
 const TONE = { error: "text-loss", warning: "text-warn", info: "text-muted-foreground" } as const;
+const NO_CANDIDATES: PlayerMatch<Id<"players">> = { status: "new", candidates: [] };
 
 function Note({ warning }: { warning: DraftWarning }) {
   const Icon = ICON[warning.severity];
@@ -25,7 +26,7 @@ function Note({ warning }: { warning: DraftWarning }) {
 
 /** Doubtful fields and actionable suggestions, editable without leaving the checklist. */
 export function AttentionList() {
-  const { draft, warnings, confidence, set, update, flag } = useReviewDraft();
+  const { draft, warnings, confidence, set, update, flag, matchOf } = useReviewDraft();
   const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
   const [picking, setPicking] = useState<string | null>(null);
   const items = useMemo(
@@ -37,7 +38,7 @@ export function AttentionList() {
   const newPlayers =
     "lines" in draft
       ? draft.lines.filter((l) => l.playerId === null && l.match.status === "new").length
-      : "rows" in draft
+      : isRowDraft(draft) && !rowTarget(draft.target).spec.optionalPlayer
         ? draft.rows.filter((r) => r.accepted && r.playerId === null && r.match?.status === "new").length
         : 0;
   if (newPlayers > 0)
@@ -45,9 +46,8 @@ export function AttentionList() {
       severity: "info",
       message: `${newPlayers} player${newPlayers === 1 ? "" : "s"} will be added as new`,
     });
-  const pickedMatch = picking
-    ? (getAt(draft, `${picking}.match`) as PlayerMatch<Id<"players">> | null)
-    : null;
+  const noNewPlayers = isRowDraft(draft) && rowTarget(draft.target).spec.optionalPlayer;
+  const pickedMatch = picking ? (matchOf(picking) ?? (noNewPlayers ? NO_CANDIDATES : null)) : null;
   if (items.length === 0 && general.length === 0 && !picking) return null;
 
   return (
@@ -66,7 +66,7 @@ export function AttentionList() {
             const value = getAt(draft, item.path);
             const base = item.path.replace(/\.name$/, "");
             const match = item.path.endsWith(".name")
-              ? (getAt(draft, `${base}.match`) as PlayerMatch<Id<"players">> | null)
+              ? (matchOf(base) ?? (noNewPlayers ? NO_CANDIDATES : null))
               : null;
             const playerId = match ? getAt(draft, `${base}.playerId`) : null;
             const candidate = !playerId && match?.status === "ambiguous" ? match.candidates[0] : null;
@@ -153,10 +153,11 @@ export function AttentionList() {
           onOpenChange={(open) => {
             if (!open) setPicking(null);
           }}
-          printedName={String(getAt(draft, `${picking}.name`) ?? "")}
+          printedName={String(getAt(draft, `${picking}.name`) ?? "Which player?")}
           match={pickedMatch}
           value={getAt(draft, `${picking}.playerId`) as Id<"players"> | null}
           prospects={isRowDraft(draft) && rowTarget(draft.target).spec.newPlayers}
+          noNewPlayers={noNewPlayers}
           onChange={(player) => {
             update((d) => choosePlayerAt(d, picking, player));
             confirm(`${picking}.name`);

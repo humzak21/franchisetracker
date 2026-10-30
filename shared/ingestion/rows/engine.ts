@@ -19,7 +19,7 @@ import {
 } from "../normalize";
 import { nullable, object, rowMeta, type JsonSchema } from "../schema";
 import type { DraftWarning, FieldConfidence } from "../types";
-import type { DraftRow, RowField, RowSpec, RowValue, RowsDraft } from "./types";
+import type { DraftRow, RowField, RowGameContext, RowSpec, RowValue, RowsDraft } from "./types";
 
 export function fieldSchema(field: RowField): JsonSchema {
   const hint = field.hint ?? field.label;
@@ -45,8 +45,11 @@ export function fieldSchema(field: RowField): JsonSchema {
 
 /** The fields a row object carries in the model's answer. */
 export function rowProperties(spec: RowSpec, fields: readonly RowField[]): Record<string, JsonSchema> {
+  const name: JsonSchema = spec.optionalPlayer
+    ? nullable("string", "The player who scored, exactly as printed; null if the screen leaves the name out.")
+    : { type: "string", description: "Player name exactly as printed." };
   return {
-    ...(spec.player ? { name: { type: "string", description: "Player name exactly as printed." } } : {}),
+    ...(spec.player ? { name } : {}),
     ...(spec.rowTeam ? { team: nullable("string", "The row's team as printed.") } : {}),
     ...Object.fromEntries(fields.map((f) => [extractionField(f.key), fieldSchema(f)])),
     ...rowMeta,
@@ -150,7 +153,7 @@ export function normalizeRows<T extends string>(
   const taken = new Set<string>();
   for (const row of spec.readRows ? spec.readRows(obj) : rowList(obj.rows)) {
     const name = spec.player ? str(row.name) : null;
-    if (spec.player && !name) continue;
+    if (spec.player && !spec.optionalPlayer && !name) continue;
     const printedTeam = spec.rowTeam ? str(row.team) : null;
     const teamAbbr = resolveTeamAbbr(printedTeam);
     const values: Record<string, RowValue> = {};
@@ -192,13 +195,15 @@ export function normalizeRows<T extends string>(
     }
     rowConfidence(row, `rows.${draftRow.id}`, paths, confidence);
   }
-  return { draft: { target, meta, rows: [...byIdentity.values()] }, confidence, warnings };
+  return { draft: { target, meta, rows: ordered(spec, [...byIdentity.values()]) }, confidence, warnings };
 }
+
+const ordered = (spec: RowSpec, rows: DraftRow[]) => (spec.order ? rows.sort(spec.order) : rows);
 
 const missing = (value: RowValue | undefined) => value === undefined || value === null || value === "";
 
 /** Checks every accepted row; rows left unaccepted are not committed, so they are not checked. */
-export function validateRows(spec: RowSpec, draft: RowsDraft): DraftWarning[] {
+export function validateRows(spec: RowSpec, draft: RowsDraft, game?: RowGameContext | null): DraftWarning[] {
   const out: DraftWarning[] = [];
   for (const field of spec.meta) {
     if (field.required && missing(draft.meta[field.key])) {
@@ -226,15 +231,21 @@ export function validateRows(spec: RowSpec, draft: RowsDraft): DraftWarning[] {
     if (spec.rowTeam && !row.teamAbbr && !spec.player) {
       out.push({ path: `${path}.teamAbbr`, message: `${who}: pick the team`, severity: "error" });
     }
-    if (spec.player && row.playerId === null) {
+    if (spec.player && row.playerId === null && (row.name || !spec.optionalPlayer)) {
       out.push(
         row.match?.status === "ambiguous"
           ? { path: `${path}.name`, message: `${who}: choose which player this is`, severity: "warning" }
-          : { path: `${path}.name`, message: `${who} will be added as a new player`, severity: "info" },
+          : {
+              path: `${path}.name`,
+              message: spec.optionalPlayer
+                ? `${who} stays as printed until a player is picked`
+                : `${who} will be added as a new player`,
+              severity: "info",
+            },
       );
     }
   }
-  return [...out, ...(spec.rules?.(draft) ?? [])];
+  return [...out, ...(spec.rules?.(draft, game) ?? [])];
 }
 
 /**
@@ -292,7 +303,7 @@ export function mergeRowDrafts<T extends string>(
     );
   }
   return {
-    draft: { target: first.draft.target, meta, rows: [...byIdentity.values()] },
+    draft: { target: first.draft.target, meta, rows: ordered(spec, [...byIdentity.values()]) },
     confidence,
     warnings,
   };

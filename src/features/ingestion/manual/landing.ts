@@ -8,6 +8,7 @@ const LANDING = {
   game_log: "/schedule",
   game_box_score: "/schedule",
   team_game_stats: "/schedule",
+  scoring_plays: "/schedule",
   season_player_stats: "/stats/reconcile",
   league_leaders: "/stats",
   records_list: "/stats",

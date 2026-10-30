@@ -3,6 +3,7 @@
  * Each is declared as fields, and one schema builder, normalizer, validator, merge and review
  * editor serve them all. Rows are accepted one by one in review; only accepted rows commit.
  */
+import type { GameLine } from "../../games/scorers";
 import type { JsonSchema } from "../schema";
 import type { DraftWarning, PlayerMatch } from "../types";
 
@@ -44,10 +45,25 @@ export type RowsDraft<P extends string = string, T extends string = string> = {
   rows: DraftRow<P>[];
 };
 
+/** The game a game-scoped list is filed under, for the checks that need it. */
+export type RowGameContext<P extends string = string> = {
+  homeAbbr: string;
+  awayAbbr: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  /** The game's box score, both teams; empty until one is committed. */
+  lines: GameLine<P>[];
+};
+
 /** How a row target reads and checks its screen. Pure data plus a few small functions. */
 export type RowSpec = {
   /** Rows name a player, resolved against the rosters like box score lines. */
   player: boolean;
+  /**
+   * A row can stand without a player: the screen may drop a name, and a name it does print never
+   * creates a player, since a line like this is too thin to know a new person by.
+   */
+  optionalPlayer?: boolean;
   /** Rows carry a team (a standings row, a leader's team). */
   rowTeam: boolean;
   /**
@@ -64,8 +80,13 @@ export type RowSpec = {
   rowsSchema?: () => Record<string, JsonSchema>;
   /** Custom reading of the model's answer into rows, paired with `rowsSchema`. */
   readRows?: (raw: Record<string, unknown>) => Record<string, unknown>[];
+  /** The order rows read in, for screens where it means something. */
+  order?: (a: Pick<DraftRow, "values">, b: Pick<DraftRow, "values">) => number;
   /** A line the row card shows under the row's name, worked out from its fields. */
   caption?: (row: Pick<DraftRow, "values">) => string | null;
-  /** Target-specific consistency checks on accepted rows. */
-  rules?: (draft: RowsDraft) => DraftWarning[];
+  /**
+   * Target-specific consistency checks on accepted rows. A game-scoped target also gets its game:
+   * null when there is none, undefined while that is not known yet.
+   */
+  rules?: (draft: RowsDraft, game?: RowGameContext | null) => DraftWarning[];
 };

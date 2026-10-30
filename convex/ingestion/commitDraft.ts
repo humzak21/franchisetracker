@@ -6,12 +6,13 @@
 import { v } from "convex/values";
 import { deriveDraft } from "../../shared/ingestion/normalize";
 import { blocksCommit } from "../../shared/ingestion/validate";
-import { isRowDraft, validateDraft } from "../../shared/ingestion/targets";
+import { INGESTION_TARGETS, isRowDraft, validateDraft } from "../../shared/ingestion/targets";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { StoredDraft } from "../lib/draftValidators";
 import { invalid } from "../lib/errors";
+import { rowGameContext } from "../lib/gameContext";
 import { commitBoxScore } from "./commitBoxScore";
 import { refreshSeasonRecord, upsertGame, type DraftContext } from "./commitGame";
 import { commitRows } from "./commitRows";
@@ -76,7 +77,11 @@ export async function commitDraft(
 ): Promise<DraftCommitResult> {
   const draft = deriveDraft(submitted);
   if (!finite(draft)) throw invalid("A number in the draft is out of range");
-  const errors = validateDraft(draft).filter((w) => w.severity === "error");
+  const game =
+    isRowDraft(draft) && INGESTION_TARGETS[draft.target].scope === "game"
+      ? await rowGameContext(ctx, (await existingGame(ctx, context))?._id ?? null)
+      : undefined;
+  const errors = validateDraft(draft, game).filter((w) => w.severity === "error");
   if (blocksCommit(errors)) throw invalid(errors[0]!.message);
   return isRowDraft(draft)
     ? await commitRows(ctx, franchise, context, draft)
@@ -89,6 +94,7 @@ export const vExistingGame = v.union(
     opponentAbbr: v.union(v.string(), v.null()),
     hasBoxScore: v.boolean(),
     hasTeamStats: v.boolean(),
+    hasScoringPlays: v.boolean(),
   }),
   v.null(),
 );
@@ -114,10 +120,15 @@ export async function existingGame(ctx: QueryCtx, context: DraftContext) {
     .query("gameTeamStats")
     .withIndex("by_gameId_and_teamId", (q) => q.eq("gameId", game._id))
     .first();
+  const play = await ctx.db
+    .query("scoringPlays")
+    .withIndex("by_gameId_and_order", (q) => q.eq("gameId", game._id))
+    .first();
   return {
     _id: game._id,
     opponentAbbr: opponent?.abbr ?? null,
     hasBoxScore: statLine !== null,
     hasTeamStats: teamStats !== null,
+    hasScoringPlays: play !== null,
   };
 }

@@ -20,6 +20,7 @@ import { EditGameSheet } from "./EditGameSheet";
 import { GameNav } from "./GameNav";
 import { HeadToHead } from "./HeadToHead";
 import { QuarterScores } from "./QuarterScores";
+import { ScoringSection } from "./ScoringSection";
 import { StarsSection } from "./StarsSection";
 import { TeamStatsCompare } from "./TeamStatsCompare";
 
@@ -70,8 +71,9 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
   const details = [game.status === "played" ? game.dateLabel : null, header.stadium, header.weather]
     .filter(Boolean)
     .join(" · ");
-  const importScreenshot = (targetKey: "game_log" | "game_box_score" | "team_game_stats" = "game_log") =>
-    capture.open({ gameId: game._id, targetKey, gameLabel: `${season.year} · ${title}` });
+  const importScreenshot = (
+    targetKey: "game_log" | "game_box_score" | "team_game_stats" | "scoring_plays" = "game_log",
+  ) => capture.open({ gameId: game._id, targetKey, gameLabel: `${season.year} · ${title}` });
   const sides = { user: userTeam, opponent };
 
   const notes = (
@@ -120,10 +122,19 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
               <QuarterScores
                 gameId={game._id}
                 lineScore={header.lineScore}
+                fromPlays={header.quartersFromPlays}
                 away={game.userIsHome ? them : user}
                 home={game.userIsHome ? user : them}
               />
             </div>
+            {game.status === "played" && (
+              <ScoringSection
+                gameId={game._id}
+                {...sides}
+                userIsHome={game.userIsHome ?? true}
+                onImport={() => importScreenshot("scoring_plays")}
+              />
+            )}
             <SplitPane
               ratio="3fr 2fr"
               panes={[

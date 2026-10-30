@@ -15,6 +15,8 @@ export type StoredRow = StoredRowsDraft["rows"][number];
 export type RowCommit = {
   franchise: Doc<"franchises">;
   season: Doc<"seasons">;
+  /** The game the set was tagged with, for game screens. */
+  gameId: Id<"games"> | undefined;
   /** The week the set was tagged with, for weekly screens. */
   weekKey: WeekKey | undefined;
   meta: StoredRowsDraft["meta"];
@@ -22,8 +24,8 @@ export type RowCommit = {
   rows: StoredRow[];
 };
 
-/** Where the review goes after commit: a player page for a card, else the next set. */
-export type RowCommitResult = { playerId?: Id<"players"> };
+/** Where the review goes after commit: a game's page, a player page for a card, else the next set. */
+export type RowCommitResult = { gameId?: Id<"games">; playerId?: Id<"players"> };
 
 export const numberOf = (row: StoredRow, key: string): number | undefined =>
   typeof row.values[key] === "number" ? (row.values[key] as number) : undefined;

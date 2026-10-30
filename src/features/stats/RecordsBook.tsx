@@ -26,6 +26,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { useQuery } from "@/lib/convex/useQuery";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import { RecordList, type RecordEntry } from "./RecordList";
+import { ScoringRecords } from "./ScoringRecords";
 import { byRegistryOrder, type Split } from "./split";
 import { TypedRecordSheet, type TypedDraft } from "./TypedRecordSheet";
 
@@ -151,6 +152,7 @@ export function RecordsBook({ split }: { split: Split }) {
           ))}
         </div>
       )}
+      <ScoringRecords split={split} />
       {typedBook && sheet && (
         <TypedRecordSheet
           key={sheet.draft?.typedId ?? "new"}

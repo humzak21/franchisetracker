@@ -174,6 +174,13 @@ export function StatusBanner({ data }: { data: Review }) {
       : data.extraction?.draft.target === "game_box_score"
         ? game?.hasBoxScore
         : game?.hasTeamStats;
+  if (game?.hasScoringPlays && data.extraction?.draft.target === "scoring_plays") {
+    return (
+      <Banner tone="warn" icon={<Replace className="text-warn" />}>
+        This game already has a scoring summary. Committing replaces it.
+      </Banner>
+    );
+  }
   if (game && replaces && !isRows) {
     return (
       <Banner tone="warn" icon={<Replace className="text-warn" />}>

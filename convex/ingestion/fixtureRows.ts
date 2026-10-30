@@ -6,17 +6,16 @@
 import type { RowTargetKey } from "../../shared/ingestion/rows/targets";
 import { fixtureLeagueTeams } from "./fixtureLeagueTeams";
 import { fixtureSchedule } from "./fixtureSchedule";
+import { fixtureScoring, type ScoringGame } from "./fixtureScoring";
 import { FIXTURE_TEAM_HISTORY } from "./fixtureTeamHistory";
 
 const sure = { confidence: 0.95, unclear_fields: [] as string[] };
 const unsure = (...fields: string[]) => ({ confidence: 0.7, unclear_fields: fields });
 
-export function fixtureRows(
-  target: RowTargetKey,
-  us: string,
-  game: { home: string; away: string; userIsHome: boolean },
-): Record<string, unknown> {
+export function fixtureRows(target: RowTargetKey, us: string, game: ScoringGame): Record<string, unknown> {
   switch (target) {
+    case "scoring_plays":
+      return fixtureScoring(game);
     case "league_schedule":
       return fixtureSchedule(game);
     case "season_player_stats":

@@ -12,6 +12,7 @@ import { boxScoreSchema, teamStatsSchema, gameLogSchema, type JsonSchema } from 
 import { normalizeBoxScore, normalizeTeamStats, normalizeGameLog, type Normalized } from "./normalize";
 import { mergeRowDrafts, normalizeRows, rowsSchema, validateRows } from "./rows/engine";
 import { ROW_TARGETS, type RowTargetDef, type RowTargetKey, type TargetScope } from "./rows/targets";
+import type { RowGameContext } from "./rows/types";
 import { validateBoxScore, validateTeamStats } from "./validate";
 import type {
   BoxScoreDraft,
@@ -170,9 +171,9 @@ export function mergeFor(
   return mergeRowDrafts(ROW_TARGETS[target].spec, parts);
 }
 
-/** Runs the target's validator on a draft of any target. */
-export function validateDraft(draft: Draft): DraftWarning[] {
-  if (isRowDraft(draft)) return validateRows(ROW_TARGETS[draft.target].spec, draft);
+/** Runs the target's validator on a draft of any target; a game-scoped list also checks against its game. */
+export function validateDraft(draft: Draft, game?: RowGameContext | null): DraftWarning[] {
+  if (isRowDraft(draft)) return validateRows(ROW_TARGETS[draft.target].spec, draft, game);
   if (draft.target === "game_log") return GAME_TARGETS.game_log.validate(draft);
   return draft.target === "game_box_score" ? validateBoxScore(draft) : validateTeamStats(draft);
 }

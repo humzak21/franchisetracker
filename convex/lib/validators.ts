@@ -17,11 +17,13 @@ import {
   GOAL_SCOPES,
   GOAL_TYPES,
   NEED_PRIORITIES,
+  PAT_RESULTS,
   PLAYOFF_RESULTS,
   PLAYOFF_ROUNDS,
   POSITION_GROUPS,
   POSITIONS,
   ROSTER_STATUSES,
+  SCORING_KINDS,
   SEASON_STATUSES,
   TRANSACTION_PHASES,
   TRANSACTION_TYPES,
@@ -60,6 +62,9 @@ export const MILESTONE_KINDS = [
   "first_threshold_season",
   "franchise_record",
   "streak",
+  "first_td",
+  "game_winner",
+  "connection",
   "custom",
 ] as const;
 export const WARNING_SEVERITIES = ["info", "warning", "error"] as const;
@@ -72,6 +77,8 @@ export const vPlayoffResult = literals(PLAYOFF_RESULTS);
 export const vSeasonStatus = literals(SEASON_STATUSES);
 export const vGameStatus = literals(GAME_STATUSES);
 export const vGameResult = literals(GAME_RESULTS);
+export const vScoringKind = literals(SCORING_KINDS);
+export const vPatResult = literals(PAT_RESULTS);
 export const vPosition = literals(POSITIONS);
 export const vPositionGroup = literals(POSITION_GROUPS);
 export const vAcquisitionType = literals(ACQUISITION_TYPES);

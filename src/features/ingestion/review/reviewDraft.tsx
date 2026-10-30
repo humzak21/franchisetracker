@@ -10,8 +10,10 @@ import {
 } from "react";
 import type { Id } from "@convex/_generated/dataModel";
 import { deriveDraft } from "@shared/ingestion/normalize";
-import { validateDraft } from "@shared/ingestion/targets";
-import type { Draft, DraftWarning, FieldConfidence } from "@shared/ingestion/types";
+import { rowScorerMatch } from "@shared/ingestion/rows/scoringSpec";
+import type { DraftRow, RowGameContext } from "@shared/ingestion/rows/types";
+import { isRowDraft, rowTarget, validateDraft } from "@shared/ingestion/targets";
+import type { Draft, DraftWarning, FieldConfidence, PlayerMatch } from "@shared/ingestion/types";
 import { checkBelow, getAt, setAt } from "./draftEdit";
 import type { FieldFlag } from "./NumberField";
 
@@ -25,6 +27,8 @@ type ReviewDraftState = {
   warnings: DraftWarning[];
   confidence: readonly FieldConfidence[];
   flag: (path: string) => FieldFlag;
+  /** A row or line's match: what reading found, or the box score's candidates for a nameless play. */
+  matchOf: (base: string) => PlayerMatch<Id<"players">> | null;
   saving: boolean;
 };
 
@@ -38,6 +42,7 @@ export function ReviewDraftProvider({
   initial,
   confidence,
   extractionNotes,
+  game,
   children,
 }: {
   /** Where edits are saved: the extraction under review, or a manual entry. */
@@ -46,6 +51,8 @@ export function ReviewDraftProvider({
   confidence: readonly FieldConfidence[];
   /** Warnings stored with the extraction (screens that disagreed, unknown teams). */
   extractionNotes: readonly DraftWarning[];
+  /** The game a game-scoped list files under; undefined until it is known, or for other targets. */
+  game?: RowGameContext<Id<"players">> | null;
   children: ReactNode;
 }) {
   const [draft, setDraft] = useState(() => deriveDraft(initial));
@@ -73,9 +80,9 @@ export function ReviewDraftProvider({
   const set = useCallback((path: string, value: unknown) => update((d) => setAt(d, path, value)), [update]);
 
   const warnings = useMemo(() => {
-    const live = validateDraft(draft);
+    const live = validateDraft(draft, game);
     const seen = new Set(live.map((w) => w.message));
-    const originalValidation = new Set(validateDraft(initial).map((w) => w.message));
+    const originalValidation = new Set(validateDraft(initial, game).map((w) => w.message));
     // Live validation replaces the original validation; extraction-only notes stay until edited.
     const notes = extractionNotes.filter(
       (w) =>
@@ -86,7 +93,7 @@ export function ReviewDraftProvider({
         w.suggestedValue === undefined,
     );
     return [...live, ...notes];
-  }, [draft, extractionNotes, initial]);
+  }, [draft, extractionNotes, game, initial]);
 
   const flag = useCallback(
     (path: string): FieldFlag => {
@@ -99,9 +106,19 @@ export function ReviewDraftProvider({
     [warnings, confidence, draft],
   );
 
+  const matchOf = useCallback(
+    (base: string) => {
+      const stored = getAt(draft, `${base}.match`) as PlayerMatch<Id<"players">> | null;
+      if (!game || !isRowDraft(draft) || !rowTarget(draft.target).spec.optionalPlayer) return stored;
+      const row = getAt(draft, base) as DraftRow<Id<"players">>;
+      return rowScorerMatch(row, draft.rows, game) ?? stored;
+    },
+    [draft, game],
+  );
+
   const value = useMemo(
-    () => ({ draft, set, update, warnings, confidence, flag, saving }),
-    [draft, set, update, warnings, confidence, flag, saving],
+    () => ({ draft, set, update, warnings, confidence, flag, matchOf, saving }),
+    [draft, set, update, warnings, confidence, flag, matchOf, saving],
   );
   return <ReviewDraftContext.Provider value={value}>{children}</ReviewDraftContext.Provider>;
 }

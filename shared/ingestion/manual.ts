@@ -72,7 +72,7 @@ export function emptyRow<P extends string>(
   return {
     id: manualId(draft.rows.map((r) => r.id)),
     accepted: true,
-    name: spec.player ? (who.name ?? "") : null,
+    name: spec.player ? (who.name ?? (spec.optionalPlayer ? null : "")) : null,
     teamAbbr: who.teamAbbr ?? null,
     values,
     playerId: who.playerId ?? null,

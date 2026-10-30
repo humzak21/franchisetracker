@@ -5,7 +5,8 @@ import { ListChecks } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { positionGroupOf, weekIndex, weekLabel, type Position } from "@shared/domain";
+import { positionGroupOf, SCORING_KIND_LABELS, weekIndex, weekLabel, type Position } from "@shared/domain";
+import { playWhen } from "@shared/games/scoringPlay";
 import {
   categoriesForPosition,
   gameHighlights,
@@ -83,12 +84,17 @@ function columns(
       header: "Marks",
       title: "Highlights",
       sortable: false,
-      value: (r) => gameHighlights(r.stats as StatLine).length,
+      value: (r) => gameHighlights(r.stats as StatLine).length + r.touchdowns.length,
       cell: (r) => (
         <span className="flex flex-wrap gap-1">
           {gameHighlights(r.stats as StatLine).map((t) => (
             <Badge key={t.key} tone="accent" title={t.label}>
               {t.short}
+            </Badge>
+          ))}
+          {r.touchdowns.map((td) => (
+            <Badge key={playWhen(td)} title={SCORING_KIND_LABELS[td.kind]}>
+              TD {playWhen(td)}
             </Badge>
           ))}
         </span>

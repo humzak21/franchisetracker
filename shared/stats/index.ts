@@ -14,3 +14,5 @@ export * from "./singleGame";
 export * from "./seasonHighs";
 export * from "./recordBoards";
 export * from "./edit";
+export * from "./scoring";
+export * from "./scoringBoards";

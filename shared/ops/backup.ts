@@ -20,6 +20,7 @@ export const BACKUP_TABLES = [
   "games",
   "gameStatLines",
   "gameTeamStats",
+  "scoringPlays",
   "standings",
   "leagueLeaders",
   "teamSeasonStats",
@@ -66,6 +67,7 @@ export const NOT_BACKED_UP = {
   recordBoards: "worked out from season rows; rebuilt from the Records screen after a restore",
   recordPlacements: "worked out with the records boards",
   recordBuilds: "the records rebuild job's progress",
+  scoringBoards: "worked out from the scoring plays; rewritten when the next game's plays commit",
 } as const;
 
 type Row = { _id: string } & Record<string, unknown>;
