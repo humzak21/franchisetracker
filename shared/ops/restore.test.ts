@@ -78,7 +78,8 @@ describe("backup round trip", () => {
     const result = await restoreBackup(parseBackup(JSON.parse(pieces.join(""))), writer, "restored", (done) =>
       progress.push(done),
     );
-    expect(result).toEqual({ franchises: ["Dynasty (restored)"], rows: 6 });
+    expect(result).toMatchObject({ franchises: ["Dynasty (restored)"], rows: 6 });
+    expect(result.franchiseIds).toEqual([rows("franchises")[0]?._id]);
     expect(progress.at(-1)).toBe(6);
 
     const [franchise] = rows("franchises");

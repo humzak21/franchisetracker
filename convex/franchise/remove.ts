@@ -32,6 +32,8 @@ export const SWEEP_TABLES = [
   "playerMarks",
   "spanBoards",
   "teamRecords",
+  "maintenanceRuns",
+  "usageMonths",
 ] as const;
 type SweepTable = (typeof SWEEP_TABLES)[number];
 // The spread loses the tuple's non-empty type that `literals` wants; the list above is never empty.

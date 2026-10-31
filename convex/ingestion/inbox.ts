@@ -1,10 +1,11 @@
 /** The inbox listing: recent upload sets with thumbnails, and the count for the nav badge. */
 import { v } from "convex/values";
+import { UPLOAD_HOLDS } from "../../shared/ingestion/budget";
 import type { Doc, Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { activeFranchise } from "../lib/franchise";
-import { vUploadStatus, vWeekKey } from "../lib/validators";
+import { literals, vUploadStatus, vWeekKey } from "../lib/validators";
 import { setStatus } from "./sets";
 
 /** Recent uploads the inbox shows; older committed sets drop off the end. */
@@ -19,6 +20,8 @@ const vInboxSet = v.object({
   weekKey: v.union(vWeekKey, v.null()),
   gameId: v.union(v.id("games"), v.null()),
   error: v.union(v.string(), v.null()),
+  /** Why a queued set is not being read. */
+  hold: v.union(literals(UPLOAD_HOLDS), v.null()),
   /** When the running extraction started, while the set is extracting. */
   extractionStartedAt: v.union(v.number(), v.null()),
   createdAt: v.number(),
@@ -59,6 +62,7 @@ export const list = query({
           weekKey: lead.weekKey ?? null,
           gameId: lead.gameId ?? null,
           error: group.find((u) => u.error)?.error ?? null,
+          hold: group.find((u) => u.hold)?.hold ?? null,
           extractionStartedAt: group.find((u) => u.status === "extracting")?.extractionStartedAt ?? null,
           createdAt: lead.createdAt,
           images: await Promise.all(

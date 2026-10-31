@@ -14,6 +14,7 @@ import { FranchiseSettings } from "./FranchiseSettings";
 import { HighlightSettings } from "./HighlightSettings";
 import { HistorySettings } from "./HistorySettings";
 import { IdentitySettings } from "./IdentitySettings";
+import { MaintenanceSettings } from "./MaintenanceSettings";
 import { ShortcutSettings } from "./ShortcutSettings";
 import { UsageSettings } from "./UsageSettings";
 import { useQuery } from "@/lib/convex/useQuery";
@@ -57,6 +58,7 @@ export function SettingsScreen() {
         <UsageSettings />
         <CorrectionsSettings />
         <DataSettings />
+        <MaintenanceSettings />
         <ErrorSettings />
       </div>
     </Page>

@@ -1,11 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, expectNoHorizontalOverflow, test } from "./fixtures";
-
-/** A 1x1 PNG: the local e2e backend has no OpenRouter key, so the built-in sample answer reads it. */
-const PNG = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
-  "base64",
-);
+import { expect, expectNoHorizontalOverflow, png, test } from "./fixtures";
 
 async function openBatch(page: Page) {
   await page.goto("/inbox/weekly-awards");
@@ -56,7 +50,7 @@ test("weekly awards uploaded together, matched to weeks, read and committed", as
   await openBatch(page);
   await page
     .getByLabel("Weekly awards screenshots")
-    .setInputFiles([{ name: "awards-17.png", mimeType: "image/png", buffer: PNG }]);
+    .setInputFiles([{ name: "awards-17.png", mimeType: "image/png", buffer: png() }]);
   const card = page.getByRole("listitem").filter({ hasText: "Pick its week" }).first();
   await card.getByLabel("Week").selectOption("w17");
   // A screenshot waiting for a week outranks awards already stored for it in the strip.

@@ -163,7 +163,10 @@ export const step = internalMutation({
       for (const b of boards) await ctx.db.delete("recordBoards", b._id);
       await clearPerformance(ctx, franchise._id);
       if (boards.length === MAX_BOARDS) await next("clear");
-      else await next("players", { cursor: null });
+      else {
+        await ctx.scheduler.runAfter(0, internal.stats.scoring.boards, { franchiseId: franchise._id });
+        await next("players", { cursor: null });
+      }
     } else if (args.phase === "players") {
       const page = await ctx.db
         .query("players")

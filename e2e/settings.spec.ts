@@ -47,8 +47,24 @@ test("game highlights sit under the season highlights with their own defaults", 
   await expect(page.getByLabel("Single-game Passing yards tier 2")).toHaveValue("500");
 });
 
-test("the data section offers a stats rebuild without overflow", async ({ page }) => {
+test("maintenance checks a job before it runs, without overflow", async ({ page }) => {
   await page.goto("/settings");
-  await expect(page.getByRole("button", { name: /^(Rebuild stats|Rebuilding…)$/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Maintenance" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("Rebuild stats", { exact: true })).toBeVisible();
+  const row = page.getByRole("listitem").filter({ hasText: "Clear typed star lines" });
+  await row.getByRole("button", { name: "Check" }).click();
+  await expect(row.getByText(/\d+ captions?/)).toBeVisible();
   await expectNoHorizontalOverflow(page);
+});
+
+test("the extraction budget saves and shows against the month", async ({ page }) => {
+  await page.goto("/settings");
+  const budget = page.getByLabel("Monthly budget, dollars");
+  const save = page.locator("form").filter({ has: budget }).getByRole("button", { name: "Save" });
+  await budget.fill("250");
+  await save.click();
+  await expect(page.getByText("A banner shows from 80 percent", { exact: false })).toBeVisible();
+  await budget.fill("");
+  await save.click();
+  await expect(page.getByText("so far this month")).toBeVisible();
 });

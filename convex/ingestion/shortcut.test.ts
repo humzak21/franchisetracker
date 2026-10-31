@@ -22,10 +22,14 @@ async function setup() {
   return { t, owner, headers, upload };
 }
 
+/** Every image differs, as real screenshots do, or the second would be held as a repeat. */
+let imagesSent = 0;
+
 const form = (fields: Record<string, string> = {}, images = 1) => {
   const body = new FormData();
   for (let i = 0; i < images; i++) {
-    body.append("image", new Blob([new Uint8Array(32)], { type: "image/jpeg" }), `screen${i}.jpg`);
+    const bytes = new Uint32Array([++imagesSent, 0, 0, 0]);
+    body.append("image", new Blob([bytes], { type: "image/jpeg" }), `screen${i}.jpg`);
   }
   for (const [name, value] of Object.entries(fields)) body.append(name, value);
   return body;
@@ -42,6 +46,20 @@ afterEach(() => {
 });
 
 describe("shortcut endpoint", () => {
+  test("the same image twice is stored but not read, and the response says so", async () => {
+    const { owner, upload } = await setup();
+    const same = () => {
+      const body = new FormData();
+      body.append("image", new Blob([new Uint8Array(32)], { type: "image/jpeg" }), "screen.jpg");
+      body.append("target", "standings");
+      return body;
+    };
+    expect(await (await upload(same())).json()).toMatchObject({ ok: true, duplicate: false });
+    expect(await (await upload(same())).json()).toMatchObject({ ok: true, duplicate: true });
+    const sets = await owner.query(api.ingestion.inbox.list, {});
+    expect(sets.filter((s) => s.hold === "duplicate")).toHaveLength(1);
+  });
+
   test("infers the week from the target when the Shortcut sends none", async () => {
     const { owner, upload } = await setup();
     for (const target of ["game_box_score", "weekly_awards", "standings"]) await upload(form({ target }));

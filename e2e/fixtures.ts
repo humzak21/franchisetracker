@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { test as base, expect, type Page } from "@playwright/test";
 import { ownerSession } from "./ownerSession";
 
@@ -6,6 +7,17 @@ export type Theme = "dark" | "light";
 /** The sample franchise `dev/fixtures:seedFixtures` creates for the e2e backend (and CI). */
 export const SAMPLE_FRANCHISE = "Sample Franchise";
 export const SAMPLE_YEAR = 2026;
+
+const ONE_PIXEL = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+  "base64",
+);
+
+/**
+ * A 1x1 PNG: the local e2e backend has no OpenRouter key, so the built-in sample answer reads it.
+ * The bytes after the image differ every call, or the inbox would hold it as a repeat.
+ */
+export const png = () => Buffer.concat([ONE_PIXEL, randomBytes(8)]);
 
 /** Phone projects render the tab bar instead of the sidebar. */
 export const isPhone = (projectName: string) => projectName.startsWith("phone");

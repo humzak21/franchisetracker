@@ -8,6 +8,7 @@ import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from
 import { vDraft, vDraftWarning, vFieldConfidence, vTargetKey } from "../lib/draftValidators";
 import { activeFranchise, teamsById } from "../lib/franchise";
 import { testModeEnabled } from "../lib/owner";
+import { addUsage } from "../lib/usage";
 import { vScalar } from "../lib/validators";
 import { MAX_FEW_SHOT } from "../../shared/ingestion/prompt";
 import { modelSettings } from "./models";
@@ -175,6 +176,7 @@ export const save = internalMutation({
         setKey,
         ...extraction,
       });
+      await addUsage(ctx, lead.franchiseId, extraction.tokenUsage?.costUsd);
       return { status: "review" as const };
     }),
 });

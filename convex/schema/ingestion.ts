@@ -1,6 +1,7 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import { vDraft, vDraftWarning, vFieldConfidence, vTargetKey } from "../lib/draftValidators";
+import { UPLOAD_HOLDS } from "../../shared/ingestion/budget";
 import { MANUAL_DRAFT_STATUSES } from "../../shared/ingestion/manual";
 import { literals, vScalar, vUploadSource, vUploadStatus, vWeekKey } from "../lib/validators";
 
@@ -47,10 +48,15 @@ export const ingestionTables = {
      */
     extractionStartedAt: v.optional(v.number()),
     error: v.optional(v.string()),
+    /** SHA-256 of the file as sent, to spot the same screenshot twice. Absent on older uploads. */
+    hash: v.optional(v.string()),
+    /** Why a queued set is not being read: a repeat image, or a spent budget. */
+    hold: v.optional(literals(UPLOAD_HOLDS)),
     createdAt: v.number(),
   })
     .index("by_franchiseId", ["franchiseId"])
     .index("by_franchiseId_and_status", ["franchiseId", "status"])
+    .index("by_franchiseId_and_hash", ["franchiseId", "hash"])
     .index("by_franchiseId_and_setKey", ["franchiseId", "setKey"])
     .index("by_seasonId_and_targetKey", ["seasonId", "targetKey"])
     .index("by_gameId", ["gameId"]),

@@ -33,6 +33,44 @@ describe("backup coverage", () => {
   });
 });
 
+describe("after a restore", () => {
+  test("the restored franchise rebuilds its boards from its logs", async () => {
+    const { t, owner } = await setup();
+    await t.finishAllScheduledFunctions(() => undefined);
+    const backupId = await owner.action(api.ops.backupRun.create, {});
+    const buffer = await t.run(async (ctx) => {
+      const backup = (await ctx.db.get("backups", backupId))!;
+      const blob = (await ctx.storage.get(backup.storageId))!;
+      return await blob.arrayBuffer();
+    });
+    const file = parseBackup(JSON.parse(strFromU8(gunzipSync(new Uint8Array(buffer)))));
+    const { franchiseIds } = await restoreBackup(
+      file,
+      {
+        teams: () => owner.query(api.ops.restoreData.teams, {}),
+        insert: (table, rows) => owner.mutation(api.ops.restoreData.insertRows, { table, rows }),
+        patch: async (table, patches) => {
+          await owner.mutation(api.ops.restoreData.patchRows, { table, patches });
+        },
+      },
+      "restored",
+    );
+    expect(franchiseIds).toHaveLength(file.tables.franchises.length);
+    const restored = franchiseIds[0] as Id<"franchises">;
+    const boards = (table: "recordBoards" | "spanBoards" | "teamRecords") =>
+      t.run(
+        async (ctx) => (await ctx.db.query(table).collect()).filter((b) => b.franchiseId === restored).length,
+      );
+    expect(await boards("spanBoards")).toBe(0);
+
+    await owner.mutation(api.ops.restoreData.rebuild, { franchiseIds: franchiseIds as Id<"franchises">[] });
+    await t.finishAllScheduledFunctions(() => undefined);
+    expect(await boards("recordBoards")).toBeGreaterThan(0);
+    expect(await boards("spanBoards")).toBeGreaterThan(0);
+    expect(await boards("teamRecords")).toBeGreaterThan(0);
+  }, 180_000);
+});
+
 describe("backup and restore", () => {
   test("a backup restores as a new franchise with the same data, pointing at its own rows", async () => {
     const { t, owner } = await setup();

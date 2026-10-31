@@ -61,7 +61,8 @@ actions in order. Text in `code` is typed exactly; `[Token]` is the token from s
          - `batch` (Text) = `Batch`
          - `batchSize` (Text) = `Batch Size`
 11. After **End Repeat**, **Show Notification** → `Sent to FranchiseTracker` (each response is
-    `{ "ok": true, "images": 1 }`).
+    `{ "ok": true, "sets": 1, "duplicate": false, "images": 1 }`; `duplicate` is true when the image was
+    uploaded before, and it then waits in the inbox rather than being read).
 
 Steps 10.1 and 10.2 matter: the endpoint refuses images over 2 MB. A phone screenshot is a
 PNG of several megabytes, and Convex counts every byte again each time the model or the app reads

@@ -92,8 +92,8 @@ The owner's point: by the second decade the app, not the owner, has to remember 
 | Item | Status | Recommendation |
 |---|---|---|
 | Full game log from photos | built | Works end to end. |
-| Duplicate screenshot | missing | Hash uploads (SHA-256 in the browser and the Shortcut path) and refuse or warn on a repeat image in the same franchise. |
-| Cost guard | partial | Usage panel exists; no monthly budget, no per-set cap. Add a soft monthly budget in Settings with a banner at 80 percent and a hard stop that queues instead of extracting. |
+| Duplicate screenshot | built in Sprint 20 | Hash uploads (SHA-256 in the browser and the Shortcut path) and refuse or warn on a repeat image in the same franchise. |
+| Cost guard | partial | Monthly budget built in Sprint 20; no per-set cap. Add a soft monthly budget in Settings with a banner at 80 percent and a hard stop that queues instead of extracting. |
 | Retry policy | partial | Fallback model and watchdog exist. Add exponential backoff on provider 429 and 5xx, and a "retry all failed" action. |
 | Review speed | partial | Keyboard commit, select all. Add: tab order through low-confidence fields only, a numeric keypad on phones, "accept the model's number" per field with one key, and a diff view when re-running (old draft against new). |
 | Commit transparency | partial | Add a commit summary sheet: players created, aliases added, roster entries created, records broken, milestones, with undo for the whole commit (today only the game can be deleted). |

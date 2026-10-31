@@ -9,6 +9,7 @@ import { BACKUP_TABLES, type BackupTable } from "../../shared/ops/backup";
 import { mutation, query, type MutationCtx } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { literals } from "../lib/validators";
+import { startRecordBuild } from "../stats/recordBuild";
 
 const vTable = literals(BACKUP_TABLES);
 const vRow = v.record(v.string(), v.any());
@@ -57,6 +58,20 @@ export const patchRows = mutation({
     if (patches.length > MAX_ROWS) throw new Error(`At most ${MAX_ROWS} rows per batch`);
     const db = writer(ctx);
     for (const { id, fields } of patches) await db.patch(table, id, fields);
+    return null;
+  },
+});
+
+/**
+ * The last step of a restore: boards, placements and marks are not in a backup, so each restored
+ * franchise rebuilds them from its logs, and an older backup's season rows catch up on the way.
+ */
+export const rebuild = mutation({
+  args: { franchiseIds: v.array(v.id("franchises")) },
+  returns: v.null(),
+  handler: async (ctx, { franchiseIds }) => {
+    await requireOwner(ctx);
+    for (const id of franchiseIds) await startRecordBuild(ctx, id, "logs");
     return null;
   },
 });

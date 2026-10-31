@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { useNow } from "@/lib/hooks/useNow";
 import { formatAge, formatElapsed } from "@/lib/time";
-import { STATUS, type InboxSet } from "./status";
+import { HOLD, STATUS, type InboxSet } from "./status";
 
 type SetCardProps = {
   set: InboxSet;
@@ -25,7 +25,7 @@ export function SetCard({ set, selecting, selected, onToggle }: SetCardProps) {
   const where = [set.year, set.weekKey && !seasonScreen ? weekLabel(set.weekKey, "long") : null]
     .filter(Boolean)
     .join(" · ");
-  const status = STATUS[set.status];
+  const status = set.hold ? HOLD[set.hold] : STATUS[set.status];
   const started = set.status === "extracting" ? set.extractionStartedAt : null;
   const now = useNow(1000, started !== null);
 

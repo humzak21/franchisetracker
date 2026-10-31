@@ -14,6 +14,12 @@ export const STATUS: Record<UploadStatus, { label: string; tone: BadgeProps["ton
   rejected: { label: "Rejected", tone: "neutral" },
 };
 
+/** A queued set that is not waiting for tags. */
+export const HOLD: Record<NonNullable<InboxSet["hold"]>, { label: string; tone: BadgeProps["tone"] }> = {
+  duplicate: { label: "Already uploaded", tone: "warn" },
+  budget: { label: "Held", tone: "warn" },
+};
+
 export type InboxFilter = "todo" | "done";
 
 /** Waiting on the user (or the model) versus finished either way. */

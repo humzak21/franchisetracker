@@ -1,9 +1,11 @@
 /** Upload set helpers shared by the inbox, review, extraction and Shortcut functions. */
+import { BUDGET_HELD } from "../../shared/ingestion/budget";
 import { INGESTION_TARGETS, isTargetKey } from "../../shared/ingestion/targets";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { invalid, must } from "../lib/errors";
+import { budgetSpent } from "../lib/usage";
 
 /** A box score is a handful of screens; more than this in one set is a mistake. */
 export const MAX_SET_SIZE = 20;
@@ -46,9 +48,13 @@ export const RUN_BUDGET_MS = 9 * 60_000;
  */
 const WATCHDOG_MS = 60_000;
 
+/** Whether a set is waiting on the owner rather than on being read. */
+export const isHeld = (uploads: readonly Doc<"uploads">[]) => uploads.some((u) => u.hold !== undefined);
+
 /**
  * Marks a set as extracting and schedules the extraction action, with a watchdog for a run that
- * never reports back. Starting again while a run is going restarts it: the old run's answer is dropped.
+ * never reports back. Starting again while a run is going restarts it: the old run's answer is
+ * dropped. With the month's budget spent the set stays queued instead, held until there is room.
  */
 export async function startExtraction(
   ctx: MutationCtx,
@@ -59,17 +65,38 @@ export async function startExtraction(
   if (!first?.setKey) throw invalid("Nothing to extract");
   if (!readyToExtract(first)) throw invalid("Tag the screenshots with what they show and when first");
   if (uploads.some((u) => u.status === "committed")) throw invalid("This set is already committed");
+  const franchise = must(await ctx.db.get("franchises", first.franchiseId), "Franchise");
+  if (await budgetSpent(ctx, franchise)) {
+    for (const upload of uploads) {
+      await ctx.db.patch("uploads", upload._id, { status: "queued", hold: "budget", error: BUDGET_HELD });
+    }
+    return;
+  }
   const startedAt = Date.now();
   for (const upload of uploads) {
     await ctx.db.patch("uploads", upload._id, {
       status: "extracting",
       error: undefined,
+      hold: undefined,
       extractionStartedAt: startedAt,
     });
   }
   const run = { setKey: first.setKey, startedAt };
   const runId = await ctx.scheduler.runAfter(0, internal.ingestion.extract.run, { ...run, model });
   await ctx.scheduler.runAfter(WATCHDOG_MS, internal.ingestion.jobs.expire, { ...run, runId });
+}
+
+/** Deletes a set's screenshots and reads. What it committed stays. */
+export async function deleteSet(ctx: MutationCtx, franchiseId: Id<"franchises">, setKey: string) {
+  const extractions = await ctx.db
+    .query("extractions")
+    .withIndex("by_setKey", (q) => q.eq("setKey", setKey))
+    .take(50);
+  for (const extraction of extractions) await ctx.db.delete("extractions", extraction._id);
+  for (const upload of await requireSet(ctx, franchiseId, setKey)) {
+    await ctx.storage.delete(upload.storageId);
+    await ctx.db.delete("uploads", upload._id);
+  }
 }
 
 /** The run a set's uploads belong to, if it is still extracting. */

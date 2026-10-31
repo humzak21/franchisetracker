@@ -239,6 +239,7 @@ export const statTables = {
     gameId: v.id("games"),
   })
     .index("by_playerId", ["playerId"])
+    .index("by_gameId", ["gameId"])
     .index("by_franchiseId_and_statKey_and_mark_and_horizon_and_gamesToReach", [
       "franchiseId",
       "statKey",

@@ -6,13 +6,8 @@ import {
   expectNoHorizontalOverflow,
   isPhone,
   test,
+  png,
 } from "./fixtures";
-
-/** A 1x1 PNG: the local e2e backend has no OpenRouter key, so the built-in sample answer reads it. */
-const PNG = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
-  "base64",
-);
 
 /** Each project captures into its own week of the empty second season, so parallel runs never collide. */
 const weekFor = (info: TestInfo) => ({ desktop: 1, phone: 2 })[info.project.name] ?? 3;
@@ -50,9 +45,9 @@ test("a full game log goes from capture to review to team and player stats", asy
   await sheet.getByLabel("Season", { exact: true }).selectOption({ label: String(SAMPLE_YEAR + 1) });
   await sheet.getByLabel("Week", { exact: true }).selectOption(`w${week}`);
   await sheet.getByLabel("Choose screenshots").setInputFiles([
-    { name: "passing.png", mimeType: "image/png", buffer: PNG },
-    { name: "rushing.png", mimeType: "image/png", buffer: PNG },
-    { name: "team-stats.png", mimeType: "image/png", buffer: PNG },
+    { name: "passing.png", mimeType: "image/png", buffer: png() },
+    { name: "rushing.png", mimeType: "image/png", buffer: png() },
+    { name: "team-stats.png", mimeType: "image/png", buffer: png() },
   ]);
   await page.getByRole("button", { name: "Upload 3 screenshots" }).click();
 
@@ -98,7 +93,7 @@ test("untagged screenshots wait in the inbox and can be deleted", async ({ page 
   await sheet.getByLabel("Screen", { exact: true }).selectOption("later");
   await page
     .getByLabel("Choose screenshots")
-    .setInputFiles({ name: "later.png", mimeType: "image/png", buffer: PNG });
+    .setInputFiles({ name: "later.png", mimeType: "image/png", buffer: png() });
   await page.getByRole("button", { name: "Upload 1 screenshot" }).click();
   await expect(page).toHaveURL(/\/inbox$/);
 
@@ -111,6 +106,22 @@ test("untagged screenshots wait in the inbox and can be deleted", async ({ page 
   await page.getByRole("button", { name: "Delete" }).click();
   await page.getByRole("button", { name: "Confirm delete" }).click();
   await expect(page.locator(`[data-set="${setKey}"]`)).toHaveCount(0);
+});
+
+test("the same screenshot twice waits to be told, and costs nothing", async ({ page }, info) => {
+  const same = png();
+  for (let i = 0; i < 2; i++) {
+    const sheet = await openCapture(page, info);
+    await sheet.getByLabel("Screen", { exact: true }).selectOption("later");
+    await page
+      .getByLabel("Choose screenshots")
+      .setInputFiles({ name: "same.png", mimeType: "image/png", buffer: same });
+    await page.getByRole("button", { name: "Upload 1 screenshot" }).click();
+    // The sheet closes once the upload lands; the page is already on the inbox, so the URL says nothing.
+    await expect(sheet).toBeHidden();
+  }
+  await expect(page.getByRole("link").filter({ hasText: "Already uploaded" }).first()).toBeVisible();
+  await expectNoHorizontalOverflow(page);
 });
 
 test("Shortcut tokens can be created and revoked", async ({ page }, info) => {

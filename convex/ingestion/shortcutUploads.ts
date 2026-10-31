@@ -5,26 +5,34 @@
  */
 import { v } from "convex/values";
 import { INGESTION_TARGETS } from "../../shared/ingestion/targets";
+import type { Doc } from "../_generated/dataModel";
 import { internalMutation } from "../_generated/server";
 import { invalid } from "../lib/errors";
 import { activeFranchise } from "../lib/franchise";
-import { readyToExtract, setUploads, startExtraction } from "./sets";
+import { isHeld, readyToExtract, setUploads, startExtraction } from "./sets";
 import { insertUploads, vContext } from "./uploads";
+
+const isHeldRepeat = (uploads: readonly Doc<"uploads">[]) => uploads.some((u) => u.hold === "duplicate");
 
 export const create = internalMutation({
   args: {
     storageIds: v.array(v.id("_storage")),
+    hashes: v.array(v.string()),
     ...vContext,
     /** Requests sharing `key` form one set of `size` screenshots. */
     batch: v.optional(v.object({ key: v.string(), size: v.number() })),
   },
-  returns: v.array(v.string()),
+  returns: v.object({ sets: v.number(), duplicate: v.boolean() }),
   handler: async (ctx, { batch, ...args }) => {
+    const franchise = await activeFranchise(ctx);
     const grouped = args.targetKey !== undefined && INGESTION_TARGETS[args.targetKey].multiImage;
     // Screens read one by one (or still untagged) are a set each, batch or not.
-    if (!batch || !grouped) return await insertUploads(ctx, { ...args, source: "shortcut" });
+    if (!batch || !grouped) {
+      const keys = await insertUploads(ctx, { ...args, source: "shortcut" });
+      const sets = await Promise.all(keys.map((key) => setUploads(ctx, franchise._id, key)));
+      return { sets: keys.length, duplicate: sets.some(isHeldRepeat) };
+    }
 
-    const franchise = await activeFranchise(ctx);
     const setKey = `batch:${batch.key}`;
     const earlier = await setUploads(ctx, franchise._id, setKey);
     if (earlier.some((u) => u.status !== "queued"))
@@ -34,7 +42,9 @@ export const create = internalMutation({
     }
     await insertUploads(ctx, { ...args, source: "shortcut", setKey, deferExtraction: true });
     const uploads = await setUploads(ctx, franchise._id, setKey);
-    if (uploads.length === batch.size && readyToExtract(uploads[0]!)) await startExtraction(ctx, uploads);
-    return [setKey];
+    if (uploads.length === batch.size && readyToExtract(uploads[0]!) && !isHeld(uploads)) {
+      await startExtraction(ctx, uploads);
+    }
+    return { sets: 1, duplicate: isHeldRepeat(uploads) };
   },
 });
