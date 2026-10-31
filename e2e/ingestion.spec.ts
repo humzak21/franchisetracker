@@ -117,7 +117,8 @@ test("the same screenshot twice waits to be told, and costs nothing", async ({ p
       .getByLabel("Choose screenshots")
       .setInputFiles({ name: "same.png", mimeType: "image/png", buffer: same });
     await page.getByRole("button", { name: "Upload 1 screenshot" }).click();
-    await expect(page).toHaveURL(/\/inbox$/);
+    // The sheet closes once the upload lands; the page is already on the inbox, so the URL says nothing.
+    await expect(sheet).toBeHidden();
   }
   await expect(page.getByRole("link").filter({ hasText: "Already uploaded" }).first()).toBeVisible();
   await expectNoHorizontalOverflow(page);
