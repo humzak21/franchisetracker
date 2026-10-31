@@ -604,13 +604,46 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 ---
 
-## Proposed: Sprints 22 and 23
+## Sprint 22 — The fun layer (M)
 
-Planned after the platform audit of October 2026, not yet scheduled or built. The statistics hub plan is `docs/STATS-HUB.md`; the audit with every gap and the reasoning behind the order is `docs/PLATFORM-AUDIT.md`. When one of these is picked up, it gets a full section above with a goal, a "Done when" and, once built, its "As built" notes, and the stable behaviour moves into `FEATURES.md`.
+**Goal:** the app tells the franchise's story back. A finished season reads as a recap, a week as something worth sending, a rival as a history, and the awards, the Hall of Fame and the contract year each have the argument laid out before the decision.
+
+- Season recap pages, built from what was captured.
+- The week on Home, copied as text.
+- Awards race for MVP, OPOY, DPOY and OROY.
+- Rivalry page per opponent.
+- Hall of Fame case on the induction sheet, and a list of who is eligible.
+- Contract year: expiring deals re-signed or let go as logged moves, a cap projection, and a word at carry-over.
+
+**Done when:** each of the six opens on phone and desktop from the sample franchise, and the scale test reads the new queries over 20 seasons.
+
+**As built:**
+
+- Nothing here is stored and there is no schema change, so a deploy needs no backfill or rebuild. Recaps, the digest, the race, rivalry pages and cases are worked out on read, so a late capture or a correction shows up straight away.
+- The recap is a route of its own, `/history/recaps/$year`, rather than a child of the report: `history.reports.$year.tsx` has no outlet to hold one. It opens from the report and from Home's season card once the season is over. Its stars are the team leaders the report already uses (`LEADER_STATS`). Records set are the two record milestone kinds. Moves list the kinds worth telling, trades first, capped at 12 with a link to the rest; injury moves stay on Transactions. Its Share page stays in Later.
+- `RECORD_MILESTONES` is one list the digest and the recap share. The digest keeps every record and the first six other milestones, since a big game can raise a dozen and the feed already holds them. It lists the user team's stars only.
+- Standings have no week, so the digest's division move comes from league scores: `divisionMove` ranks the division through the week and through the week before with the real tiebreakers. If any rival is more than one game short of the user team (a bye explains one), the scores were not captured and the line is left off, rather than guessed. `seasonScores` now keeps each regular-season game's week for this. Playoff weeks have no division line.
+- The race is the counted awards' rule applied early, never a forecast of Madden's vote, and the screen says so. MVP and OPOY rank fantasy points, OPOY without quarterbacks so it is not the MVP list again, OROY takes `draft.year` equal to the season, so an undrafted rookie is left out. Fantasy scoring has no individual defense, so `defensePoints` in `shared/awards/race.ts` weighs sacks and takeaways for DPOY. There is no DROY race, as the audit listed four.
+- A league leaders row fills in anyone no season stats name, marked `*` because only their top-twenty stats are known and their total runs low. A row with no player or no team is left out, since nothing can say which award it could count for.
+- The rivalry page is `/league/rivals/$abbr`, and a Rivals row opens it instead of the team page; the page links across, and the team page's head-to-head links back. `meetingHighs` also gives the recap its best and worst games. Long runs read by the calendar and a tie ends one. Best performers count the user team's lines across regular season and playoffs together.
+- The case reads the team's regular-season book only, so a real-history list does not pad it. Honors count every team, since an award is a career fact. `HofCasePanel` queries only while the sheet is open. It argues; it sets nothing.
+- Eligible means a `retire` move for the team at least `HOF_WAIT` (5) seasons old, and `retired` still set on the player, so an undone retirement drops off. A move filed in a season counts from that season. Someone in both lists shows only under Eligible. A player flagged retired with no move, such as an imported veteran, cannot be dated and stays with Candidates.
+- `runsOut` is now the one test for a contract ending: `capSummary` read only `expiresYear`, so a contract with years left and no end year was never listed as expiring, though carry-over expired it. Both read the same rule now, and a test holds them together.
+- The projection is `committed - freed`, the contracts that continue at the same hit. An undated contract is treated as continuing, as `agedContract` does, and missing contracts count as nothing, so space runs high by whatever is unknown. It reads next season's cap once one is set, else this season's.
+- Let go is a `release` and shows only once the season is complete, because during a season it would take the player off the team, not end their deal. A re-signing logged in the contract year counts its years from the move's season, as every logged contract does: `expiresYear` is `year + years - 1`. So a three-year deal signed in the final season ends two seasons after it; the fix is entering one more year. Changing that would change every logged contract, so it was left alone.
+- "Carry-over asks" is a dialog on Start, shown only when deals run out. Expired contracts already prompt after carry-over, so it warns and does not block.
+- `CopyButton` is the third copy of copy-and-confirm (the digest, Explorer's link, now one primitive), with a gallery specimen. The settings field keeps its own, since it is icon-only beside an input. `useContractMove` is the sheet both contract lists open.
+- Scale test, 20 seasons: a rivalry with every meeting 2,522 documents and 1.0 MB, a recap 114 and 0.1 MB, the week on Home 81 and under 0.1 MB, the race 110 and 0.1 MB, a Hall of Fame case 303 and 0.2 MB, the eligible list 24 and under 0.1 MB, against limits of 32,000 and 16 MB. A rivalry reads the most, about 25 lines per game for up to 100 meetings; a real box score holds more players, so expect that figure to grow. The race's figure is low because the test data has no league-wide lines; a captured season can reach 3,000 rows.
+- Playwright tests are written and the new desktop tests ran locally. The rest, and the phone project, are left to CI and to a Mac with memory to spare. Checked by hand at desktop width in dark: the digest, recap, rivalry page, race, cap view and the case sheet. At 375 x 812: the recap, rivalry page and case sheet in dark, and the digest, race and cap view in light, with no sideways scroll. The recap's shorter tile labels and the fourth cap tile came after those looks and were not checked again by eye. The sample has no scores for division rivals, so the division line was only exercised in unit tests, and no retired players, so the eligible list only in Convex tests.
+
+---
+
+## Proposed: Sprint 23
+
+Planned after the platform audit of October 2026, not yet scheduled or built. The statistics hub plan is `docs/STATS-HUB.md`; the audit with every gap and the reasoning behind the order is `docs/PLATFORM-AUDIT.md`. When it is picked up, it gets a full section above with a goal, a "Done when" and, once built, its "As built" notes, and the stable behaviour moves into `FEATURES.md`.
 
 | Sprint | Theme | Size | Source |
 |---|---|---|---|
-| 22 | Fun layer: season recaps, awards race, rivalry pages, weekly digest, Hall of Fame cases, contract year | M | `PLATFORM-AUDIT.md` 5.2 |
 | 23 | Spec sweep: Appearance and franchise settings, swipe between weeks and seasons, long-press row actions, headshot upload, Shortcut test button, ratings capture | S | `PLATFORM-AUDIT.md` 5.1 |
 
 ---

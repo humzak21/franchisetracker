@@ -66,6 +66,18 @@ test("home leads with the season, the last result and the next opponent", async 
   await expect(page.getByRole("heading", { level: 1, name: "Miami Dolphins" })).toBeVisible();
 });
 
+test("the week on Home says how it went and can be copied", async ({ page, context }, info) => {
+  test.skip(info.project.name.includes("webkit") || isPhone(info.project.name), "clipboard is Chromium's");
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await gotoHome(page);
+  await expect(page.getByRole("heading", { name: "The week" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Week 6: W 28-14 vs Saints" })).toBeVisible();
+  await page.getByRole("button", { name: "Copy", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toContain("Patriots Week 6: W 28-14 vs Saints");
+});
+
 test("the season checklist opens on the week, with the season's coverage below", async ({ page }) => {
   await gotoHome(page);
   const main = page.getByRole("main");

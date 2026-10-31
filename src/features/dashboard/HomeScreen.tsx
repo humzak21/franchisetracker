@@ -20,6 +20,7 @@ import { SeasonCard } from "./SeasonCard";
 import { SeasonChecklist } from "./SeasonChecklist";
 import { SeasonHeader } from "./SeasonHeader";
 import { TeamStreaks } from "./TeamStreaks";
+import { WeekDigestCard } from "./WeekDigestCard";
 import { useQuery } from "@/lib/convex/useQuery";
 
 /** A column on desktop; on narrower widths its cards join one column, ordered by `order-*`. */
@@ -72,6 +73,7 @@ export function HomeScreen() {
                   </Section>
                 </div>
               )}
+              {!imported && <WeekDigestCard seasonId={season._id} className="order-4 @desktop:order-none" />}
               {!imported && data && (
                 <Section title="Season pulse" className="order-7 @desktop:order-none">
                   <PointsPulse pulse={data.pulse} />

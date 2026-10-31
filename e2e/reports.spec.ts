@@ -7,6 +7,7 @@ import { expect, expectNoHorizontalOverflow, isPhone, SAMPLE_YEAR, test } from "
 const SCREENS = [
   "/history/reports",
   `/history/reports/${SAMPLE_YEAR}`,
+  `/history/recaps/${SAMPLE_YEAR}`,
   "/history/hall-of-fame",
   "/history/timeline",
 ];
@@ -108,6 +109,31 @@ test("a player is inducted from their page, hangs on the wall, and is removed", 
     .getByRole("button", { name: "Remove" })
     .click();
   await expect(page.getByRole("button", { name: "Hall of Fame", exact: true })).toBeVisible();
+});
+
+test("a report opens the season's recap, told from its games", async ({ page }) => {
+  await page.goto(`/history/reports/${SAMPLE_YEAR}`);
+  await page.getByRole("link", { name: "Recap" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: `${SAMPLE_YEAR} recap` })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Week by week" })).toBeVisible();
+  await expect(page.getByText(/in the AFC East/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Stars" })).toBeVisible();
+  await expect(page.getByText(/Veteran Linebacker/)).toBeVisible();
+});
+
+test("a real season before the franchise has no recap", async ({ page }) => {
+  await page.goto(`/history/recaps/${SAMPLE_YEAR - 1}`);
+  await expect(page.getByText(`Nothing to tell for ${SAMPLE_YEAR - 1} yet`)).toBeVisible();
+});
+
+test("the induction sheet argues the player's case", async ({ page }) => {
+  await page.goto("/roster");
+  await page
+    .getByRole("link", { name: /Stefon Diggs/ })
+    .first()
+    .click();
+  await page.getByRole("button", { name: "Hall of Fame" }).click();
+  await expect(page.getByRole("region", { name: "The case" })).toContainText("with the team");
 });
 
 test("the timeline filters by type", async ({ page }) => {

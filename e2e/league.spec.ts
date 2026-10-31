@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, expectNoHorizontalOverflow, test } from "./fixtures";
+import { expect, expectNoHorizontalOverflow, SAMPLE_YEAR, test } from "./fixtures";
 
 // Every project shares one backend: tests add and remove their own rows, named per project.
 
@@ -165,6 +165,30 @@ test("transactions: the feed by type, the trade tracker, injuries and the cap", 
   await page.getByRole("radio", { name: "Cap", exact: true }).click();
   await expect(page.getByText("$55.1M")).toBeVisible();
   await expectNoHorizontalOverflow(page);
+});
+
+test("the contract year: who expires, next season, and a re-signing sheet", async ({ page }) => {
+  await page.goto("/transactions");
+  await page.getByRole("radio", { name: "Cap", exact: true }).click();
+  await expect(page.getByRole("heading", { name: `Going into ${SAMPLE_YEAR + 1}` })).toBeVisible();
+  await expect(page.getByText("$42.7M")).toBeVisible();
+  const expiring = page.getByRole("listitem").filter({ hasText: "Hunter Henry" });
+  await expiring.getByRole("button", { name: "Re-sign" }).click();
+  await expect(page.getByRole("dialog").getByText("Hunter Henry")).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
+test("a rival opens its rivalry page, without overflow", async ({ page }) => {
+  await page.goto("/league");
+  await page.getByRole("radio", { name: "Rivals" }).click();
+  await page.getByRole("link", { name: "Steelers" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "vs Steelers" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What stands out" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Our best against them" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Every meeting" })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await page.getByRole("link", { name: "Team page" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Pittsburgh Steelers" })).toBeVisible();
 });
 
 test("a player's awards and moves are on their page, and injuries on the roster", async ({ page }) => {

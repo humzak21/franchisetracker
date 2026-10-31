@@ -130,16 +130,16 @@ The owner's point: by the second decade the app, not the owner, has to remember 
 ### 5.2 Additions that make the franchise more fun
 
 - **A. Season checklist and coverage strip** (section 3): the app tells you what to shoot next.
-- **B. Season recap pages**: a generated recap per season (record, how it went week to week, stars, awards, records set, moves, draft, the report's own words), shareable as a read-only page later. Mostly composition of existing queries.
+- **B. Season recap pages** (built in Sprint 22): a generated recap per season (record, how it went week to week, stars, awards, records set, moves, draft, the report's own words), shareable as a read-only page later. Mostly composition of existing queries.
 - **C. Countdowns and "on this week"** on Home (STATS-HUB 7).
-- **D. Awards race**: during the season, MVP, OPOY, DPOY and OROY leaderboards from our players' numbers against the imported league leaders, with the counted awards' rules.
-- **E. Contract and cap year**: expiring contracts list with re-sign or let go actions that log the move; a cap projection for next season; carry-over asks about expiring deals.
+- **D. Awards race** (built in Sprint 22): during the season, MVP, OPOY, DPOY and OROY leaderboards from our players' numbers against the imported league leaders, with the counted awards' rules.
+- **E. Contract and cap year** (built in Sprint 22): expiring contracts list with re-sign or let go actions that log the move; a cap projection for next season; carry-over asks about expiring deals.
 - **F. Draft day**: the board drives a live draft screen (our picks, needs met, prospects taken by others), feeding `draft_results` later; class retrospectives already exist.
-- **G. Rivalry pages**: rivals view plus a rivalry page per opponent (every meeting, playoff meetings, streaks, our best performers against them, the team records against them).
-- **H. Hall of Fame cases**: a "case" panel on the induction sheet from placements, awards, marks and seasons with the team; a yearly "eligible" list of retired players five seasons out.
+- **G. Rivalry pages** (built in Sprint 22): rivals view plus a rivalry page per opponent (every meeting, playoff meetings, streaks, our best performers against them, the team records against them).
+- **H. Hall of Fame cases** (built in Sprint 22): a "case" panel on the induction sheet from placements, awards, marks and seasons with the team; a yearly "eligible" list of retired players five seasons out.
 - **I. Jersey numbers**: track numbers per season (already on the entry) and show retired-number conflicts and "who wore 12" on the HoF wall.
 - **J. Coaching trees**: staff per season exists; add a coaching record table (wins per head coach, playoff record) and a coordinator timeline.
-- **K. Weekly digest**: after each commit, Home shows a one-week recap card (result, stars, records, milestones, streaks, standings move) that can be copied as text.
+- **K. Weekly digest** (built in Sprint 22): after each commit, Home shows a one-week recap card (result, stars, records, milestones, streaks, standings move) that can be copied as text.
 - **L. Compare anything**: extend compare to seasons (2027 team against 2031 team) and to a player against a franchise legend at the same age.
 - **M. Phone capture ergonomics**: a "last week's game" quick action on the capture button; the inbox picker surfaces the newest screenshots first with the week guessed.
 

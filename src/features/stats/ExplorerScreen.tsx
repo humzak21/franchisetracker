@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Check, Compass, Link2, Telescope, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Compass, Link2, Telescope, X } from "lucide-react";
+import { useMemo } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import {
@@ -12,6 +12,7 @@ import {
   type Question,
 } from "@shared/stats";
 import { useFranchise } from "@/app/franchise";
+import { CopyButton } from "@/components/ui/CopyButton";
 import { EmptyState } from "@/components/data/EmptyState";
 import { Notice } from "@/components/data/Notice";
 import { QuestionBuilder } from "@/components/data/QuestionBuilder";
@@ -67,25 +68,6 @@ function PlayerChoice({
   );
 }
 
-function CopyLink() {
-  const [copied, setCopied] = useState(false);
-  return (
-    <Button
-      size="sm"
-      variant="outline"
-      onClick={() =>
-        void navigator.clipboard.writeText(window.location.href).then(() => {
-          setCopied(true);
-          window.setTimeout(() => setCopied(false), 1500);
-        })
-      }
-    >
-      {copied ? <Check /> : <Link2 />}{" "}
-      <span className="max-sm:sr-only">{copied ? "Copied" : "Copy link"}</span>
-    </Button>
-  );
-}
-
 /**
  * The stat explorer (STATS-HUB.md 3): a question built from a stat, a scope, a split and the rest,
  * answered as a list or as bars. The question lives in the URL, so a bookmark or a copied link
@@ -118,7 +100,12 @@ export function ExplorerScreen({ search }: { search: ExplorerSearch }) {
     void navigate({ search: questionSearch(settleQuestion(next)), replace: true });
   const answered = result?.status === "answered" ? result : null;
   return (
-    <Page title="Explorer" eyebrow="Stats" back={{ to: "/stats", label: "Stats" }} actions={<CopyLink />}>
+    <Page
+      title="Explorer"
+      eyebrow="Stats"
+      back={{ to: "/stats", label: "Stats" }}
+      actions={<CopyButton text={() => window.location.href} label="Copy link" icon={Link2} />}
+    >
       <div className="space-y-5">
         <QuestionBuilder
           question={question}

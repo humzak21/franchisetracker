@@ -6,7 +6,7 @@ import { meetingBars } from "@shared/games/charts";
 import { DivergingBars } from "@/components/data/DivergingBars";
 import { ResultBadge } from "@/components/team/ResultBadge";
 
-type HeadToHead = FunctionReturnType<typeof api.league.teamHistory.get>["headToHead"];
+type HeadToHead = Pick<FunctionReturnType<typeof api.league.teamHistory.get>["headToHead"], "games">;
 
 /** Every franchise game against one opponent: the margins as a chart, then each meeting linked. */
 export function TeamHeadToHead({ headToHead }: { headToHead: HeadToHead }) {

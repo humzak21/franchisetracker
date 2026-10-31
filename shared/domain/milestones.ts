@@ -13,3 +13,6 @@ export const MILESTONE_KINDS = [
   "custom",
 ] as const;
 export type MilestoneKind = (typeof MILESTONE_KINDS)[number];
+
+/** The kinds that mean a record fell, as the digest and the recap lead with them. */
+export const RECORD_MILESTONES: readonly MilestoneKind[] = ["franchise_record", "team_record"];

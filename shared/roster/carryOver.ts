@@ -3,7 +3,7 @@
  * Pure: the Convex carry-over reads and writes, this decides.
  */
 import type { RosterStatus } from "../domain";
-import { capHit, type CapContract } from "./cap";
+import { capHit, runsOut, type CapContract } from "./cap";
 
 /** Another team's player is carried while a commit named them in this many of the latest seasons. */
 const SIGHTING_SEASONS = 2;
@@ -31,7 +31,7 @@ export function agedContract(
 ): { contract: CapContract; expired: boolean } {
   const { years, expiresYear } = contract;
   if (years === undefined && expiresYear === undefined) return { contract, expired: false };
-  const expired = expiresYear !== undefined ? expiresYear < year : years !== undefined && years <= 1;
+  const expired = runsOut(contract, year - 1);
   const hit = capHit(contract);
   return {
     contract: {

@@ -1,8 +1,7 @@
 import { FileClock, PenLine, UserMinus } from "lucide-react";
 import { useState } from "react";
-import type { TransactionType } from "@shared/domain";
 import { capHit, formatMoney } from "@shared/roster/cap";
-import { useMoves } from "@/app/moves/MovesProvider";
+import { useContractMove } from "@/app/moves/useContractMove";
 import { Notice } from "@/components/data/Notice";
 import { BottomSheet } from "@/components/overlay/BottomSheet";
 import { PositionBadge } from "@/components/player/PositionBadge";
@@ -11,29 +10,13 @@ import type { RosterRow } from "./rosterColumns";
 
 /** User-team players whose deal ran out at carry-over: each is re-signed or let go, as a logged move. */
 export function ExpiredContracts({ rows }: { rows: readonly RosterRow[] }) {
-  const moves = useMoves();
+  const { ready, record } = useContractMove();
   const [open, setOpen] = useState(false);
-  if (rows.length === 0 || !moves.ready) return null;
+  if (rows.length === 0 || !ready) return null;
 
-  const record = (row: RosterRow, type: TransactionType) => {
+  const settle = (row: RosterRow, type: "resign" | "release") => {
     setOpen(false);
-    moves.open({
-      kind: "other",
-      prefill: {
-        type,
-        players: [
-          {
-            person: {
-              kind: "existing",
-              playerId: row.player._id,
-              name: row.player.displayName,
-              position: row.entry.position,
-            },
-            teamId: row.entry.teamId,
-          },
-        ],
-      },
-    });
+    record({ playerId: row.player._id, name: row.player.displayName, position: row.entry.position }, type);
   };
 
   return (
@@ -63,10 +46,10 @@ export function ExpiredContracts({ rows }: { rows: readonly RosterRow[] }) {
                     {hit !== null ? ` · was ${formatMoney(hit)} a year` : ""}
                   </span>
                 </span>
-                <Button size="sm" variant="outline" onClick={() => record(row, "resign")}>
+                <Button size="sm" variant="outline" onClick={() => settle(row, "resign")}>
                   <PenLine /> Re-sign
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => record(row, "release")}>
+                <Button size="sm" variant="outline" onClick={() => settle(row, "release")}>
                   <UserMinus /> Release
                 </Button>
               </li>

@@ -7,16 +7,24 @@ import { requireOwner } from "../lib/auth";
 import { invalid } from "../lib/errors";
 import { MAX_ROSTER, playersById } from "../lib/franchise";
 import { headshotUrls } from "../lib/refs";
-import { ownSeason } from "../lib/reports";
-import { vPosition } from "../lib/validators";
+import { ownSeason, seasonByYear } from "../lib/reports";
+import { vPosition, vSeasonStatus } from "../lib/validators";
 
 export const bySeason = query({
   args: { seasonId: v.id("seasons") },
   returns: v.object({
     year: v.number(),
+    status: vSeasonStatus,
     salaryCap: v.union(v.number(), v.null()),
     committed: v.number(),
     space: v.union(v.number(), v.null()),
+    /** Next season as the contracts stand: the cap is its own once set, else this one carried on. */
+    next: v.object({
+      salaryCap: v.union(v.number(), v.null()),
+      committed: v.number(),
+      freed: v.number(),
+      space: v.union(v.number(), v.null()),
+    }),
     rostered: v.number(),
     players: v.array(
       v.object({
@@ -36,14 +44,16 @@ export const bySeason = query({
   handler: async (ctx, { seasonId }) => {
     await requireOwner(ctx);
     const { franchise, season } = await ownSeason(ctx, seasonId);
-    const entries = (
-      await ctx.db
+    const [roster, nextSeason] = await Promise.all([
+      ctx.db
         .query("rosterEntries")
         .withIndex("by_seasonId_and_teamId", (q) =>
           q.eq("seasonId", seasonId).eq("teamId", franchise.userTeamId),
         )
-        .take(MAX_ROSTER)
-    ).filter((e) => underContract(e.status));
+        .take(MAX_ROSTER),
+      seasonByYear(ctx, franchise._id, season.year + 1),
+    ]);
+    const entries = roster.filter((e) => underContract(e.status));
     const players = await playersById(
       ctx,
       entries.map((e) => e.playerId),
@@ -76,11 +86,20 @@ export const bySeason = query({
         : [];
     });
     rows.sort((a, b) => (b.apy ?? -1) - (a.apy ?? -1) || a.displayName.localeCompare(b.displayName));
+    const nextCap = nextSeason?.salaryCap ?? season.salaryCap;
+    const nextCommitted = summary.committed - summary.freed;
     return {
       year: season.year,
+      status: season.status,
       salaryCap: season.salaryCap ?? null,
       committed: summary.committed,
       space: summary.space,
+      next: {
+        salaryCap: nextCap ?? null,
+        committed: nextCommitted,
+        freed: summary.freed,
+        space: nextCap === undefined ? null : nextCap - nextCommitted,
+      },
       rostered: entries.length,
       players: rows,
     };

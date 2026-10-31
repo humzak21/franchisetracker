@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/misc";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
+import { AwardRace } from "./AwardRace";
 import { AllPro, ProBowl } from "./HonorViews";
 import { SeasonAwards } from "./SeasonAwards";
 import { seasonBoard } from "./seasonSlots";
@@ -18,7 +19,7 @@ import type { CountedAward, SeasonAward } from "./types";
 import { WeeklyAwards } from "./WeeklyAwards";
 import { useQuery } from "@/lib/convex/useQuery";
 
-type View = "weekly" | "season" | "allpro" | "probowl" | "team";
+type View = "weekly" | "season" | "race" | "allpro" | "probowl" | "team";
 
 const VIEWS: {
   value: View;
@@ -33,6 +34,7 @@ const VIEWS: {
     has: (a) => !a.weekKey && a.scope !== "team" && !["AllPro1", "AllPro2", "ProBowl"].includes(a.type),
     target: "yearly_awards",
   },
+  { value: "race", label: "Race", has: () => false, target: "yearly_awards" },
   {
     value: "allpro",
     label: "All-Pro",
@@ -52,8 +54,8 @@ function seasonCount(awards: SeasonAward[], counted: CountedAward[] | undefined)
 
 /**
  * Awards (FEATURES.md 5.8): players of the week, the season's awards (Madden's and those counted
- * from the stats), All-Pro teams, Pro Bowl rosters and the owner's own team awards, with
- * user-team winners highlighted.
+ * from the stats), the race for the big ones, All-Pro teams, Pro Bowl rosters and the owner's own
+ * team awards, with user-team winners highlighted.
  */
 export function AwardsScreen() {
   const { season } = useSeason();
@@ -63,9 +65,9 @@ export function AwardsScreen() {
   const counted = useQuery(api.awards.counted.bySeason, season ? { seasonId: season._id } : "skip");
   const current = VIEWS.find((v) => v.value === view) ?? VIEWS[0]!;
   const shown = awards?.filter(current.has) ?? [];
-  // Team awards have their own form; every league award can be typed in like its screenshot.
+  // Team awards have their own form, and the race is counted; any other can be typed in like its screenshot.
   const addAward =
-    season && view !== "team" ? (
+    season && view !== "team" && view !== "race" ? (
       <>
         {/* On a phone the weekly view carries this link itself, so the title keeps its room. */}
         {view === "weekly" && (
@@ -90,12 +92,18 @@ export function AwardsScreen() {
             value: v.value,
             label: v.label,
             count:
-              v.value === "season" && awards ? seasonCount(awards, counted) : awards?.filter(v.has).length,
+              v.value === "race"
+                ? undefined
+                : v.value === "season" && awards
+                  ? seasonCount(awards, counted)
+                  : awards?.filter(v.has).length,
           }))}
           className="max-w-full scrollbar-none overflow-x-auto"
         />
         {awards === undefined || !season ? (
           <Skeleton className="h-64 rounded-xl" />
+        ) : view === "race" ? (
+          <AwardRace seasonId={season._id} />
         ) : view === "team" ? (
           <TeamAwards seasonId={season._id} awards={awards} />
         ) : view === "season" ? (

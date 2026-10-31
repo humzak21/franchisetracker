@@ -4,9 +4,14 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
+import { seasonRace } from "../awards/race";
+import { latestDigest } from "../dashboard/digest";
 import { SAMPLE_START_YEAR } from "../dev/fixtures";
+import { eligiblePlayers, playerCase } from "../hof/case";
+import { rivalryPage } from "../league/rivals";
 import { asOwner } from "../lib/testOwner";
 import schema from "../schema";
+import { seasonRecap } from "../seasons/recap";
 import { DEFAULT_QUESTION, MAX_SCAN_SEASONS } from "../../shared/stats";
 import { seasonBoards } from "./boardCandidates";
 import { answerQuestion } from "./explorer";
@@ -112,6 +117,16 @@ describe("a 20-season franchise", () => {
       await measure(t, "one player's question, a whole career", (ctx) =>
         answerQuestion(ctx, franchise, { ...asked, scope: "span", split: "home", playerId: liferId }),
       );
+      const opponent = await t.run(async (ctx) => {
+        const game = await ctx.db.get("games", lastGame);
+        return (await ctx.db.get("teams", game?.opponentTeamId as Id<"teams">)) as Doc<"teams">;
+      });
+      await measure(t, "a rivalry, every meeting", (ctx) => rivalryPage(ctx, franchise, opponent));
+      await measure(t, "a season's recap", (ctx) => seasonRecap(ctx, franchise, lastSeason.year));
+      await measure(t, "the week on Home", (ctx) => latestDigest(ctx, franchise, lastSeason));
+      await measure(t, "the awards race", (ctx) => seasonRace(ctx, franchise, lastSeason));
+      await measure(t, "a Hall of Fame case", (ctx) => playerCase(ctx, franchise, liferId));
+      await measure(t, "who is eligible for the Hall", (ctx) => eligiblePlayers(ctx, franchise));
       const wide = await t.run((ctx) =>
         answerQuestion(ctx, franchise, { ...asked, scope: "game", split: "home" }),
       );
