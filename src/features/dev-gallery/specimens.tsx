@@ -31,6 +31,7 @@ import {
   TEAM_STATS_2025,
 } from "./fixtures";
 import { ActionMenuDemo, SegmentedDemo, SheetDemo, TeamPickerDemo } from "./demos";
+import { EXPLORER_SPECIMENS } from "./explorerSpecimens";
 import { GOAL_SPECIMENS } from "./goalSpecimens";
 import { HISTORY_SPECIMENS } from "./historySpecimens";
 import { INGESTION_SPECIMENS } from "./ingestionSpecimens";
@@ -75,6 +76,7 @@ export const SPECIMENS: Specimen[] = [
   ...INGESTION_SPECIMENS,
   ...STATS_SPECIMENS,
   ...RECORD_SPECIMENS,
+  ...EXPLORER_SPECIMENS,
   ...INSIGHT_SPECIMENS,
   ...PLAYER_SPECIMENS,
   ...HISTORY_SPECIMENS,

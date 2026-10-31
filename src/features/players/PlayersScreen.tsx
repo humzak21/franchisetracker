@@ -17,7 +17,7 @@ import { Section } from "@/components/layout/Section";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { playerColumns, type DirectoryRow } from "./playerColumns";
-import { PlayerSearch } from "./PlayerSearch";
+import { PlayerSearch } from "@/components/player/PlayerSearch";
 import { cn } from "@/lib/cn";
 import { useQuery } from "@/lib/convex/useQuery";
 import { useSelection } from "@/lib/hooks/useSelection";

@@ -46,6 +46,19 @@ test("the player page lists milestones in order without overflow", async ({ page
   await expectNoHorizontalOverflow(page);
 });
 
+test("the player page splits a career and filters its games without overflow", async ({ page }) => {
+  await openDiggs(page);
+  await page.getByRole("radio", { name: "Home and away" }).click();
+  await expect(
+    page.getByRole("table", { name: "Player splits" }).getByText("Home", { exact: true }),
+  ).toBeVisible();
+  await page.getByLabel("Season", { exact: true }).selectOption("career");
+  await page.getByLabel("Games with").selectOption("recYds");
+  await page.getByLabel("At least", { exact: true }).fill("100000");
+  await expect(page.getByText("0 games", { exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
 test("player notes save on blur", async ({ page }) => {
   await openDiggs(page);
   const notes = page.getByLabel("Scouting notes");

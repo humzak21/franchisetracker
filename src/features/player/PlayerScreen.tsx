@@ -25,6 +25,7 @@ import { PlayerHero } from "./PlayerHero";
 import { PlayerHighlights } from "./PlayerHighlights";
 import { PlayerMilestones } from "./PlayerMilestones";
 import { PlayerPace } from "./PlayerPace";
+import { PlayerSplits } from "./PlayerSplits";
 import { PlayerStatCards } from "./PlayerStatCards";
 import { PossibleDuplicate } from "./PossibleDuplicate";
 import { RatingsSheet } from "./RatingsSheet";
@@ -38,6 +39,7 @@ const SECTIONS = [
   { id: "career", label: "Career" },
   { id: "trends", label: "Trends" },
   { id: "cumulative", label: "Cumulative" },
+  { id: "splits", label: "Splits" },
   { id: "games", label: "Game log" },
   { id: "rosters", label: "Rosters" },
   { id: "activity", label: "Awards" },
@@ -48,7 +50,7 @@ const SECTIONS = [
 /**
  * Player page (FEATURES.md 5.4): the card and bio, stat cards, pace in a live season, records and
  * streaks, milestones, OVR progression, career stats (real NFL seasons first, marked), trends and cumulative
- * curves, game logs, roster history, identity tools and notes. Jump links keep it navigable on a phone.
+ * curves, splits, game logs, roster history, identity tools and notes. Jump links keep it navigable on a phone.
  */
 export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
   const page = useQuery(api.players.player.get, { playerId });
@@ -146,6 +148,13 @@ export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
               anchors={{ trends: "trends", cumulative: "cumulative" }}
             />
           )}
+          <Section
+            id="splits"
+            title="Splits"
+            description="Games with the team, regular season unless the row says playoffs."
+          >
+            <PlayerSplits page={page} />
+          </Section>
           <Section id="games" title="Game log">
             <GameLog page={page} />
           </Section>

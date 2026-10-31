@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { History, ScanSearch } from "lucide-react";
 import { isPreFranchise } from "@shared/history/nflverse";
 import { useFranchise } from "@/app/franchise";
@@ -18,10 +18,14 @@ import { SeasonStats } from "./SeasonStats";
 import { SPLIT_OPTIONS, type Split } from "./split";
 import { StreaksBoard } from "./StreaksBoard";
 import { TeamRanks } from "./TeamRanks";
+import { TeamSplits } from "./TeamSplits";
 import { TrendsView } from "./TrendsView";
 import type { RecordsKind, View } from "./view";
 
-const VIEWS: { value: View; label: string }[] = [
+/** Explorer sits with the views but has its own route, so a question can be bookmarked. */
+const EXPLORER = "explorer";
+
+const VIEWS: { value: View | typeof EXPLORER; label: string }[] = [
   { value: "overview", label: "Overview" },
   { value: "season", label: "Season" },
   { value: "league", label: "League" },
@@ -30,16 +34,18 @@ const VIEWS: { value: View; label: string }[] = [
   { value: "records", label: "Records" },
   { value: "leaders", label: "Leaders" },
   { value: "streaks", label: "Streaks" },
+  { value: EXPLORER, label: "Explorer" },
 ];
 
 /**
  * Stats (FEATURES.md 5.5): the season's overview, season stats, league stats, team ranks, trends
- * across seasons, the records book, all-time leaders and streaks. Player numbers come from game logs, the rest of the league's from captured
+ * across seasons, the records book, all-time leaders, streaks and the explorer. Player numbers come from game logs, the rest of the league's from captured
  * season stats screens, team ranks from the captured team stats screen.
  */
 export function StatsScreen() {
   const { season } = useSeason();
   const active = useFranchise();
+  const navigate = useNavigate();
   const [view, setView] = useLocalStorage<View>("ft.stats-view", "overview");
   const [split, setSplit] = useLocalStorage<Split>("ft.stats-split", "regular");
   const [recordsKind, setRecordsKind] = useLocalStorage<RecordsKind>("ft.records-kind", "books");
@@ -66,7 +72,9 @@ export function StatsScreen() {
           <Segmented
             aria-label="View"
             value={view}
-            onChange={setView}
+            onChange={(next) =>
+              next === EXPLORER ? void navigate({ to: "/stats/explorer" }) : setView(next)
+            }
             options={VIEWS}
             className="max-w-full scrollbar-none overflow-x-auto"
           />
@@ -92,6 +100,7 @@ export function StatsScreen() {
         {view === "season" && <SeasonStats split={split} />}
         {view === "league" && <LeagueView />}
         {view === "team" && <TeamRanks />}
+        {view === "team" && <TeamSplits />}
         {view === "trends" && <TrendsView />}
         {seasonal && season && <ManualStatsLinks seasonId={season._id} />}
         {view === "records" && <RecordsView kind={recordsKind} onKind={setRecordsKind} split={split} />}

@@ -29,7 +29,7 @@ const SPLITS = ["regular", "postseason"] as const;
 type Split = (typeof SPLITS)[number];
 
 /** A season's played games as team records read them, one split at a time. */
-async function teamGameFacts(ctx: QueryCtx, franchise: Doc<"franchises">, season: Doc<"seasons">) {
+export async function teamGameFacts(ctx: QueryCtx, franchise: Doc<"franchises">, season: Doc<"seasons">) {
   const games = await seasonGames(ctx, season._id);
   const facts = await Promise.all(
     games.map(async (game) => {
@@ -44,8 +44,12 @@ async function teamGameFacts(ctx: QueryCtx, franchise: Doc<"franchises">, season
         const row = sides.find((s) => (s.teamId === franchise.userTeamId) === own);
         return row ? (row.stats as TeamStatLine) : null;
       };
-      const row: TeamGameFacts<Id<"games">, Id<"seasons">, Id<"teams">> & { split: Split } = {
+      const row: TeamGameFacts<Id<"games">, Id<"seasons">, Id<"teams">> & {
+        split: Split;
+        overtime: boolean;
+      } = {
         split: phase,
+        overtime: game.overtime ?? false,
         gameId: game._id,
         seasonId: season._id,
         year: season.year,
