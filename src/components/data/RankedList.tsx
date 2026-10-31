@@ -17,6 +17,8 @@ export type RankedItem = {
   value: ReactNode;
   /** The user's own row on a league-wide list. */
   marked?: boolean;
+  /** Draws the row as a bar: its share of the longest, 0 to 1. */
+  share?: number;
 };
 
 type RankedListProps = {
@@ -76,6 +78,14 @@ export function RankedList({ title, label, items, footer }: RankedListProps) {
                   ) : (
                     item.detail
                   )}
+                </span>
+              )}
+              {item.share !== undefined && (
+                <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-muted">
+                  <span
+                    className="block h-full rounded-full bg-primary"
+                    style={{ width: `${Math.round(item.share * 100)}%` }}
+                  />
                 </span>
               )}
             </span>

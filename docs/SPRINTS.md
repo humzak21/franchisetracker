@@ -574,13 +574,42 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 ---
 
-## Proposed: Sprints 21 to 23
+## Sprint 21 — Splits and the stat explorer (M)
+
+**Goal:** the questions no fixed screen anticipated can be asked. Home against away, wins against losses, one-score games and each opponent work for the team and for one player, the team's scoring reads by quarter, a career's game log can be narrowed, and the Explorer builds a question from a stat, a scope, a split and a window and keeps it in the URL.
+
+- `SplitTable` and `QuarterGrid`, with the team's splits and quarters under Stats → Team and a Splits section on the player page.
+- The game log gains a whole-career mode with threshold filters.
+- Stats → Explorer: `QuestionBuilder`, `stats/explorer:run`, an answer as a list or bars, URL state and Copy link.
+- `SplitTable`, `QuarterGrid` and `QuestionBuilder` in the gallery; the scale test reads the new queries over 20 seasons.
+
+**Done when:** a question with a stat, scope, split and window can be built on the phone and bookmarked.
+
+**As built:**
+
+- Explorer is a route, `/stats/explorer`, not a view inside `/stats`: the views live in local storage, and a question has to live in the URL. Its segment on Stats navigates there and Back returns. The URL holds only what differs from the default question, and anything it does not recognise falls back rather than failing, so an old bookmark still opens.
+- `planQuestion` (`shared/stats/explorer.ts`) picks where an answer comes from. Season and career questions with no split past regular or playoffs read the season rows, whatever the range. Plain single-game, span and mark questions over all time read their boards. Everything else folds game lines, which is at most `MAX_SCAN_SEASONS` (5) seasons or one player's career; a wider question comes back refused with what to narrow, as `STATS-HUB.md` 6 planned. `stats/explorer:run` returns the refusal as data, since the screen shows it, and throws only on a question no screen could build.
+- A single-game question with a position over more than five seasons is refused, because the records board has no position. Narrowing the seasons answers it. `playerMarks` are regular season only, so a playoff mark reads game lines.
+- The scope, split and the rest are one flat question. `split` is a group's key or `vs:DAL`, and `regular` is now a group in the `phase` kind, so the book's regular and playoff split and the home or one-score groups are one choice rather than two controls that could disagree.
+- Every split but `phase` counts the regular season only, which `STATS-HUB.md` 2.6 asked for and `splitLines` did not yet do. A playoff game counts only in Playoffs.
+- Spans and marks over a split run through the games asked about: "any 3 home games" means three home games in a row of his home games, not three consecutive weeks. A mark counted this way has no imported starting total, so "career" and "with the team" read the same there.
+- Rankings are always most first (fewest games for a mark), including for stats where less is better: the question reads "Most interceptions thrown", not "best". Rates read "Highest".
+- `SplitTable` shows one kind at a time behind a segment, rather than seven tables, so a phone does not scroll past them. Elite highlights are off, since their thresholds read a full season.
+- The list and bars are both `RankedList`, which gained `share`, rather than a new chart primitive. Answers stop at 50 rows and say so. "Open as records list" (`STATS-HUB.md` 7) is left out: which list Records shows lives in local storage, so there is nothing to link to. Each row links to its player and game.
+- Team splits read `teamGameFacts`, the same read team records use, which gained `overtime`. A game counts as overtime if it is flagged or its line score has a fifth period. A neutral-site game counts for whichever side the game lists as home, since `SPLITS.venue` has no third group.
+- Quarters read the regular season, from scoring plays where a game has them and the line score otherwise (`quarterScoring`). The sample franchise has neither, so the grid was checked in the gallery.
+- `PlayerSearch` moved down to `components/player`, as Explorer needs it as well as Players. `gameLogColumns.tsx` split off `GameLog`. The career filter still runs on the server as Sprint 15 built it; its stat list comes from the season totals, so narrowing the games cannot shrink its own choices.
+- Scale test, 20 seasons: team splits for every season 1,203 documents and 0.4 MB, a career's splits 812 and 0.3 MB, a career question on season rows 992 and 1.9 MB, the widest question that reads games (five seasons) 2,431 and 0.9 MB, one player's whole career 836 and 0.3 MB, against limits of 32,000 and 16 MB. As before the test cannot see the time limit, and its data leaves out opponents' lines, though the lines read here are the user team's only. Its box scores hold 24 players; a real one holds more, so a five-season question will read more than this.
+- Playwright tests are written. The new desktop tests ran locally; the rest, and the phone project, are left to CI and to a Mac with memory to spare. Checked by hand at 375 x 812 in light and at desktop width in dark: Explorer and its sheet, Team splits, player splits, the career game log filter, and `QuarterGrid` in the gallery.
+
+---
+
+## Proposed: Sprints 22 and 23
 
 Planned after the platform audit of October 2026, not yet scheduled or built. The statistics hub plan is `docs/STATS-HUB.md`; the audit with every gap and the reasoning behind the order is `docs/PLATFORM-AUDIT.md`. When one of these is picked up, it gets a full section above with a goal, a "Done when" and, once built, its "As built" notes, and the stable behaviour moves into `FEATURES.md`.
 
 | Sprint | Theme | Size | Source |
 |---|---|---|---|
-| 21 | Splits and the stat explorer | M | `STATS-HUB.md` 8, Sprint 18 |
 | 22 | Fun layer: season recaps, awards race, rivalry pages, weekly digest, Hall of Fame cases, contract year | M | `PLATFORM-AUDIT.md` 5.2 |
 | 23 | Spec sweep: Appearance and franchise settings, swipe between weeks and seasons, long-press row actions, headshot upload, Shortcut test button, ratings capture | S | `PLATFORM-AUDIT.md` 5.1 |
 

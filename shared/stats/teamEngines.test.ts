@@ -1,7 +1,16 @@
 import { describe, expect, test } from "vitest";
 import type { WeekKey } from "../domain/calendar";
 import { gameTurn, quarterScoring } from "./quarters";
-import { splitLines, type SplitGame } from "./splits";
+import {
+  splitGameOf,
+  splitLabel,
+  splitLines,
+  splitSections,
+  splitTeamGames,
+  splitTest,
+  versusSplit,
+  type SplitGame,
+} from "./splits";
 import { mergeTeamEntries, teamSeasonEntries, type TeamGameFacts } from "./teamRecords";
 
 const rushing = (...yards: number[]) =>
@@ -52,6 +61,7 @@ describe("splits", () => {
       ["blowout", 1, 50],
     ]);
     expect(totals("phase")).toEqual([
+      ["regular", 3, 175],
       ["firstHalf", 2, 150],
       ["secondHalf", 1, 25],
     ]);
@@ -61,6 +71,84 @@ describe("splits", () => {
     expect(totals("byOpponent")).toEqual([
       ["BUF", 2, 125],
       ["MIA", 1, 50],
+    ]);
+  });
+
+  test("a playoff game counts only in the playoffs group", () => {
+    const withPlayoffs = [...games, facts(4, { gameId: "g2026-4", weekKey: "wc", home: true })];
+    const allLines = [...lines, { gameId: "g2026-4", stats: { rushYds: 200 } }];
+    const groups = (kind: Parameters<typeof splitLines>[2]) =>
+      splitLines(allLines, withPlayoffs, kind).map((g) => [g.key, g.summary.totals.rushYds]);
+    expect(groups("venue")).toEqual([
+      ["home", 125],
+      ["away", 50],
+    ]);
+    expect(groups("phase")).toContainEqual(["playoffs", 200]);
+    expect(groups("phase")).toContainEqual(["regular", 175]);
+  });
+
+  test("a game's facts read from the user's side", () => {
+    const base = {
+      gameId: "g",
+      weekKey: "w3" as WeekKey,
+      userIsHome: false,
+      us: 20,
+      them: 23,
+      overtime: false,
+      own: { conference: "AFC", division: "East" },
+    };
+    const division = { abbr: "BUF", conference: "AFC", division: "East" };
+    expect(splitGameOf({ ...base, lineScore: null, opponent: division })).toMatchObject({
+      home: false,
+      won: false,
+      lost: true,
+      margin: -3,
+      division: true,
+      conference: true,
+      overtime: false,
+    });
+    const nfc = { abbr: "DAL", conference: "NFC", division: "East" };
+    const overtime = { home: [7, 7, 3, 3, 3], away: [7, 7, 3, 3, 0] };
+    expect(splitGameOf({ ...base, lineScore: overtime, opponent: nfc })).toMatchObject({
+      division: false,
+      conference: false,
+      overtime: true,
+    });
+  });
+
+  test("one group by key, for a question", () => {
+    const [first, second] = games as [SplitGame, SplitGame];
+    expect(splitTest("home")?.(first)).toBe(true);
+    expect(splitTest("home")?.(second)).toBe(false);
+    expect(splitTest(versusSplit("MIA"))?.(second)).toBe(true);
+    expect(splitTest("nope")).toBeNull();
+    expect(splitLabel("oneScore")).toBe("One-score games");
+    expect(splitLabel(versusSplit("MIA"))).toBe("vs MIA");
+  });
+
+  test("the team's games add up by group, yards over the games that have them", () => {
+    const team = games.map((g, i) => ({
+      ...g,
+      pointsFor: 20 + i,
+      pointsAgainst: 10,
+      yards: i === 0 ? null : 300,
+      yardsAllowed: null,
+    }));
+    expect(splitTeamGames(team, "venue")[0]).toMatchObject({
+      key: "home",
+      games: 2,
+      wins: 2,
+      losses: 0,
+      ties: 0,
+      pointsFor: 42,
+      yardsPerGame: 300,
+      allowedPerGame: null,
+    });
+  });
+
+  test("sections leave out kinds with nothing to show", () => {
+    expect(splitSections((k) => (k === "venue" ? ["a"] : []))).toEqual([
+      { kind: "venue", label: "Home and away", groups: ["a"] },
     ]);
   });
 });

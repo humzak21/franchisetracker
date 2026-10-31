@@ -127,7 +127,7 @@ export const SPLITS = {
   outcome:   [{ key: "wins" }, { key: "losses" }],
   opponent:  [{ key: "division" }, { key: "conference" }, { key: "nonConference" }],
   margin:    [{ key: "oneScore", applies: |margin| <= 8 }, { key: "blowout", applies: |margin| >= 17 }],
-  phase:     [{ key: "firstHalf", weeks 1–9 }, { key: "secondHalf" }, { key: "playoffs" }],
+  phase:     [{ key: "regular" }, { key: "firstHalf", weeks 1–9 }, { key: "secondHalf" }, { key: "playoffs" }],
   overtime:  [{ key: "overtime" }],
   byOpponent: one entry per opponent team met,
 } 
@@ -302,7 +302,7 @@ Overview view, pace columns and the Home pace line, Countdowns card, Trends view
 **Sprint 17: records and streaks depth (M)** (built as Sprint 19; the differences are in `SPRINTS.md`, Sprint 19 "As built")
 Fastest-to and best-span lists in the Records book with typed entries, full single-game lists, team records, Streaks with dates and the new kinds, `MilestoneTimeline` on the player page, mark and streak milestones on Home. Done when "fastest to 1,000 yards in a season", "most TDs in any 5 games" and "most points we ever scored" are each one tap.
 
-**Sprint 18: splits and the explorer (M)**
+**Sprint 18: splits and the explorer (M)** (built as Sprint 21; the differences are in `SPRINTS.md`, Sprint 21 "As built")
 `SplitTable`, `QuarterGrid`, team and player splits, the Explorer with URL state, career game log filters. Done when a question with a stat, scope, split and window can be built on the phone and bookmarked.
 
 Order rationale: scoring plays first because they are a new capture (the sooner they are captured, the more seasons have them) and the later engines read them; storage next so every later view is one read; the pace and trend views come next because they need no new storage beyond Sprint 14 and change the app most for the least code; the explorer last because it composes everything before it.

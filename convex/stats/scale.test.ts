@@ -7,7 +7,9 @@ import type { MutationCtx } from "../_generated/server";
 import { SAMPLE_START_YEAR } from "../dev/fixtures";
 import { asOwner } from "../lib/testOwner";
 import schema from "../schema";
+import { DEFAULT_QUESTION, MAX_SCAN_SEASONS } from "../../shared/stats";
 import { seasonBoards } from "./boardCandidates";
+import { answerQuestion } from "./explorer";
 import { playerLines } from "./load";
 import { performancePage } from "./performance";
 import { rebuildPlayer } from "./recompute";
@@ -23,6 +25,7 @@ import {
   seedSeason,
   type Used,
 } from "./scale.setup";
+import { playerSplits, teamSplits } from "./splits";
 import { writeTeamRecords } from "./teamRecords";
 
 const modules = import.meta.glob("/convex/**/*.ts");
@@ -91,6 +94,28 @@ describe("a 20-season franchise", () => {
       await measure(t, "a season's boards", (ctx) => seasonBoards(ctx, franchise, lastSeason));
       await measure(t, "a page of marks and spans", (ctx) => performancePage(ctx, franchise, null));
       await measure(t, "a season's team records", (ctx) => writeTeamRecords(ctx, franchise, lastSeason));
+      await measure(t, "the team's splits, every season", (ctx) => teamSplits(ctx, franchise, "all"));
+      await measure(t, "a career's splits", (ctx) => playerSplits(ctx, franchise, liferId, "all"));
+      const asked = { ...DEFAULT_QUESTION, statKey: "rushYds" as const };
+      await measure(t, "a question on season rows, every season", (ctx) =>
+        answerQuestion(ctx, franchise, { ...asked, scope: "career" }),
+      );
+      await measure(t, "the widest question that reads games", (ctx) =>
+        answerQuestion(ctx, franchise, {
+          ...asked,
+          scope: "game",
+          split: "home",
+          fromYear: lastSeason.year - MAX_SCAN_SEASONS + 1,
+          toYear: lastSeason.year,
+        }),
+      );
+      await measure(t, "one player's question, a whole career", (ctx) =>
+        answerQuestion(ctx, franchise, { ...asked, scope: "span", split: "home", playerId: liferId }),
+      );
+      const wide = await t.run((ctx) =>
+        answerQuestion(ctx, franchise, { ...asked, scope: "game", split: "home" }),
+      );
+      expect(wide).toHaveProperty("refused");
 
       // The cap on a career's lines holds twenty seasons of every game, playoffs included.
       const lines = await t.run((ctx) => playerLines(ctx, liferId));

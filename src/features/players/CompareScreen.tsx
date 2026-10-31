@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import { seriesColors, useTheme } from "@/design/theme";
 import { CompareTable } from "./CompareTable";
-import { PlayerSearch } from "./PlayerSearch";
+import { PlayerSearch } from "@/components/player/PlayerSearch";
 import { useQuery } from "@/lib/convex/useQuery";
 
 const MAX = 4;

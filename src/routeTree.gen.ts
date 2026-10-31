@@ -30,6 +30,7 @@ import { Route as PlayersIndexRouteImport } from './routes/players.index'
 import { Route as PlayersPlayerIdRouteImport } from './routes/players.$playerId'
 import { Route as PlayersCompareRouteImport } from './routes/players.compare'
 import { Route as StatsIndexRouteImport } from './routes/stats.index'
+import { Route as StatsExplorerRouteImport } from './routes/stats.explorer'
 import { Route as StatsReconcileRouteImport } from './routes/stats.reconcile'
 import { Route as HistoryReportsIndexRouteImport } from './routes/history.reports.index'
 import { Route as HistoryReportsYearRouteImport } from './routes/history.reports.$year'
@@ -142,6 +143,11 @@ const StatsIndexRoute = StatsIndexRouteImport.update({
   path: '/stats/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StatsExplorerRoute = StatsExplorerRouteImport.update({
+  id: '/stats/explorer',
+  path: '/stats/explorer',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StatsReconcileRoute = StatsReconcileRouteImport.update({
   id: '/stats/reconcile',
   path: '/stats/reconcile',
@@ -190,6 +196,7 @@ export interface FileRoutesByFullPath {
   '/inbox/weekly-awards': typeof InboxWeeklyAwardsRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/players/compare': typeof PlayersCompareRoute
+  '/stats/explorer': typeof StatsExplorerRoute
   '/stats/reconcile': typeof StatsReconcileRoute
   '/history/': typeof HistoryIndexRoute
   '/inbox/': typeof InboxIndexRoute
@@ -219,6 +226,7 @@ export interface FileRoutesByTo {
   '/inbox/weekly-awards': typeof InboxWeeklyAwardsRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/players/compare': typeof PlayersCompareRoute
+  '/stats/explorer': typeof StatsExplorerRoute
   '/stats/reconcile': typeof StatsReconcileRoute
   '/history': typeof HistoryIndexRoute
   '/inbox': typeof InboxIndexRoute
@@ -249,6 +257,7 @@ export interface FileRoutesById {
   '/inbox/weekly-awards': typeof InboxWeeklyAwardsRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/players/compare': typeof PlayersCompareRoute
+  '/stats/explorer': typeof StatsExplorerRoute
   '/stats/reconcile': typeof StatsReconcileRoute
   '/history/': typeof HistoryIndexRoute
   '/inbox/': typeof InboxIndexRoute
@@ -280,6 +289,7 @@ export interface FileRouteTypes {
     | '/inbox/weekly-awards'
     | '/players/$playerId'
     | '/players/compare'
+    | '/stats/explorer'
     | '/stats/reconcile'
     | '/history/'
     | '/inbox/'
@@ -309,6 +319,7 @@ export interface FileRouteTypes {
     | '/inbox/weekly-awards'
     | '/players/$playerId'
     | '/players/compare'
+    | '/stats/explorer'
     | '/stats/reconcile'
     | '/history'
     | '/inbox'
@@ -338,6 +349,7 @@ export interface FileRouteTypes {
     | '/inbox/weekly-awards'
     | '/players/$playerId'
     | '/players/compare'
+    | '/stats/explorer'
     | '/stats/reconcile'
     | '/history/'
     | '/inbox/'
@@ -368,6 +380,7 @@ export interface RootRouteChildren {
   InboxWeeklyAwardsRoute: typeof InboxWeeklyAwardsRoute
   PlayersPlayerIdRoute: typeof PlayersPlayerIdRoute
   PlayersCompareRoute: typeof PlayersCompareRoute
+  StatsExplorerRoute: typeof StatsExplorerRoute
   StatsReconcileRoute: typeof StatsReconcileRoute
   HistoryIndexRoute: typeof HistoryIndexRoute
   InboxIndexRoute: typeof InboxIndexRoute
@@ -530,6 +543,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StatsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/stats/explorer': {
+      id: '/stats/explorer'
+      path: '/stats/explorer'
+      fullPath: '/stats/explorer'
+      preLoaderRoute: typeof StatsExplorerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/stats/reconcile': {
       id: '/stats/reconcile'
       path: '/stats/reconcile'
@@ -592,6 +612,7 @@ const rootRouteChildren: RootRouteChildren = {
   InboxWeeklyAwardsRoute: InboxWeeklyAwardsRoute,
   PlayersPlayerIdRoute: PlayersPlayerIdRoute,
   PlayersCompareRoute: PlayersCompareRoute,
+  StatsExplorerRoute: StatsExplorerRoute,
   StatsReconcileRoute: StatsReconcileRoute,
   HistoryIndexRoute: HistoryIndexRoute,
   InboxIndexRoute: InboxIndexRoute,

@@ -202,6 +202,48 @@ test("league leaders say where we rank without overflow", async ({ page }) => {
   await expectNoHorizontalOverflow(page);
 });
 
+test("the team splits by home and away without overflow", async ({ page }) => {
+  await page.goto("/stats");
+  await page.getByRole("radio", { name: "Team", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "By quarter" })).toBeVisible();
+  await page.getByRole("radio", { name: "All seasons" }).click();
+  await page.getByRole("radio", { name: "Home and away" }).click();
+  await expect(
+    page.getByRole("table", { name: "Team splits" }).getByText("Home", { exact: true }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
+test("a question opens from its link without overflow, on a phone too", async ({ page }) => {
+  await page.goto("/stats/explorer?scope=span&stat=passYds&split=home&window=3");
+  await expect(page.getByRole("heading", { name: "Most passing yards in any 3 games · Home" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Drake Maye" })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
+test("a question is built from Stats and survives a reload", async ({ page }, testInfo) => {
+  test.skip(isPhone(testInfo.project.name), "The phone opens these controls in a sheet, covered below.");
+  await openView(page, "Overview");
+  await page.getByRole("radio", { name: "Explorer", exact: true }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Explorer" })).toBeVisible();
+  await page.getByRole("radio", { name: "Fastest to" }).click();
+  await page.getByLabel("Stat").selectOption({ label: "Passing yards" });
+  await page.getByLabel("Mark").selectOption("1000");
+  await expect(page).toHaveURL(/scope=mark/);
+  await expect(page.getByRole("link", { name: "Drake Maye" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Fastest to 1,000 passing yards" })).toBeVisible();
+});
+
+test("a phone builds a question in a sheet", async ({ page }, testInfo) => {
+  test.skip(!isPhone(testInfo.project.name), "A desktop's controls sit on the page.");
+  await page.goto("/stats/explorer");
+  await page.getByRole("button", { name: /Most rushing yards in a season/ }).click();
+  await page.getByLabel("Split").selectOption({ label: "Away" });
+  await page.getByRole("button", { name: "Done" }).click();
+  await expect(page).toHaveURL(/split=away/);
+});
+
 test("milestones can be acknowledged from Home", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Milestones" })).toBeVisible();
