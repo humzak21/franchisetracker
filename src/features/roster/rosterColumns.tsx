@@ -6,6 +6,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { positionColor, type PositionColor, type PositionGroup } from "@shared/domain";
 import { ageInSeason, positionOrder } from "@shared/players/format";
 import { acquisitionLabel } from "@shared/roster/acquisition";
+import { byDepth } from "@shared/roster/depth";
 import type { DataColumn } from "@/components/data/DataTable";
 import { PlayerChip } from "@/components/player/PlayerChip";
 import { rosterEntryColumns } from "@/components/player/rosterEntryColumns";
@@ -170,8 +171,5 @@ export function rosterColumns(
 
 /** Position order, then highest OVR first: the default depth-chart reading order. */
 export function byDepthOrder(a: RosterRow, b: RosterRow): number {
-  return (
-    positionOrder(a.entry.position) - positionOrder(b.entry.position) ||
-    (b.entry.ovr ?? 0) - (a.entry.ovr ?? 0)
-  );
+  return positionOrder(a.entry.position) - positionOrder(b.entry.position) || byDepth(a.entry, b.entry);
 }

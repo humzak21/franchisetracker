@@ -7,7 +7,7 @@ import { finishedPlayoffResult } from "../../shared/seasons/lifecycle";
 import { NEW_PROMPTS } from "../../shared/seasons/reports";
 import { mutation } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
-import { invalid } from "../lib/errors";
+import { invalid, must } from "../lib/errors";
 import { ownSeason, seasonByYear, seasonGames } from "../lib/reports";
 import { carryRostersOver } from "../players/carryOver";
 
@@ -60,7 +60,7 @@ export const advance = mutation({
       prompts: NEW_PROMPTS,
       needs: [],
     });
-    await carryRostersOver(ctx, franchise, seasonId, nextId);
+    await carryRostersOver(ctx, franchise, season, must(await ctx.db.get("seasons", nextId), "Season"));
     return nextId;
   },
 });

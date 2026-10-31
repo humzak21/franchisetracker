@@ -8,6 +8,7 @@ import { useShortcut } from "@/app/keyboard";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/misc";
 import { errorMessage } from "@/lib/errors";
+import { rosterSearch } from "../manual/landing";
 import { RerunSheet } from "./RerunSheet";
 import { useReviewDraft } from "./reviewDraft";
 
@@ -30,10 +31,11 @@ export function ReviewActions({ setKey, committed }: { setKey: string; committed
     setError(null);
     try {
       const { gameId, playerId, nextSetKey } = await commit({ setKey, draft });
-      // A game or a card lands on what it wrote; a list moves on to the next set waiting for review.
+      // A game, a card or a roster lands on what it wrote; a list moves on to the next set waiting.
       if (gameId) void navigate({ to: "/games/$gameId", params: { gameId } });
       else if (playerId) void navigate({ to: "/players/$playerId", params: { playerId } });
       else if (draft.target === "season_player_stats") void navigate({ to: "/stats/reconcile" });
+      else if (draft.target === "roster_page") void navigate({ to: "/roster", search: rosterSearch(draft) });
       else if (nextSetKey) void navigate({ to: "/inbox/$setKey", params: { setKey: nextSetKey } });
       else void navigate({ to: "/inbox" });
     } catch (err) {

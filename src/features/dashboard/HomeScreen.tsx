@@ -17,6 +17,7 @@ import { PointsPulse } from "./PointsPulse";
 import { RankPulse } from "./RankPulse";
 import { RecentActivity } from "./RecentActivity";
 import { SeasonCard } from "./SeasonCard";
+import { SeasonChecklist } from "./SeasonChecklist";
 import { SeasonHeader } from "./SeasonHeader";
 import { TeamStreaks } from "./TeamStreaks";
 import { useQuery } from "@/lib/convex/useQuery";
@@ -92,6 +93,13 @@ export function HomeScreen() {
                 <Section title="This season" className="order-6 @desktop:order-none">
                   <SeasonCard active={active} />
                 </Section>
+              )}
+              {!imported && (
+                <SeasonChecklist
+                  seasonId={season._id}
+                  year={season.year}
+                  className="order-6 @desktop:order-none"
+                />
               )}
               {!imported && (
                 <GoalsCard seasonId={season._id} year={season.year} className="order-5 @desktop:order-none" />

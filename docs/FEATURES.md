@@ -129,8 +129,8 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 
 ### 4.3 Players
 
-- `players`: firstName, lastName, displayName, position, birthYear or age-at-year anchor, college, heightIn, weightLb, draft (year, round, pick, teamId) or undrafted, isReal, origin (import, draft, screenshot, manual), the season first seen, espnId, headshot storage id, retired flag, devTrait, abilities[], aliases[] for name resolution and search, notes.
-- `rosterEntries`: per season per team per player: jersey, position, depthSlot, ovr, age, exp, acquisition (type: draft, FA, trade, waiver, undrafted, resign; year; detail; counterparts), contract (years, total, apy, guaranteed, expiresYear), grade note, status (active, IR, PS, released or traded away, with the week it took effect).
+- `players`: firstName, lastName, displayName, position, birthYear or age-at-year anchor, college, heightIn, weightLb, draft (year, round, pick, teamId) or undrafted, isReal, origin (import, draft, screenshot, manual), the season first seen, the last season a commit named them, espnId, headshot storage id, retired flag, devTrait, abilities[], aliases[] for name resolution and search, notes.
+- `rosterEntries`: per season per team per player: jersey, position, depthSlot, ovr, age, exp, acquisition (type: draft, FA, trade, waiver, undrafted, resign; year; detail; counterparts), contract (years, total, apy, guaranteed, expiresYear), grade note, status (active, IR, PS, contract expired, released or traded away, with the week it took effect).
 - `playerSnapshots`: optional mid-season OVR checkpoints (week, ovr) for progression charts.
 
 ### 4.4 Games
@@ -197,6 +197,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Season header: team logo, record, division standing, streak, point differential, playoff status, and while a season runs what it is on pace for ("On pace for 12-5, 410 points").
 - **Countdowns**: the three career marks the roster is nearest, ranked in games away at each player's own rate, with a bar to each. Hidden until someone is within a season of one.
 - **Pending prompts** card: pre-season report due (persists until answered, even if dismissed once), post-season report due after the Super Bowl week, and any open offseason needs. Clicking opens the report editor.
+- **Season checklist**: what to do and shoot next, opened on the part of the year the season is in, with the rest a tap away. Offseason (rosters carried over, retirements, re-signings, free agency, draft class, roster page), preseason (depth chart, goals, pre-season report), this week (game log, standings, weekly awards) and season end (season stats by category, team stats, final standings, awards, playoffs, post-season report). Each item is worked out from the data and goes to the screen or capture that fills it; nothing is ticked by hand. Under it, a **coverage strip** counts what the season has so far: box scores, team stats and scoring summaries against games played, and standings and weekly awards against the regular season. Reconcile shows the same strip.
 - **Goals**: the season's pre-season goals with progress and hits.
 - **Next up / last game**: score bug for the most recent result with its stars and a snippet of the notes; opponent card for the upcoming week with head-to-head history and their record.
 - **This week's milestones**: auto-detected (career highs, 100-yard games, franchise records, streaks) with one-tap acknowledge.
@@ -223,14 +224,17 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 
 - Current roster for the selected season as one table per position group (quarterbacks, running backs, ... long snappers), one after another with jump links to each group: position, number, headshot, name, age, OVR, exp, college, acquisition, contract, dev trait, grade note. Each position family has its own color (the line, edges, linebackers and safeties share). Sortable, column visibility remembered.
 - Acquired reads as the draft slot ("Rd 1, Pick 1 · 2027") for a player the franchise's team drafted, unless his entry records a later way back (a trade, a free agent signing, a waiver claim); everyone else shows how the entry says he arrived.
-- Rosters carry into the next season: starting a season copies every team's roster from the one before (released and traded-away players stay behind, IR ends, age and experience go up a year, everything else as it was), and offseason moves are recorded on top. A player who already has an entry in the new season is skipped, so repeating it adds only who is missing. An empty roster in a season after the first offers "Bring over the <year> roster" for seasons started before this.
+- Any team's roster opens from the team switcher, your own by default (and from a link, `/roster?team=MIA`). A team with no roster page is labeled partial: it holds only who box scores, awards, league leaders and draft imports have named.
+- Rosters carry into the next season: starting a season copies every team's roster from the one before (released and traded-away players stay behind, IR ends, age and experience go up a year, every contract loses a year, everything else as it was), and offseason moves are recorded on top. A player who already has an entry in the new season is skipped, so repeating it adds only who is missing. An empty roster in a season after the first offers "Bring over the <year> roster" for seasons started before this.
+- A user-team contract that runs out at carry-over leaves the player on the roster as **Contract expired**, off the cap, with a prompt to re-sign or release each one as a logged move. Another team's expired deal is simply dropped. Another team carries only players a commit has named in the last two seasons, so rosters assembled from screens do not fill with people long gone; the user team is never pruned.
+- **Roster page truth**: a committed roster page stands as the team's roster for the season. Anyone it lists is on that team, back from a release if need be, and off any other team that season. On a whole page, anyone it leaves off is released as of its week; the practice squad stays, since Madden lists it apart. A page under 40 rows, or one marked "Only part of the roster" in review, releases nobody. Review names who would go before commit, and afterwards the Roster shows what changed until the owner keeps it or puts people back.
+- **Retirements**: at the start of each season after the first, players at retirement age (34; 38 for quarterbacks, kickers, punters and long snappers) whom nothing has named this season are suggested on one list, opened from the season checklist. Pick some, everyone or nobody; each retirement is a logged move that takes the player off the team, and deleting it undoes that. A retire row on a captured transactions screen does the same.
 - Released and traded-away players leave the roster page as soon as the move is made; their seasons and moves stay on their own page and in Transactions. The header counts the players on the roster.
 - Averages of OVR, age and experience for the team and each side (released and traded players left out).
 - Every column edits inline (Edit); "Add player" creates a player on a roster. Each row's actions menu moves him (team or status for a season, without logging a transaction) or records a trade, other move or injury for him (5.10).
 - Batch moves: a pick box after the actions on every row, select all, and a bar that stays pinned while anything is picked; Release records a release per picked player in one sheet (one timing, one note), Trade opens the trade builder with every pick on the user team's side.
-- Depth chart view by position with OVR badges.
-- Roster diff between two seasons: arrivals, departures, OVR change.
-- Team switcher: other teams' rosters are populated from box scores, awards, league leaders and draft imports, clearly labeled as partial.
+- Depth chart view by position with OVR badges. A roster page sets the order from how it lists each position; arrows on each row fix it by hand.
+- Roster diff between the season shown and any other: arrivals, departures and OVR changes, always read earlier to later.
 - Contract and cap view: cap hits per player, total, expiring contracts, with a "needs" link to the season report.
 
 ### 5.4 Players
@@ -290,7 +294,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Trophy room: Super Bowl wins (largest, each a banner with the game's numeral over the season's year), division titles (pennants), then conference titles and playoff appearances, with years; franchise titles glow in the team accent and real history sits in the softer wash, real pre-franchise history from the external import (4.8) and editable entries, so the team's real history sits alongside franchise results.
 - Pre-season goals on the season report: team goals (wins, division, playoffs, bye, playoff win, Super Bowl trip or title, write-in) and player goals (a stat target or a write-in), judged from the season as it is played, markable by hand.
 - Season reports archive: for each season, pre-season thoughts, post-season thoughts, around the league, needs with resolution status, and the computed season summary next to them.
-- Hall of Fame: wall of hanging jerseys in team colors with number, name, position, years, induction year, retired-number flag and a blurb; click to the player page. Add from any player page; coaches and staff are added from the wall. Retired numbers sit above the wall.
+- Hall of Fame: wall of hanging jerseys in team colors with number, name, position, years, induction year, retired-number flag and a blurb; click to the player page. Add from any player page; coaches and staff are added from the wall. Retired numbers sit above the wall, and retired players still in the team's career records are listed below it as candidates.
 - Narrative timeline: every note across games, seasons, transactions and awards in one scrollable story, filterable by season and type.
 
 ### 5.8 Awards
@@ -315,7 +319,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 ### 5.10 Transactions and injuries
 
 - Transaction log per season with type filters, contract terms, trade detail, and the player chips, ordered by phase and week. Resign and extension tracked with cap effect.
-- Record trades (two teams, players and picks by year and round, a note), free agent signings and every other move by hand, with when it happened (phase and week). Rosters and pick ownership follow; editing or deleting undoes exactly what the move changed. Injuries are logged, edited and deleted by hand too.
+- Record trades (two teams, players and picks by year and round, a note), free agent signings and every other move by hand, with when it happened (phase and week). Rosters and pick ownership follow; editing or deleting undoes exactly what the move changed, and a captured transactions screen moves rosters the same way. Injuries are logged, edited and deleted by hand too.
 - The same sheets open from wherever a player is: a roster row, a players index row and the player page start the trade, signing, other move or injury with him already in it (a trade puts him on his team's side).
 - Injury report per season with length and IR flag, shown on the roster and the player page.
 - Trade tracker: each trade with assets in and out and a retrospective note.

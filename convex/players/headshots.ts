@@ -10,8 +10,8 @@ import { requireOwner, requireOwnerAction } from "../lib/auth";
 import { cacheHeadshots } from "../external/media";
 import { vEspnLeague } from "../lib/validators";
 import type { EspnLeague } from "../../shared/players/espnMatch";
+import { MAX_ROSTER } from "../lib/franchise";
 
-const MAX_ROSTER = 150;
 const vPending = v.object({ playerId: v.id("players"), espnId: v.number(), league: v.optional(vEspnLeague) });
 
 export const save = internalMutation({

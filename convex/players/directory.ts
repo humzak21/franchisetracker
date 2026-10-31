@@ -9,12 +9,11 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { must } from "../lib/errors";
-import { activeFranchise, playersById, MAX_SEASONS } from "../lib/franchise";
+import { activeFranchise, MAX_ROSTER, MAX_SEASONS, playersById } from "../lib/franchise";
 import { headshotUrls, toTeamRef, vTeamRef } from "../lib/refs";
 import { vPosition } from "../lib/validators";
 import { searchPlayers } from "./nameSearch";
 
-const MAX_ROSTER = 150;
 const SEARCH_RESULTS = 20;
 
 const vRow = v.object({

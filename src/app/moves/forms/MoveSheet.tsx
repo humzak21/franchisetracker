@@ -63,7 +63,9 @@ export function MoveSheet({
   const save = useMutation(api.transactions.moves.save);
   const remove = useMutation(api.transactions.moves.remove);
   const current = context.seasons.find((s) => s._id === context.seasonId);
-  const [type, setType] = useState<TransactionType>(move?.type ?? (kind === "sign" ? "sign" : "release"));
+  const [type, setType] = useState<TransactionType>(
+    move?.type ?? (kind === "sign" ? "sign" : (prefill?.type ?? "release")),
+  );
   // A signing brings him to the user team; any other move acts on the team he plays for.
   const [teamId, setTeamId] = useState<Id<"teams">>(
     move?.team?._id ?? (kind === "other" ? prefill?.players[0]?.teamId : undefined) ?? context.userTeamId,

@@ -7,7 +7,7 @@ import type { StatLine } from "../../shared/stats";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { invalid, must } from "../lib/errors";
-import { provenanceOf } from "../players/provenance";
+import { markSeen, provenanceOf } from "../players/provenance";
 
 import { rememberPlayer } from "./playerAssignments";
 
@@ -41,6 +41,8 @@ export async function playerFor(
   printed: Printed,
 ): Promise<Doc<"players">> {
   const remember = async (player: Doc<"players">) => {
+    const season = printed.seasonId ? await ctx.db.get("seasons", printed.seasonId) : null;
+    if (season) await markSeen(ctx, player, season.year);
     if (printed.seasonId && printed.teamAbbr)
       await rememberPlayer(ctx, {
         franchiseId,
@@ -80,6 +82,7 @@ type RosterFields = Partial<
     | "ovr"
     | "age"
     | "exp"
+    | "depthSlot"
     | "devTrait"
     | "abilities"
     | "contract"

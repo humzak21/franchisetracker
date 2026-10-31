@@ -153,7 +153,15 @@ const DEV_TRAIT: RowField = {
 export const rosterPageSpec: RowSpec = {
   player: true,
   rowTeam: false,
-  meta: [{ key: "team", label: "Team", type: "team", required: true, hint: "Whose roster the screen shows" }],
+  meta: [
+    { key: "team", label: "Team", type: "team", required: true, hint: "Whose roster the screen shows" },
+    {
+      key: "partial",
+      label: "Only part of the roster",
+      type: "bool",
+      hint: "True only if the screen is filtered to one position or unit",
+    },
+  ],
   fields: () => [
     POSITION,
     { key: "jersey", label: "Jersey", type: "int" },

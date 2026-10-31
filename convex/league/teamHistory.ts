@@ -12,7 +12,7 @@ import type { Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { must } from "../lib/errors";
-import { activeFranchise, playersById } from "../lib/franchise";
+import { activeFranchise, MAX_ROSTER, playersById } from "../lib/franchise";
 import { toTeamRef, vTeamRef } from "../lib/refs";
 import { franchiseSeasonList } from "../lib/reports";
 import { vGameResult, vPlayoffResult, vPosition, vWeekKey } from "../lib/validators";
@@ -20,7 +20,6 @@ import { vGameResult, vPlayoffResult, vPosition, vWeekKey } from "../lib/validat
 const MAX_SEASONS = 150;
 const MAX_GAMES = 300;
 const MAX_PICKS = 400;
-const MAX_ROSTER = 150;
 /** Recent franchise seasons whose observed rosters are listed. */
 const ROSTER_SEASONS = 3;
 

@@ -24,6 +24,11 @@ export function onRoster(status: RosterStatus): boolean {
   return status !== "released" && status !== "traded";
 }
 
+/** On the roster and under contract: an expired deal costs nothing until it is signed again. */
+export function underContract(status: RosterStatus): boolean {
+  return onRoster(status) && status !== "unsigned";
+}
+
 /** Mean of the known values, rounded to one decimal; null when none are known. */
 export function mean(values: readonly (number | null | undefined)[]): number | null {
   const known = values.filter((v): v is number => typeof v === "number" && Number.isFinite(v));

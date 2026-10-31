@@ -178,6 +178,7 @@ export async function mergePlayers(ctx: MutationCtx, source: Doc<"players">, tar
     isReal: target.isReal || espnId !== undefined || nflverseId !== undefined,
     origin: target.origin ?? source.origin,
     createdSeasonId: await earlierSeason(ctx, target.createdSeasonId, source.createdSeasonId),
+    lastSeenYear: Math.max(target.lastSeenYear ?? 0, source.lastSeenYear ?? 0) || undefined,
     headshotStorageId: target.headshotStorageId ?? source.headshotStorageId,
     birthYear: target.birthYear ?? source.birthYear,
     college: target.college ?? source.college,

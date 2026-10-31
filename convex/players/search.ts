@@ -3,12 +3,11 @@ import { isPosition, positionGroupOf } from "../../shared/domain";
 import { onRoster } from "../../shared/roster/averages";
 import { query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
-import { activeFranchise, playersById } from "../lib/franchise";
+import { activeFranchise, MAX_ROSTER, playersById } from "../lib/franchise";
 import { vPosition, vRosterStatus } from "../lib/validators";
 import { searchPlayers } from "./nameSearch";
 
 const MAX_RESULTS = 12;
-const MAX_ROSTER = 150;
 
 /** Players whose name matches the text, for pickers (review's player picker, later the palette). */
 export const byName = query({

@@ -5,7 +5,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { invalid, must } from "../lib/errors";
 import { vPosition } from "../lib/validators";
-import { provenanceOf } from "../players/provenance";
+import { markSeen, provenanceOf } from "../players/provenance";
 
 export const vPersonInput = v.union(
   v.object({ playerId: v.id("players") }),
@@ -41,6 +41,7 @@ export async function resolvePeople(
     if ("playerId" in person) {
       const player = must(await ctx.db.get("players", person.playerId), "Player");
       if (player.franchiseId !== franchiseId) throw invalid("That player is in another franchise");
+      await markSeen(ctx, player, season.year);
       out.push({ player });
       continue;
     }

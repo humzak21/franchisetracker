@@ -40,6 +40,8 @@ export const playerTables = {
     origin: v.optional(vPlayerOrigin),
     /** The season they first appeared in. Imported players predate the franchise and have none. */
     createdSeasonId: v.optional(v.id("seasons")),
+    /** The latest season a commit named them; carry-over keeps other teams' players by it. */
+    lastSeenYear: v.optional(v.number()),
     /** nflverse `gsis_id` for players from the real NFL history import; the import's upsert key. */
     nflverseId: v.optional(v.string()),
     espnId: v.optional(v.number()),
@@ -111,7 +113,31 @@ export const playerTables = {
     partial: v.optional(v.boolean()),
   })
     .index("by_seasonId_and_teamId", ["seasonId", "teamId"])
-    .index("by_playerId_and_seasonId", ["playerId", "seasonId"]),
+    .index("by_playerId_and_seasonId", ["playerId", "seasonId"])
+    .index("by_seasonId_and_age", ["seasonId", "age"]),
+
+  /**
+   * One committed roster page: it says the team's roster was captured, and `changes` is its undo
+   * list, what it did to entries the page disagreed with, until the owner settles it.
+   */
+  rosterSyncs: defineTable({
+    franchiseId: v.id("franchises"),
+    seasonId: v.id("seasons"),
+    teamId: v.id("teams"),
+    weekKey: v.optional(vWeekKey),
+    rows: v.number(),
+    /** The page counted as the whole team, so anyone it left off was released. */
+    whole: v.boolean(),
+    changes: v.array(
+      v.object({
+        entryId: v.id("rosterEntries"),
+        from: vRosterStatus,
+        fromWeekKey: v.optional(vWeekKey),
+        to: vRosterStatus,
+      }),
+    ),
+    committedAt: v.number(),
+  }).index("by_seasonId_and_teamId", ["seasonId", "teamId"]),
 
   /** Optional mid-season OVR checkpoints for progression charts. */
   playerSnapshots: defineTable({

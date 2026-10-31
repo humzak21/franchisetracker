@@ -1,45 +1,60 @@
-import { ArrowLeftRight, ArrowRightLeft, ScanFace, UserMinus, UserPlus, Users } from "lucide-react";
+import { ScanFace, UserPlus, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "@convex/_generated/api";
 import { isPreFranchise } from "@shared/history/nflverse";
-import { POSITION_GROUPS, positionGroupOf } from "@shared/domain";
 import { onRoster, rosterAverages } from "@shared/roster/averages";
 import { useFranchise } from "@/app/franchise";
-import { useMoves } from "@/app/moves/MovesProvider";
-import { useMoveActions } from "@/app/moves/useMoveActions";
 import { useSeason } from "@/app/season";
 import { EmptyState } from "@/components/data/EmptyState";
-import { SelectionBar } from "@/components/data/SelectionBar";
-import { JumpLinks } from "@/components/layout/JumpLinks";
 import { Page } from "@/components/layout/Page";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
+import { Segmented } from "@/components/ui/segmented";
 import { useQuery } from "@/lib/convex/useQuery";
-import { useSelection } from "@/lib/hooks/useSelection";
+import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import { AddPlayerSheet } from "./AddPlayerSheet";
 import { CarryOverButton } from "./CarryOverButton";
+import { DepthChartView } from "./DepthChartView";
+import { ExpiredContracts } from "./ExpiredContracts";
 import { FaceMatchSheet } from "./FaceMatchSheet";
-import { PositionTable } from "./PositionTable";
 import { RosterAverages } from "./RosterAverages";
-import { RosterMoveSheet } from "./RosterMoveSheet";
-import { byDepthOrder, positionAnchor, rosterAge, rosterColumns, type RosterRow } from "./rosterColumns";
-import { useRosterEdit } from "./useRosterEdit";
+import { RosterChanges } from "./RosterChanges";
+import { RosterSyncNotice } from "./RosterSyncNotice";
+import { RosterTables } from "./RosterTables";
+import { RosterTeamSelect } from "./RosterTeamSelect";
+import { byDepthOrder, rosterAge } from "./rosterColumns";
+import type { RosterSearch } from "./search";
 
 /** Neutral colors for the skeleton rows shown before the roster loads. */
 const LOADING_TEAM = { abbr: "", primaryColor: "#334155", secondaryColor: "#64748b" };
 
+type View = "roster" | "depth" | "changes";
+
+const VIEWS: { value: View; label: string }[] = [
+  { value: "roster", label: "Roster" },
+  { value: "depth", label: "Depth chart" },
+  { value: "changes", label: "Changes" },
+];
+
 /**
- * Roster (FEATURES.md 5.3): averages for the team and each side, then every position group in its
- * own table, one after another with jump links, each editable inline. Players are added, moved,
- * matched to faces and traded, signed or put on IR from here.
+ * Roster (FEATURES.md 5.3): any team's roster for the season, your own by default. Averages, then
+ * the position tables, the depth chart, or what changed since another season. Players are added,
+ * moved, matched to faces and traded, signed or put on IR from here.
  */
-export function RosterScreen() {
+export function RosterScreen({ search }: { search: RosterSearch }) {
   const { season } = useSeason();
-  const data = useQuery(api.players.roster.bySeason, season ? { seasonId: season._id } : "skip");
-  const [moving, setMoving] = useState<RosterRow | null>(null);
+  const active = useFranchise();
+  const teams = useQuery(api.league.teams.list, {});
+  const picked = teams?.find((t) => t.abbr === search.team);
+  // A team in the URL waits for the list, so the user team's roster does not flash first.
+  const ready = season && (search.team === undefined || teams !== undefined);
+  const data = useQuery(
+    api.players.roster.bySeason,
+    ready ? { seasonId: season._id, teamId: picked?._id } : "skip",
+  );
+  const [view, setView] = useLocalStorage<View>("ft.roster-view", "roster");
   const [adding, setAdding] = useState(false);
   const [facesOpen, setFacesOpen] = useState(false);
-  const onEdit = useRosterEdit();
   const year = season?.year ?? 0;
 
   // Released and traded-away players have left the team: their moves and seasons stay on their
@@ -47,14 +62,6 @@ export function RosterScreen() {
   const all = useMemo(
     () => (data?.entries ?? []).filter((r) => onRoster(r.entry.status)).sort(byDepthOrder),
     [data],
-  );
-  const groups = useMemo(
-    () =>
-      POSITION_GROUPS.map((group) => ({
-        group,
-        rows: all.filter((r) => positionGroupOf(r.entry.position) === group),
-      })).filter((g) => g.rows.length > 0),
-    [all],
   );
   const averages = useMemo(
     () =>
@@ -77,84 +84,28 @@ export function RosterScreen() {
         .map((r) => ({ playerId: r.player._id, displayName: r.player.displayName })),
     [all],
   );
+  const expired = useMemo(() => all.filter((r) => r.entry.status === "unsigned"), [all]);
   const team = data?.team ?? LOADING_TEAM;
-  const active = useFranchise();
   const userTeamId = active?.franchise.userTeamId;
-  const moveActions = useMoveActions();
-  const moves = useMoves();
-  const ids = useMemo(() => all.map((r) => r.player._id), [all]);
-  const selection = useSelection(ids);
-  const { has, toggle } = selection;
-  // Every pick is on this roster, so each starts from the user team's side.
-  // The sheet takes the picks over; the roster starts clean for the next batch.
-  const batch = (kind: "trade" | "other") => {
-    selection.clear();
-    moves.open({
-      kind,
-      prefill: {
-        players: all
-          .filter((r) => has(r.player._id))
-          .map((r) => ({
-            person: {
-              kind: "existing",
-              playerId: r.player._id,
-              name: r.player.displayName,
-              position: r.entry.position,
-            },
-            teamId: r.entry.teamId,
-          })),
-      },
-    });
-  };
-  const columns = useMemo(
-    () =>
-      rosterColumns(
-        team,
-        year,
-        userTeamId,
-        (r) => [
-          {
-            id: "move",
-            label: "Move team or status",
-            icon: ArrowRightLeft,
-            onSelect: () => setMoving(r),
-          },
-          ...moveActions({
-            playerId: r.player._id,
-            name: r.player.displayName,
-            position: r.entry.position,
-            teamId: r.entry.teamId,
-          }),
-        ],
-        { has, toggle },
-      ),
-    [team, year, userTeamId, moveActions, has, toggle],
-  );
+  const userTeam = data !== undefined && data.team._id === userTeamId;
+  const userTeamAbbr = teams?.find((t) => t._id === userTeamId)?.abbr;
   const empty = data !== undefined && all.length === 0;
   const count = all.length;
   const startYear = active?.franchise.startYear;
   const preFranchise =
     season !== undefined && startYear !== undefined && isPreFranchise(season.year, startYear);
   const previousYear =
-    season && startYear !== undefined && season.year > startYear
+    userTeam && season && startYear !== undefined && season.year > startYear
       ? active?.seasons.find((s) => s.year === season.year - 1)?.year
       : undefined;
-  const batchBar = moves.ready && !preFranchise && (
-    <SelectionBar
-      count={selection.picked.length}
-      total={all.length}
-      state={selection.state}
-      onToggleAll={selection.toggleAll}
-      onClear={selection.clear}
-    >
-      <Button size="sm" variant="outline" onClick={() => batch("trade")}>
-        <ArrowLeftRight /> Trade
-      </Button>
-      <Button size="sm" variant="destructive" onClick={() => batch("other")}>
-        <UserMinus /> Release
-      </Button>
-    </SelectionBar>
-  );
+  const emptyNote = preFranchise
+    ? "Rosters before the franchise are not imported; each real player's seasons are on their own page."
+    : previousYear !== undefined
+      ? `Starting a season brings the last one's roster along. This season started without it; bring the ${previousYear} roster over, then record the offseason's moves.`
+      : !userTeam && data !== undefined
+        ? `Nothing has named a ${data.team.name} player this season. A roster page or a box score against them fills this in.`
+        : "Rosters come from the real NFL import for the first season and from roster screenshots. Add players by hand with Add player.";
+  const shownView: View = preFranchise ? "roster" : view;
 
   return (
     <Page
@@ -181,59 +132,45 @@ export function RosterScreen() {
         </>
       }
     >
-      {empty ? (
-        <EmptyState
-          icon={Users}
-          title={`No roster for ${season?.year ?? "this season"} yet`}
-          description={
-            preFranchise
-              ? "Rosters before the franchise are not imported; each real player's seasons are on their own page."
-              : previousYear !== undefined
-                ? `Starting a season brings the last one's roster along. This season started without it; bring the ${previousYear} roster over, then record the offseason's moves.`
-                : "Rosters come from the real NFL import for the first season and from roster screenshots. Add players by hand with Add player."
-          }
-          action={
-            season && previousYear !== undefined ? (
-              <CarryOverButton seasonId={season._id} fromYear={previousYear} />
-            ) : undefined
-          }
-        />
-      ) : (
-        <div className="space-y-8">
-          <RosterAverages averages={averages} />
-          {!data || !season ? (
-            <Skeleton className="h-96 rounded-xl" />
-          ) : (
-            <>
-              {/* Picks move the batch bar into the jump links' sticky band, in reach down a long roster. */}
-              {selection.picked.length === 0 && batchBar}
-              <div className="sticky top-14 z-20 -mx-4 space-y-2 bg-background/90 backdrop-blur @tablet:top-16 @tablet:-mx-6">
-                <JumpLinks
-                  className="static mx-0 border-b-0 @tablet:mx-0"
-                  links={groups.map(({ group, rows }) => ({
-                    id: positionAnchor(group),
-                    label: `${group} ${rows.length}`,
-                  }))}
-                />
-                {selection.picked.length > 0 && batchBar && (
-                  <div className="border-b border-border px-4 pb-2 @tablet:px-6">{batchBar}</div>
-                )}
-              </div>
-              {groups.map(({ group, rows }) => (
-                <PositionTable
-                  key={group}
-                  group={group}
-                  year={season.year}
-                  rows={rows}
-                  columns={columns}
-                  onEdit={onEdit}
-                />
-              ))}
-            </>
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-center gap-2">
+          {teams && data && (
+            <RosterTeamSelect teams={teams} value={data.team.abbr} userTeamAbbr={userTeamAbbr} />
+          )}
+          {!preFranchise && (
+            <Segmented value={shownView} onChange={setView} options={VIEWS} size="sm" aria-label="View" />
           )}
         </div>
-      )}
-      <RosterMoveSheet row={moving} onClose={() => setMoving(null)} />
+        {season && data && !preFranchise && (
+          <RosterSyncNotice seasonId={season._id} teamId={data.team._id} userTeam={userTeam} />
+        )}
+        {userTeam && <ExpiredContracts rows={expired} />}
+        {shownView === "changes" && season && data && startYear !== undefined ? (
+          <RosterChanges teamId={data.team._id} team={team} season={season} startYear={startYear} />
+        ) : empty ? (
+          <EmptyState
+            icon={Users}
+            title={`No roster for ${season?.year ?? "this season"} yet`}
+            description={emptyNote}
+            action={
+              season && previousYear !== undefined ? (
+                <CarryOverButton seasonId={season._id} fromYear={previousYear} />
+              ) : undefined
+            }
+          />
+        ) : (
+          <div className="space-y-8">
+            <RosterAverages averages={averages} />
+            {!data || !season ? (
+              <Skeleton className="h-96 rounded-xl" />
+            ) : shownView === "depth" ? (
+              <DepthChartView rows={all} team={team} />
+            ) : (
+              <RosterTables rows={all} team={team} year={season.year} preFranchise={preFranchise} />
+            )}
+          </div>
+        )}
+      </div>
       {season && data && (
         <AddPlayerSheet open={adding} onOpenChange={setAdding} season={season} teamId={data.team._id} />
       )}

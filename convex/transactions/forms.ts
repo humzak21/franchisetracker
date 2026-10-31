@@ -3,11 +3,8 @@ import { v } from "convex/values";
 import { POSITIONS } from "../../shared/domain";
 import { query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
-import { playersById } from "../lib/franchise";
+import { MAX_ROSTER, playersById } from "../lib/franchise";
 import { vPosition, vRosterStatus } from "../lib/validators";
-
-/** A full roster with practice squad and headroom. */
-const MAX_ROSTER = 150;
 
 /** Players still with the team that season (not traded or released), by position then name. */
 export const teamRoster = query({

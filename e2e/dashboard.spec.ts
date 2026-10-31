@@ -66,6 +66,17 @@ test("home leads with the season, the last result and the next opponent", async 
   await expect(page.getByRole("heading", { level: 1, name: "Miami Dolphins" })).toBeVisible();
 });
 
+test("the season checklist opens on the week, with the season's coverage below", async ({ page }) => {
+  await gotoHome(page);
+  const main = page.getByRole("main");
+  await expect(main.getByRole("heading", { name: "Season checklist" })).toBeVisible();
+  await expect(main.getByRole("heading", { name: "This week" })).toBeVisible();
+  await expect(main.getByText("Weekly awards", { exact: true }).first()).toBeVisible();
+  await expect(main.getByText("Box scores", { exact: true })).toBeVisible();
+  await main.locator("summary", { hasText: "Offseason" }).click();
+  await expect(main.getByRole("button", { name: /Draft class/ })).toBeVisible();
+});
+
 test("the palette finds players and games", async ({ page }, info) => {
   const phone = isPhone(info.project.name);
   await gotoHome(page);

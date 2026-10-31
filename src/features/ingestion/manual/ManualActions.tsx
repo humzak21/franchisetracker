@@ -9,7 +9,7 @@ import { useShortcut } from "@/app/keyboard";
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/errors";
 import { useReviewDraft } from "../review/reviewDraft";
-import { landingFor } from "./landing";
+import { landingFor, rosterSearch } from "./landing";
 
 /** Commit and discard for a manual entry, pinned under the draft like review's actions. */
 export function ManualActions({ draftId }: { draftId: Id<"manualDrafts"> }) {
@@ -32,6 +32,7 @@ export function ManualActions({ draftId }: { draftId: Id<"manualDrafts"> }) {
       const { gameId, playerId } = await commit({ draftId, draft });
       if (gameId) void navigate({ to: "/games/$gameId", params: { gameId } });
       else if (playerId) void navigate({ to: "/players/$playerId", params: { playerId } });
+      else if (draft.target === "roster_page") void navigate({ to: "/roster", search: rosterSearch(draft) });
       else void navigate({ to: landingFor(draft.target) });
     } catch (err) {
       setError(errorMessage(err, "Commit failed. Nothing was written."));

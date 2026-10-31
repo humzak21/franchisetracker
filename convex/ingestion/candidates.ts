@@ -4,10 +4,9 @@ import { onRoster } from "../../shared/roster/averages";
 import { nameTokens, type NameCandidate } from "../../shared/ingestion/nameMatch";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalQuery, type QueryCtx } from "../_generated/server";
-import { activeFranchise, playersById, teamsById } from "../lib/franchise";
+import { activeFranchise, MAX_ROSTER, playersById, teamsById } from "../lib/franchise";
 import { searchPlayers } from "../players/nameSearch";
 
-const MAX_ROSTER = 150;
 const SEARCH_HITS = 5;
 const MAX_NAMES = 120;
 /** A draft class and whoever else first appeared that season, misreads and retakes included. */

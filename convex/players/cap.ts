@@ -1,15 +1,14 @@
 /** The cap view (FEATURES.md 5.3, 5.10): the user team's contracts for a season against its cap. */
 import { v } from "convex/values";
+import { underContract } from "../../shared/roster/averages";
 import { capSummary } from "../../shared/roster/cap";
 import { mutation, query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { invalid } from "../lib/errors";
-import { playersById } from "../lib/franchise";
+import { MAX_ROSTER, playersById } from "../lib/franchise";
 import { headshotUrls } from "../lib/refs";
 import { ownSeason } from "../lib/reports";
 import { vPosition } from "../lib/validators";
-
-const MAX_ROSTER = 150;
 
 export const bySeason = query({
   args: { seasonId: v.id("seasons") },
@@ -44,7 +43,7 @@ export const bySeason = query({
           q.eq("seasonId", seasonId).eq("teamId", franchise.userTeamId),
         )
         .take(MAX_ROSTER)
-    ).filter((e) => e.status !== "released");
+    ).filter((e) => underContract(e.status));
     const players = await playersById(
       ctx,
       entries.map((e) => e.playerId),

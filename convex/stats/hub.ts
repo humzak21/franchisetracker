@@ -11,13 +11,12 @@ import type { Doc } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 import { vWlt } from "../games/validators";
 import { requireOwner } from "../lib/auth";
-import { activeFranchise, playersById } from "../lib/franchise";
+import { activeFranchise, MAX_ROSTER, playersById } from "../lib/franchise";
 import { headshotUrls } from "../lib/refs";
 import { seasonGames } from "../lib/reports";
 import { vMilestoneKind, vPosition, vWeekKey } from "../lib/validators";
 
 const MAX_ROWS = 300;
-const MAX_ROSTER = 150;
 /** A season's milestones, every kind; the ones a season "set" are picked out of them. */
 const MAX_MILESTONES = 400;
 const RECORDS_SHOWN = 8;

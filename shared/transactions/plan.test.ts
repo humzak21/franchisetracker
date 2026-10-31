@@ -125,9 +125,10 @@ describe("roster sync plan", () => {
     ]);
   });
 
-  test("retiring flags the player", () => {
-    expect(planRoster({ ...base, type: "retire", playersOut: ["p"] })).toEqual([
+  test("retiring flags the player and takes them off the team", () => {
+    expect(planRoster({ ...base, type: "retire", weekKey: "w3", playersOut: ["p"] })).toEqual([
       { kind: "retire", playerId: "p" },
+      { kind: "update", playerId: "p", teamId: "NE", set: { status: "released", statusWeekKey: "w3" } },
     ]);
   });
 });

@@ -84,6 +84,8 @@ export const franchiseTables = {
       }),
     ),
     salaryCap: v.optional(v.number()),
+    /** The season's retirements list has been gone through. */
+    retirementsReviewed: v.optional(v.boolean()),
     notes: v.optional(v.string()),
   }).index("by_franchiseId_and_year", ["franchiseId", "year"]),
 

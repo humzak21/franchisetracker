@@ -11,6 +11,7 @@ import { Page } from "@/components/layout/Page";
 import { Section } from "@/components/layout/Section";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
+import { HofCandidates } from "./HofCandidates";
 import { JerseyPlaque } from "./JerseyPlaque";
 import { StaffInductionSheet } from "./StaffInductionSheet";
 import type { WallEntry } from "./types";
@@ -107,6 +108,7 @@ export function HallOfFameScreen() {
           </section>
         </div>
       )}
+      <HofCandidates className="mt-8" />
       <StaffInductionSheet
         key={`new-${String(adding)}`}
         defaultYear={year}

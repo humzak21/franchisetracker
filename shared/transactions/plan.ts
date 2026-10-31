@@ -156,6 +156,9 @@ export function planRoster<T, P>(move: MoveInput<T, P>): RosterOp<T, P>[] {
         set: { status: "active", ...left },
       }));
     case "retire":
-      return players.map((playerId) => ({ kind: "retire", playerId }));
+      return players.flatMap((playerId): RosterOp<T, P>[] => [
+        { kind: "retire", playerId },
+        { kind: "update", playerId, teamId: team, set: { status: "released", ...left } },
+      ]);
   }
 }

@@ -1,9 +1,13 @@
 /** Commits for the screens about people: awards, roster pages, transactions, injuries, cards. */
 import { AWARD_INFO, isWeekKey, type AwardType, type TransactionType } from "../../shared/domain";
-import type { Doc } from "../_generated/dataModel";
+import { depthSlots } from "../../shared/roster/rosterPage";
+import { MOVE_DIRECTION, planRoster } from "../../shared/transactions";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { ensureCoach } from "../lib/coaches";
-import { invalid } from "../lib/errors";
+import { invalid, must } from "../lib/errors";
+import { syncRosterPage } from "../players/rosterSync";
+import { applyRoster } from "../transactions/rosterEffects";
 import {
   boolOf,
   numberOf,
@@ -107,12 +111,17 @@ export async function commitYearlyAwards(ctx: MutationCtx, commit: RowCommit): P
   return {};
 }
 
-/** A roster page fills in each player's entry for the season: number, OVR, age, dev trait. */
+/**
+ * A roster page fills in each player's entry for the season (number, OVR, age, dev trait), sets
+ * the depth chart from its order, and then stands as the team's roster (`syncRosterPage`).
+ */
 export async function commitRosterPage(ctx: MutationCtx, commit: RowCommit): Promise<RowCommitResult> {
   const abbr = typeof commit.meta.team === "string" ? commit.meta.team : null;
   if (!abbr) throw invalid("Pick whose roster this is");
   const t = await teamCache(ctx)(abbr);
-  for (const row of commit.rows) {
+  const slots = depthSlots(commit.rows.map(positionOf));
+  const onPage = new Set<Id<"players">>();
+  for (const [index, row] of commit.rows.entries()) {
     const devTrait = textOf(row, "devTrait") as Doc<"rosterEntries">["devTrait"] | undefined;
     const player = await rowPlayer(ctx, commit, row, t._id, {
       complete: true,
@@ -121,28 +130,29 @@ export async function commitRosterPage(ctx: MutationCtx, commit: RowCommit): Pro
         ovr: numberOf(row, "ovr"),
         age: numberOf(row, "age"),
         exp: numberOf(row, "exp"),
+        depthSlot: slots[index],
         devTrait,
       },
     });
+    onPage.add(player._id);
     const age = numberOf(row, "age");
     if (age !== undefined && player.birthYear === undefined && !player.ageAnchor) {
       await ctx.db.patch("players", player._id, { ageAnchor: { age, year: commit.season.year } });
     }
   }
+  await syncRosterPage(ctx, {
+    franchiseId: commit.franchise._id,
+    seasonId: commit.season._id,
+    teamId: t._id,
+    weekKey: commit.weekKey,
+    rows: commit.rows.length,
+    partial: commit.meta.partial === true,
+    onPage,
+  });
   return {};
 }
 
-/** Moves that bring a player onto the acting team; the rest send one away. */
-const INCOMING: readonly TransactionType[] = [
-  "sign",
-  "resign",
-  "trade",
-  "waiver_claim",
-  "activate",
-  "extension",
-  "restructure",
-];
-
+/** A logged move changes rosters the way the same move recorded by hand would, undone with it. */
 export async function commitTransactions(ctx: MutationCtx, commit: RowCommit): Promise<RowCommitResult> {
   const team = teamCache(ctx);
   for (const row of commit.rows) {
@@ -152,9 +162,10 @@ export async function commitTransactions(ctx: MutationCtx, commit: RowCommit): P
     const weekKey = week && isWeekKey(week) ? week : commit.weekKey;
     const teamId = row.teamAbbr ? (await team(row.teamAbbr))._id : commit.franchise.userTeamId;
     const counterpart = textOf(row, "counterpart");
-    const counterpartTeamId = counterpart ? (await team(counterpart))._id : undefined;
+    const counterpartTeam = counterpart ? await team(counterpart) : undefined;
+    const counterpartTeamId = counterpartTeam?._id;
     const player = await rowPlayer(ctx, commit, row, teamId);
-    const direction = INCOMING.includes(type) ? "in" : "out";
+    const direction = MOVE_DIRECTION[type];
     const already = await ctx.db
       .query("transactionPlayers")
       .withIndex("by_playerId", (q) => q.eq("playerId", player._id))
@@ -186,6 +197,29 @@ export async function commitTransactions(ctx: MutationCtx, commit: RowCommit): P
       playerId: player._id,
       direction,
     });
+    const effects = await applyRoster(
+      ctx,
+      {
+        franchiseId: commit.franchise._id,
+        seasonId: commit.season._id,
+        userTeamId: commit.franchise.userTeamId,
+        extras: new Map(),
+      },
+      planRoster({
+        type,
+        year: commit.season.year,
+        weekKey,
+        teamId,
+        counterpartTeamId,
+        playersIn: direction === "in" ? [player._id] : [],
+        playersOut: direction === "out" ? [player._id] : [],
+        teamLabel: must(await ctx.db.get("teams", teamId), "Team").abbr,
+        counterpartLabel: counterpartTeam?.abbr,
+        assetsIn: [],
+        assetsOut: [],
+      }),
+    );
+    await ctx.db.patch("transactions", transactionId, { effects: { ...effects, picks: [] } });
   }
   return {};
 }
