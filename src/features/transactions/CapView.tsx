@@ -7,11 +7,13 @@ import type { Id } from "@convex/_generated/dataModel";
 import { formatMoney } from "@shared/roster/cap";
 import { DataTable, type DataColumn } from "@/components/data/DataTable";
 import { Tile, TileStrip } from "@/components/data/Tile";
+import { Section } from "@/components/layout/Section";
 import { PlayerChip } from "@/components/player/PlayerChip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge, Skeleton } from "@/components/ui/misc";
 import { errorMessage } from "@/lib/errors";
+import { ExpiringContracts } from "./ExpiringContracts";
 import { useQuery } from "@/lib/convex/useQuery";
 
 type Cap = FunctionReturnType<typeof api.players.cap.bySeason>;
@@ -84,7 +86,8 @@ function CapForm({ seasonId, cap }: { seasonId: Id<"seasons">; cap: number | nul
 
 /**
  * The cap view (FEATURES.md 5.3, 5.10): every rostered player's cap hit from their contract, the
- * total against the season's cap, and who expires, with a link to the season's needs.
+ * total against the season's cap, who expires and what that leaves next season, with a link to
+ * the season's needs.
  */
 export function CapView({ seasonId }: { seasonId: Id<"seasons"> }) {
   const cap = useQuery(api.players.cap.bySeason, { seasonId });
@@ -115,6 +118,15 @@ export function CapView({ seasonId }: { seasonId: Id<"seasons"> }) {
           Offseason needs
         </Link>
       </div>
+      <Section title={`Going into ${cap.year + 1}`} description="If nobody who expires comes back.">
+        <TileStrip>
+          <Tile label="Committed" value={formatMoney(cap.next.committed)} />
+          <Tile label="Cap" value={cap.next.salaryCap === null ? "—" : formatMoney(cap.next.salaryCap)} />
+          <Tile label="Space" value={cap.next.space === null ? "—" : formatMoney(cap.next.space)} />
+          <Tile label="Coming off" value={formatMoney(cap.next.freed)} detail={`${expiring} expiring`} />
+        </TileStrip>
+      </Section>
+      <ExpiringContracts cap={cap} />
       <DataTable<Row>
         id="cap-view"
         data={cap.players}

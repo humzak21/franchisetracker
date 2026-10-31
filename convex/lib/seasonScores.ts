@@ -5,7 +5,7 @@
  */
 import { isPlayoffRound, weekPhase } from "../../shared/domain";
 import type { PlayoffScore } from "../../shared/league/standings";
-import type { FinalScore } from "../../shared/league/tiebreakers";
+import type { WeekScore } from "../../shared/league/divisionMove";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { seasonGames } from "./reports";
@@ -13,7 +13,7 @@ import { seasonGames } from "./reports";
 /** A full season of league games with the playoffs, with headroom. */
 const MAX_LEAGUE_GAMES = 400;
 
-export type SeasonScores = { regular: FinalScore[]; playoffs: PlayoffScore[] };
+export type SeasonScores = { regular: WeekScore[]; playoffs: PlayoffScore[] };
 
 export async function seasonScores(
   ctx: QueryCtx,
@@ -39,9 +39,10 @@ export async function seasonScores(
     unique.set(key, { weekKey: g.weekKey, home, away, homeScore: g.homeScore, awayScore: g.awayScore });
   }
   const out: SeasonScores = { regular: [], playoffs: [] };
-  for (const { weekKey, ...game } of unique.values()) {
+  for (const game of unique.values()) {
+    const { weekKey, ...score } = game;
     if (weekPhase(weekKey) === "regular") out.regular.push(game);
-    else if (isPlayoffRound(weekKey)) out.playoffs.push({ round: weekKey, ...game });
+    else if (isPlayoffRound(weekKey)) out.playoffs.push({ round: weekKey, ...score });
   }
   return out;
 }

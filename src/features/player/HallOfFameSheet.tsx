@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 import { errorMessage } from "@/lib/errors";
+import { HofCasePanel } from "./HofCasePanel";
 import { Textarea } from "@/components/ui/textarea";
 
 type Plaque = FunctionReturnType<typeof api.hof.entries.forPlayer>;
@@ -71,6 +72,7 @@ export function HallOfFameSheet({
       description="Their jersey hangs on the wall in team colors; the career with the team is summed on save."
     >
       <form onSubmit={submit} className="space-y-4">
+        <HofCasePanel playerId={playerId} open={open} />
         <div className="grid grid-cols-2 gap-2">
           <label className="space-y-1">
             <span className={label}>Class of</span>

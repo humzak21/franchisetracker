@@ -22,6 +22,15 @@ for (const theme of ["dark", "light"] as const) {
   });
 }
 
+test("the race lists the leaders, with our players marked, without overflow", async ({ page }) => {
+  await page.goto("/awards");
+  await page.getByRole("radio", { name: "Race", exact: true }).click();
+  const mvp = page.getByRole("region", { name: "Most Valuable Player race" });
+  await expect(mvp.getByRole("link", { name: "Drake Maye" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Defensive Player of the Year race" })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
 test("Coach of the Year goes to a coach created on the spot", async ({ page }) => {
   await page.goto("/awards");
   await page.getByRole("radio", { name: /^Season/ }).click();

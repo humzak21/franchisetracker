@@ -113,6 +113,15 @@ export function TeamHistoryScreen({ abbr }: { abbr: string }) {
           <Section
             title="Head to head"
             description="Every franchise game against them, with the margin of each."
+            actions={
+              <Link
+                to="/league/rivals/$abbr"
+                params={{ abbr: team.abbr.toLowerCase() }}
+                className="text-sm text-primary underline"
+              >
+                Rivalry page
+              </Link>
+            }
           >
             <TeamHeadToHead headToHead={headToHead} />
           </Section>

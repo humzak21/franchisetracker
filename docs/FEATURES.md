@@ -200,6 +200,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - **Season checklist**: what to do and shoot next, opened on the part of the year the season is in, with the rest a tap away. Offseason (rosters carried over, retirements, re-signings, free agency, draft class, roster page), preseason (depth chart, goals, pre-season report), this week (game log, standings, weekly awards) and season end (season stats by category, team stats, final standings, awards, playoffs, post-season report). Each item is worked out from the data and goes to the screen or capture that fills it; nothing is ticked by hand. Under it, a **coverage strip** counts what the season has so far: box scores, team stats and scoring summaries against games played, and standings and weekly awards against the regular season. Reconcile shows the same strip.
 - **Goals**: the season's pre-season goals with progress and hits.
 - **Next up / last game**: score bug for the most recent result with its stars and a snippet of the notes; opponent card for the upcoming week with head-to-head history and their record.
+- **The week**: a one-week recap of the latest result: the score, record and streak, the stars, the records and milestones it raised, and how it moved the team in the division where league scores were captured. It copies as text to paste into a message.
 - **This week's milestones**: auto-detected (career highs, 100-yard games, franchise records, streaks) with one-tap acknowledge.
 - **Inbox** summary: items waiting for review, with a direct link.
 - **Season pulse**: small charts of points for and against by week, and team rank trend in key categories.
@@ -235,7 +236,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Batch moves: a pick box after the actions on every row, select all, and a bar that stays pinned while anything is picked; Release records a release per picked player in one sheet (one timing, one note), Trade opens the trade builder with every pick on the user team's side.
 - Depth chart view by position with OVR badges. A roster page sets the order from how it lists each position; arrows on each row fix it by hand.
 - Roster diff between the season shown and any other: arrivals, departures and OVR changes, always read earlier to later.
-- Contract and cap view: cap hits per player, total, expiring contracts, with a "needs" link to the season report.
+- Contract and cap view: cap hits per player, total, expiring contracts, with a "needs" link to the season report. It projects next season from the contracts that continue (committed, what comes off, space against next season's cap once set, else this one) and lists the contract year: each expiring deal is re-signed as a logged move, or let go once the season is over. Starting the next season says how many deals run out first.
 
 ### 5.4 Players
 
@@ -294,6 +295,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Any team's history inside the franchise: record by season, playoff results, titles, their players we have seen, draft picks.
 - Cumulative league table across the franchise: wins, playoff record, division titles, conference titles, Super Bowls.
 - Rivals: the user team's head-to-head line against every opponent met (record, playoff record, point differential, streak, margins, last meeting); a team's page charts the margin of every meeting.
+- Rivalry page per opponent: the all-time line, what stands out (biggest win, worst loss, most scored and allowed, longest runs each way), our best against them per stat with the best single game, the playoff meetings, and every meeting.
 
 ### 5.7 History
 
@@ -302,7 +304,8 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Trophy room: Super Bowl wins (largest, each a banner with the game's numeral over the season's year), division titles (pennants), then conference titles and playoff appearances, with years; franchise titles glow in the team accent and real history sits in the softer wash, real pre-franchise history from the external import (4.8) and editable entries, so the team's real history sits alongside franchise results.
 - Pre-season goals on the season report: team goals (wins, division, playoffs, bye, playoff win, Super Bowl trip or title, write-in) and player goals (a stat target or a write-in), judged from the season as it is played, markable by hand.
 - Season reports archive: for each season, pre-season thoughts, post-season thoughts, around the league, needs with resolution status, and the computed season summary next to them.
-- Hall of Fame: wall of hanging jerseys in team colors with number, name, position, years, induction year, retired-number flag and a blurb; click to the player page. Add from any player page; coaches and staff are added from the wall. Retired numbers sit above the wall, and retired players still in the team's career records are listed below it as candidates.
+- Season recap: a page per franchise season told from what was captured: the record and finish, the margin of every week with the best and worst of them, the stars and their awards, records set, moves, the draft class and the report's own words. Generated on read, so a late capture or a correction shows up, and opened from the report and from Home once the season is over.
+- Hall of Fame: wall of hanging jerseys in team colors with number, name, position, years, induction year, retired-number flag and a blurb; click to the player page. Add from any player page; coaches and staff are added from the wall. Retired numbers sit above the wall, and retired players still in the team's career records are listed below it as candidates. Those five seasons out of the game are listed apart as eligible, the new class marked. The induction sheet argues the case: seasons and games with the team, honors, the team's record lists and the career marks reached.
 - Narrative timeline: every note across games, seasons, transactions and awards in one scrollable story, filterable by season and type.
 
 ### 5.8 Awards
@@ -312,6 +315,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Coach of the Year goes to a coach, not a player: one of every NFL head coach since 2015 (`shared/domain/coaches.ts`, interim coaches included) or a coach created in the franchise, like create-a-player. A coach name the bank does not know, typed when assigning or read off the awards screen, is created as it is used.
 - Yearly: MVP, OPOY, DPOY, OROY, DROY, CPOY, Coach of the Year, Super Bowl MVP, best player per position (K, P, KR, QB, RB, WR, TE, OL, DL, LB, DB), All-Pro teams, Pro Bowl rosters, and custom additional awards. Imported from the awards screens.
 - Counted from the stats, live: Fantasy Player of the Year (most fantasy points), Sack Leader, Ball Hawk (most interceptions), Heat Seeker (most tackles, solo plus assisted), and the most offensive and defensive players of the week. Leaders come from league stats and the weekly awards; ties share the award.
+- **Race**: during the season, the top five for MVP, OPOY, DPOY and OROY, and the user's best wherever it stands, each with what they trail the leader by. Offense is ranked on fantasy points, as the counted award is; OPOY leaves out quarterbacks; OROY takes players drafted that year; defense is ranked on points that weigh sacks and takeaways. Lines come from league stats, plus anyone only the league leaders screens name, marked as partial. It never sets a winner.
 - Every yearly and counted award can be assigned by hand from the awards screen (a league leader or any player), replacing the import or the count; clearing it goes back to the count.
 - Team awards defined by the user (team MVP, rookie of the year) chosen from the roster.
 - Awards cabinet per player and per season.

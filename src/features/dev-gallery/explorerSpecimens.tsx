@@ -4,6 +4,7 @@ import type { DataColumn } from "@/components/data/DataTable";
 import { QuarterGrid } from "@/components/data/QuarterGrid";
 import { QuestionBuilder } from "@/components/data/QuestionBuilder";
 import { SplitTable } from "@/components/data/SplitTable";
+import { CopyButton } from "@/components/ui/CopyButton";
 import type { Specimen } from "./specimens";
 
 type Group = { key: string; label: string; games: number; yards: number };
@@ -27,6 +28,12 @@ function QuestionDemo() {
 }
 
 export const EXPLORER_SPECIMENS: Specimen[] = [
+  {
+    id: "copybutton",
+    name: "CopyButton",
+    note: "Copies text and confirms it for a moment; on a phone the label goes to screen readers.",
+    render: () => <CopyButton text="Week 9: W 31-24 vs Cowboys" label="Copy" />,
+  },
   {
     id: "splittable",
     name: "SplitTable",

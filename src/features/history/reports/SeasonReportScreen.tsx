@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
-import { FileText } from "lucide-react";
+import { BookOpen, FileText } from "lucide-react";
 import { useCallback } from "react";
 import { api } from "@convex/_generated/api";
 import { useFranchise } from "@/app/franchise";
@@ -53,7 +53,18 @@ export function SeasonReportScreen({ year }: { year: number }) {
   }
 
   return (
-    <Page title={`${year} report`} eyebrow="Season report" back={back}>
+    <Page
+      title={`${year} report`}
+      eyebrow="Season report"
+      back={back}
+      actions={
+        <Button asChild variant="outline" size="sm">
+          <Link to="/history/recaps/$year" params={{ year: String(year) }}>
+            <BookOpen /> Recap
+          </Link>
+        </Button>
+      }
+    >
       {data === undefined ? (
         <div className="space-y-4" aria-busy="true">
           <Skeleton className="h-32 rounded-2xl" />

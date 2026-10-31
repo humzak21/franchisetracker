@@ -12,6 +12,7 @@ import { Section } from "@/components/layout/Section";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { HofCandidates } from "./HofCandidates";
+import { HofEligible } from "./HofEligible";
 import { JerseyPlaque } from "./JerseyPlaque";
 import { StaffInductionSheet } from "./StaffInductionSheet";
 import type { WallEntry } from "./types";
@@ -49,6 +50,7 @@ export function HallOfFameScreen() {
   const items = useQuery(api.hof.entries.wall, {});
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Doc<"hofEntries"> | null>(null);
+  const eligible = useQuery(api.hof.case.eligible, {});
   const year = active
     ? currentSeasonYear(active.seasons, active.franchise.startYear)
     : new Date().getFullYear();
@@ -108,7 +110,10 @@ export function HallOfFameScreen() {
           </section>
         </div>
       )}
-      <HofCandidates className="mt-8" />
+      <div className="mt-8 space-y-8 empty:hidden">
+        {eligible && <HofEligible eligible={eligible} />}
+        <HofCandidates eligible={new Set(eligible?.players.map((p) => p.playerId))} />
+      </div>
       <StaffInductionSheet
         key={`new-${String(adding)}`}
         defaultYear={year}

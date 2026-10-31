@@ -1,5 +1,6 @@
+import { Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
-import { CalendarPlus, Flag } from "lucide-react";
+import { BookOpen, CalendarPlus, Flag } from "lucide-react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
 import { PLAYOFF_RESULT_LABELS } from "@shared/domain";
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/misc";
 import { errorMessage } from "@/lib/errors";
+import { useQuery } from "@/lib/convex/useQuery";
 
 const HINT = {
   upcoming: "Capture the first regular-season game to start it.",
@@ -32,23 +34,38 @@ export function SeasonCard({ active }: { active: ActiveFranchise }) {
   const advance = useMutation(api.seasons.lifecycle.advance);
   const { setYear } = useSeason();
   const [confirming, setConfirming] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  if (!season) return null;
-  const action = nextSeasonAction(
-    season.status,
-    own.some((s) => s.year === season.year + 1),
+  const action = season
+    ? nextSeasonAction(
+        season.status,
+        own.some((s) => s.year === season.year + 1),
+      )
+    : null;
+  const cap = useQuery(
+    api.players.cap.bySeason,
+    season && action === "advance" ? { seasonId: season._id } : "skip",
   );
+  if (!season) return null;
   const result = season.userRecord?.playoffResult;
+  const expiring = cap?.players.filter((p) => p.expiring).length ?? 0;
 
   const run = async (step: () => Promise<unknown>) => {
     setError(null);
     try {
       await step();
       setConfirming(false);
+      setStarting(false);
     } catch (err) {
       setError(errorMessage(err, "That did not work. Try again."));
     }
   };
+
+  const start = () =>
+    run(async () => {
+      await advance({ seasonId: season._id });
+      setYear(season.year + 1);
+    });
 
   return (
     <div className="rounded-xl border border-border bg-surface p-4">
@@ -70,16 +87,18 @@ export function SeasonCard({ active }: { active: ActiveFranchise }) {
             <Flag /> Super Bowl week done
           </Button>
         )}
+        {season.status === "complete" && (
+          <Button asChild variant="outline" size="sm">
+            <Link to="/history/recaps/$year" params={{ year: String(season.year) }}>
+              <BookOpen /> Recap
+            </Link>
+          </Button>
+        )}
         {action === "advance" && (
           <Button
             variant="primary"
             size="sm"
-            onClick={() =>
-              void run(async () => {
-                await advance({ seasonId: season._id });
-                setYear(season.year + 1);
-              })
-            }
+            onClick={() => (expiring > 0 ? setStarting(true) : void start())}
           >
             <CalendarPlus /> Start {season.year + 1}
           </Button>
@@ -97,6 +116,21 @@ export function SeasonCard({ active }: { active: ActiveFranchise }) {
             </DialogClose>
             <Button variant="primary" onClick={() => void run(() => finish({ seasonId: season._id }))}>
               Finish season
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={starting} onOpenChange={setStarting}>
+        <DialogContent
+          title={`Start ${season.year + 1}?`}
+          description={`${expiring} ${expiring === 1 ? "contract runs" : "contracts run"} out. Those players stay on the roster as Contract expired until you re-sign or release them; Transactions → Cap lists them now.`}
+        >
+          <div className="flex justify-end gap-2 p-5">
+            <DialogClose asChild>
+              <Button variant="ghost">Cancel</Button>
+            </DialogClose>
+            <Button variant="primary" onClick={() => void start()}>
+              Start {season.year + 1}
             </Button>
           </div>
         </DialogContent>

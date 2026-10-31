@@ -13,6 +13,8 @@ export type CapSummary<P> = {
   hits: { playerId: P; apy: number; expiresYear?: number }[];
   /** Contracts that run out with this season. */
   expiring: P[];
+  /** What those contracts cost this season, off the books next season. */
+  freed: number;
   /** Rostered players without a contract on record. */
   unknown: P[];
 };
@@ -24,6 +26,12 @@ export function capHit(contract: CapContract | undefined): number | null {
   return null;
 }
 
+/** Whether a contract ends with `year`. An end year decides over years left; an undated one runs on. */
+export function runsOut(contract: CapContract | undefined, year: number): boolean {
+  if (contract?.expiresYear !== undefined) return contract.expiresYear <= year;
+  return contract?.years !== undefined && contract.years <= 1;
+}
+
 export function capSummary<P>(
   rows: readonly CapRow<P>[],
   cap: number | undefined,
@@ -32,16 +40,19 @@ export function capSummary<P>(
   const hits: CapSummary<P>["hits"] = [];
   const unknown: P[] = [];
   const expiring: P[] = [];
+  let freed = 0;
   for (const row of rows) {
     const apy = capHit(row.contract);
     if (apy === null) unknown.push(row.playerId);
     else hits.push({ playerId: row.playerId, apy, expiresYear: row.contract?.expiresYear });
-    if (row.contract?.expiresYear !== undefined && row.contract.expiresYear <= year)
+    if (runsOut(row.contract, year)) {
       expiring.push(row.playerId);
+      freed += apy ?? 0;
+    }
   }
   hits.sort((a, b) => b.apy - a.apy);
   const committed = hits.reduce((n, h) => n + h.apy, 0);
-  return { committed, space: cap === undefined ? null : cap - committed, hits, expiring, unknown };
+  return { committed, space: cap === undefined ? null : cap - committed, hits, expiring, freed, unknown };
 }
 
 /** "$9.2M", "$750K". */

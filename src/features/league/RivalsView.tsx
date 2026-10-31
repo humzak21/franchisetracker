@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
 import { Swords } from "lucide-react";
 import { api } from "@convex/_generated/api";
@@ -7,7 +8,7 @@ import { DataTable, type DataColumn } from "@/components/data/DataTable";
 import { EmptyState } from "@/components/data/EmptyState";
 import { Sparkline } from "@/components/data/Sparkline";
 import { ResultBadge } from "@/components/team/ResultBadge";
-import { TeamLink } from "./TeamLink";
+import { TeamChip } from "@/components/team/TeamChip";
 import { useQuery } from "@/lib/convex/useQuery";
 
 type Row = FunctionReturnType<typeof api.league.rivals.list>[number];
@@ -19,7 +20,15 @@ const columns: DataColumn<Row>[] = [
     id: "team",
     header: "Opponent",
     value: (r) => r.opponent.name,
-    cell: (r) => <TeamLink team={r.opponent} label="name" size="xs" />,
+    cell: (r) => (
+      <Link
+        to="/league/rivals/$abbr"
+        params={{ abbr: r.opponent.abbr.toLowerCase() }}
+        className="min-w-0 rounded hover:underline pointer-coarse:touch-target"
+      >
+        <TeamChip team={r.opponent} label="name" size="xs" />
+      </Link>
+    ),
     minWidth: 150,
   },
   {
@@ -93,7 +102,7 @@ const columns: DataColumn<Row>[] = [
 
 /**
  * Rivalries (Sprint 8): the franchise's head-to-head line against every opponent it has met,
- * from captured games. Each team opens its page with every meeting listed.
+ * from captured games. Each opens its rivalry page, with every meeting and who did the damage.
  */
 export function RivalsView() {
   const rivals = useQuery(api.league.rivals.list, {});
