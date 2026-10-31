@@ -505,13 +505,44 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 ---
 
-## Proposed: Sprints 19 to 23
+## Sprint 19 — Records and streaks depth (M)
+
+**Goal:** the numbers Sprint 15 stored can be looked up. "Fastest to 1,000 yards in a season", "most TDs in any 5 games" and "most points we ever scored" are each one tap from Records, streaks say when they ran, a player's page tells his milestones in order, and Madden's league leaders say where the team ranks.
+
+- Records gains Fastest to, Best spans and Team records beside the books, and single-game lists stop at no player's best game.
+- Streaks shows what is running now and the longest of every kind, with dates, of all time or within a season.
+- The player page gains a milestone timeline and best-span placements.
+- League gains Top 20s with "where we rank".
+- `RankedList` and `MilestoneTimeline` in the gallery.
+
+**Done when:** each of those three questions is one tap from Records, a streak names its start and end, a player's page lists his marks with the games they took, and a captured leaders screen marks our players and sums up where we rank.
+
+**As built:**
+
+- `topGames` is a new field beside `bestGames`, not a change to its shape as `STATS-HUB.md` 5 sketched, so no row needs rewriting to stay valid and the season table's readers are untouched. It keeps three games per record stat; `gameEntries` falls back to the plain best on a row without it. List entries and placements gain `gameId` and `weekKey`, and every book's single-game entries link to their game.
+- `mergeEntries` now replaces everything stored for a player's season at once, so a game that fell out of a season's top three leaves the list. A typed entry still replaces all of that player's entries for the season.
+- **After deploying, run Settings → Data → Rebuild stats once.** Until then single-game lists show one game per player-season and name no game. The `logs` phase now also refreshes the franchise-era book, which until now moved only when a game committed. `recordBuild:start` skips `logs` and so does not fill `topGames`.
+- Fastest-to and span lists show a stat at a time, one list per mark or window, rather than a mark or window picker: it is fewer controls and shows more. They count franchise games with the team, so they take no typed entries, a change from the plan: a typed "in 41 games" is a number the app cannot check, and the franchise-era book takes none either.
+- Marks are regular season only, so the split control hides on Fastest to. Which of the four Records lists is showing lives on `StatsScreen` for that reason.
+- There is no rank table for spans or marks. `stats/spans:forPlayer` reads the franchise's span boards (156 small rows at most) and `stats/milestones:forPlayer` reads the top 20 of each mark he holds, both only when his page opens, so a rebuild has no placements to rewrite.
+- The team lists left the Scoring plays section for Team records, so each shows once. `ScoringRecords` is scoring plays only again.
+- `stats/streaks:all` is gone. It took 500 rows off an index in player order, which a long franchise would outgrow at random, and ex-players kept their old `current`. `running` starts from the current roster (one read per rostered player) and `longest` reads each kind's top 10 off the new `streaks.by_franchiseId_and_key_and_longest`. A run still counts as running while a player is on IR or the practice squad; a released or traded player's does not. Level runs sort in registry order, so a starter's games played comes last.
+- The season filter works runs out from that season's games and lines on read, as Sprint 15 planned. It covers team game streaks and player streaks, not the four season-long kinds.
+- `playerTimeline` takes marks from `playerMarks`, not the feed's `mark` rows, which only say what was announced at the time. One line per mark per game, career first. It holds every milestone kind, threshold games included, behind Show all.
+- `RankedList` is the third strike of the records list: `RecordList`, `ScoringRecords` and `LeadersBoard` now use it, as do the new lists. `milestoneIcons` moved down to `components/data`, and `MILESTONE_KINDS` to `shared/domain`, so the feed and the timeline share them.
+- A streak milestone's title keeps its capitals ("games with a TD pass"); rows already stored keep the old title.
+- `leagueLeaders` was stored and fed the all-time book, but had no screen. Top 20s sits in League rather than the Leaders view, which is the franchise era's career leaders. "Ours" is the row's team, so a leader captured with no team reads as someone else's.
+- Left for later: the game log and box score badge for a game that reached a mark (`STATS-HUB.md` 4.2); the missing-games count next to these lists (`STATS-HUB.md` 2.6). Sprint 21 still takes `splits`, `quarterScoring` and the Explorer.
+- Playwright smoke tests for all of this are written and left to CI, because the Mac's swap was full again; the phone project has not run them. The screens were checked by hand at 375 x 812 in light and at desktop width, and the new primitives in dark in the gallery.
+
+---
+
+## Proposed: Sprints 20 to 23
 
 Planned after the platform audit of October 2026, not yet scheduled or built. The statistics hub plan is `docs/STATS-HUB.md`; the audit with every gap and the reasoning behind the order is `docs/PLATFORM-AUDIT.md`. When one of these is picked up, it gets a full section above with a goal, a "Done when" and, once built, its "As built" notes, and the stable behaviour moves into `FEATURES.md`.
 
 | Sprint | Theme | Size | Source |
 |---|---|---|---|
-| 19 | Records and streaks depth: fastest-to and span lists, full single-game lists, team records, streak dates and new kinds, milestone timeline, imported league leaders with "where we rank", player milestones | M | `STATS-HUB.md` 8, Sprint 17 |
 | 20 | Operations without a terminal: maintenance panel, retention crons, boards rebuilt after restore, scale test on a synthetic 20-season franchise, scheduled-job errors surfaced, extraction budget, duplicate screenshot hash | S | `PLATFORM-AUDIT.md` 4 and 6 |
 | 21 | Splits and the stat explorer | M | `STATS-HUB.md` 8, Sprint 18 |
 | 22 | Fun layer: season recaps, awards race, rivalry pages, weekly digest, Hall of Fame cases, contract year | M | `PLATFORM-AUDIT.md` 5.2 |

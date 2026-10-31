@@ -4,7 +4,14 @@
  * Imported season totals (`source: "import"`) are never touched.
  */
 import { positionGroupOf, weekPhase, type Position } from "../../shared/domain";
-import { preferLogs, seasonHighs, summarizeGames, summarizeSeasons, type StatLine } from "../../shared/stats";
+import {
+  preferLogs,
+  seasonHighs,
+  summarizeGames,
+  summarizeSeasons,
+  topGames,
+  type StatLine,
+} from "../../shared/stats";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 
@@ -55,6 +62,7 @@ export async function recomputePlayerSeason(
   for (const { teamId, split, lines: group } of groups.values()) {
     const summary = summarizeGames(group.map((l) => l.stats as StatLine));
     const position = mostPlayed(group, player.position);
+    const played = group.map((l) => ({ gameId: l.gameId, weekKey: l.weekKey, line: l.stats as StatLine }));
     await ctx.db.insert("seasonPlayerStats", {
       franchiseId: player.franchiseId,
       seasonId,
@@ -65,9 +73,8 @@ export async function recomputePlayerSeason(
       position,
       positionGroup: positionGroupOf(position),
       ...summary,
-      bestGames: seasonHighs(
-        group.map((l) => ({ gameId: l.gameId, weekKey: l.weekKey, line: l.stats as StatLine })),
-      ),
+      bestGames: seasonHighs(played),
+      topGames: topGames(played),
     });
   }
 }

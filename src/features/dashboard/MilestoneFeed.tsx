@@ -1,40 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
-import {
-  Award,
-  Check,
-  CheckCheck,
-  Flame,
-  Gauge,
-  Handshake,
-  PartyPopper,
-  Sparkles,
-  TrendingUp,
-  Trophy,
-} from "lucide-react";
+import { Check, CheckCheck } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { weekLabel } from "@shared/domain";
+import { MILESTONE_ICONS } from "@/components/data/milestoneIcons";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { useQuery } from "@/lib/convex/useQuery";
-
-type Milestone = FunctionReturnType<typeof api.stats.milestones.feed>[number];
-
-const ICONS = {
-  franchise_record: Trophy,
-  career_high: TrendingUp,
-  threshold_game: Sparkles,
-  first_threshold_season: Award,
-  streak: Flame,
-  first_td: PartyPopper,
-  game_winner: Trophy,
-  connection: Handshake,
-  mark: Gauge,
-  player_streak: Flame,
-  team_record: Trophy,
-  custom: Sparkles,
-} satisfies Record<Milestone["kind"], unknown>;
 
 /** Milestones not yet acknowledged, newest first (FEATURES.md 5.1), each a tap away from gone. */
 export function MilestoneFeed() {
@@ -53,7 +25,7 @@ export function MilestoneFeed() {
     <div className="space-y-2">
       <ul className="divide-y divide-border rounded-xl border border-border bg-surface">
         {feed.map((m) => {
-          const Icon = ICONS[m.kind];
+          const Icon = MILESTONE_ICONS[m.kind];
           const when = [m.year, m.weekKey ? weekLabel(m.weekKey) : null].filter(Boolean).join(" · ");
           return (
             <li key={m._id} className="flex min-h-14 items-center gap-3 px-4 py-2">

@@ -36,6 +36,7 @@ import { HISTORY_SPECIMENS } from "./historySpecimens";
 import { INGESTION_SPECIMENS } from "./ingestionSpecimens";
 import { INSIGHT_SPECIMENS } from "./insightSpecimens";
 import { PLAYER_SPECIMENS } from "./playerSpecimens";
+import { RECORD_SPECIMENS } from "./recordSpecimens";
 import { STATS_SPECIMENS } from "./statsSpecimens";
 import { TABLE_SPECIMENS } from "./tableSpecimens";
 
@@ -73,6 +74,7 @@ export const SPECIMENS: Specimen[] = [
   ...TABLE_SPECIMENS,
   ...INGESTION_SPECIMENS,
   ...STATS_SPECIMENS,
+  ...RECORD_SPECIMENS,
   ...INSIGHT_SPECIMENS,
   ...PLAYER_SPECIMENS,
   ...HISTORY_SPECIMENS,

@@ -175,14 +175,15 @@ describe("records and leaders", () => {
 describe("streaks and milestones", () => {
   test("team and player streaks from the sample season", async () => {
     const { owner } = await setup();
-    const { team, players } = await owner.query(api.stats.streaks.all, {});
+    const { team, players } = await owner.query(api.stats.streaks.running, {});
     // W W L(OT) W W
-    expect(team.find((s) => s.key === "wins")).toEqual({ key: "wins", current: 2, longest: 2 });
-    const henderson = players.filter((s) => s.player.name === "TreVeyon Henderson");
-    expect(henderson.find((s) => s.key === "rush100")).toMatchObject({ current: 2, longest: 2 });
+    expect(team.find((s) => s.key === "wins")).toMatchObject({ key: "wins", current: 2, longest: 2 });
     expect(players.find((s) => s.player.name === "Drake Maye" && s.key === "passTdGames")).toMatchObject({
       current: 5,
     });
+    const { players: lists } = await owner.query(api.stats.streaks.longest, {});
+    const rushing = lists.find((l) => l.key === "rush100")?.entries ?? [];
+    expect(rushing.find((e) => e.player.name === "TreVeyon Henderson")).toMatchObject({ longest: 2 });
   });
 
   test("threshold games show up in the feed once per game", async () => {

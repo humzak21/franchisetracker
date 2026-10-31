@@ -4,8 +4,9 @@
  * ranks every season of the league again. Typed entries (Bruce Smith, 200 sacks) join a list
  * when it is shown, replacing a computed entry for the same player. Pure.
  */
+import type { WeekKey } from "../domain/calendar";
 import { aggregateLines } from "./aggregate";
-import { gameValue, RECORD_STATS, RECORD_TOP, type RecordScope } from "./records";
+import { gameEntries, RECORD_STATS, RECORD_TOP, type GameEntry, type RecordScope } from "./records";
 import type { RawStatKey, StatLine } from "./registry";
 
 export const RECORD_BOOKS = ["team", "franchise", "league"] as const;
@@ -24,7 +25,12 @@ export type BoardBook = (typeof BOARD_BOOKS)[number];
 /** Entries a board keeps: a few past what a list shows, so a typed entry or a correction leaves it full. */
 export const BOARD_SIZE = 25;
 
-export type BoardEntry<P extends string = string, S extends string = string, T extends string = string> = {
+export type BoardEntry<
+  P extends string = string,
+  S extends string = string,
+  T extends string = string,
+  G extends string = string,
+> = {
   playerId: P;
   value: number;
   /** The season (game and season scope) or the last season counted (career). */
@@ -33,18 +39,26 @@ export type BoardEntry<P extends string = string, S extends string = string, T e
   teamId?: T;
   /** Career scope: the first season counted. */
   firstYear?: number;
+  /** Game scope: which game, when the row kept it. */
+  gameId?: G;
+  weekKey?: WeekKey;
 };
 
-/** A list's entries are one per player (career) or one per player and season. */
-const entryKey = (scope: RecordScope, e: BoardEntry) =>
+/** What one source says together: a player's career, or a player's season. */
+const holderKey = (scope: RecordScope, e: BoardEntry) =>
   scope === "career" ? e.playerId : `${e.playerId}|${e.year}`;
+
+/** A list's entries are one per holder, or up to `TOP_GAMES` per holder in game scope. */
+const entryKey = (scope: RecordScope, e: BoardEntry) =>
+  scope === "game" ? `${holderKey(scope, e)}|${e.weekKey ?? ""}` : holderKey(scope, e);
 
 const byValue = (a: { value: number; year?: number }, b: { value: number; year?: number }) =>
   b.value - a.value || (a.year ?? 9999) - (b.year ?? 9999);
 
 /**
- * A board with new entries merged in, best first. An incoming entry replaces the stored one for
- * the same player (and season), even with a lower number, so a correction lands.
+ * A board with new entries merged in, best first. Incoming entries replace everything stored for
+ * the same player (and season), even with a lower number, so a correction lands and a game that
+ * dropped out of a season's best goes too.
  */
 export function mergeEntries<E extends BoardEntry>(
   current: readonly E[],
@@ -52,7 +66,10 @@ export function mergeEntries<E extends BoardEntry>(
   scope: RecordScope,
   size: number = BOARD_SIZE,
 ): E[] {
-  const byKey = new Map(current.map((e) => [entryKey(scope, e), e]));
+  const arriving = new Set(incoming.map((e) => holderKey(scope, e)));
+  const byKey = new Map(
+    current.filter((e) => !arriving.has(holderKey(scope, e))).map((e) => [entryKey(scope, e), e]),
+  );
   for (const e of incoming) byKey.set(entryKey(scope, e), e);
   return [...byKey.values()]
     .filter((e) => e.value > 0)
@@ -71,7 +88,12 @@ export function keepBest<E extends BoardEntry>(entries: readonly E[]): E[] {
   return [...best.values()];
 }
 
-export type StatRow<P extends string = string, S extends string = string, T extends string = string> = {
+export type StatRow<
+  P extends string = string,
+  S extends string = string,
+  T extends string = string,
+  G extends string = string,
+> = {
   playerId: P;
   seasonId: S;
   year: number;
@@ -79,6 +101,7 @@ export type StatRow<P extends string = string, S extends string = string, T exte
   gamesPlayed: number;
   totals: StatLine;
   bests: Record<string, number>;
+  topGames?: Record<string, readonly GameEntry<G>[]>;
 };
 
 export type ScopeCandidates<E> = Record<"game" | "season", Map<RawStatKey, E[]>>;
@@ -87,28 +110,31 @@ export type ScopeCandidates<E> = Record<"game" | "season", Map<RawStatKey, E[]>>
  * Season and single-game entries for every record stat. A player's rows for one season are
  * summed (a trade splits a season across teams) and shown with the team he played most for.
  */
-export function seasonCandidates<P extends string, S extends string, T extends string>(
-  rows: readonly StatRow<P, S, T>[],
-): ScopeCandidates<BoardEntry<P, S, T>> {
-  const groups = new Map<string, StatRow<P, S, T>[]>();
+export function seasonCandidates<P extends string, S extends string, T extends string, G extends string>(
+  rows: readonly StatRow<P, S, T, G>[],
+): ScopeCandidates<BoardEntry<P, S, T, G>> {
+  const groups = new Map<string, StatRow<P, S, T, G>[]>();
   for (const row of rows) {
     const key = `${row.playerId}|${row.seasonId}`;
     groups.set(key, [...(groups.get(key) ?? []), row]);
   }
-  const out: ScopeCandidates<BoardEntry<P, S, T>> = { game: new Map(), season: new Map() };
-  const push = (scope: "game" | "season", stat: RawStatKey, entry: BoardEntry<P, S, T>) => {
+  const out: ScopeCandidates<BoardEntry<P, S, T, G>> = { game: new Map(), season: new Map() };
+  const push = (scope: "game" | "season", stat: RawStatKey, entry: BoardEntry<P, S, T, G>) => {
     if (entry.value > 0) out[scope].set(stat, [...(out[scope].get(stat) ?? []), entry]);
   };
   for (const group of groups.values()) {
     const main = group.reduce((a, b) => (b.gamesPlayed > a.gamesPlayed ? b : a));
     const bests: Record<string, number> = {};
-    for (const row of group)
+    const topGames: Record<string, GameEntry<G>[]> = {};
+    for (const row of group) {
       for (const [k, v] of Object.entries(row.bests)) bests[k] = Math.max(bests[k] ?? v, v);
-    const merged = { ...main, totals: aggregateLines(group.map((r) => r.totals)), bests };
+      for (const [k, v] of Object.entries(row.topGames ?? {})) topGames[k] = [...(topGames[k] ?? []), ...v];
+    }
+    const merged = { ...main, totals: aggregateLines(group.map((r) => r.totals)), bests, topGames };
     const base = { playerId: main.playerId, year: main.year, seasonId: main.seasonId, teamId: main.teamId };
     for (const stat of RECORD_STATS) {
       push("season", stat, { ...base, value: merged.totals[stat] ?? 0 });
-      push("game", stat, { ...base, value: gameValue(merged, stat) ?? 0 });
+      for (const game of gameEntries(merged, stat)) push("game", stat, { ...base, ...game });
     }
   }
   return out;
@@ -164,6 +190,8 @@ export type RankedEntry<I extends string = string> = {
   year?: number;
   firstYear?: number;
   seasonId?: string;
+  gameId?: string;
+  weekKey?: WeekKey;
   typedId?: I;
 };
 
@@ -200,16 +228,16 @@ export function rankList<I extends string>(
       typedId: t._id,
     })),
   ];
-  const sorted = merged.sort(byValue).slice(0, limit);
-  return sorted.map((e, i) => ({
-    ...e,
-    rank: i > 0 && sorted[i - 1]!.value === e.value ? sortedRank(sorted, i) : i + 1,
-  }));
+  return sharedRanks(merged.sort(byValue).slice(0, limit), (e) => e.value);
 }
 
-/** The rank of the first entry of a run of equal values. */
-function sortedRank(sorted: readonly { value: number }[], i: number): number {
-  let first = i;
-  while (first > 0 && sorted[first - 1]!.value === sorted[i]!.value) first--;
-  return first + 1;
+/** Ranks for a list already in order: an entry level with the one above it shares its rank. */
+export function sharedRanks<E>(sorted: readonly E[], valueOf: (e: E) => number): (E & { rank: number })[] {
+  const out: (E & { rank: number })[] = [];
+  sorted.forEach((e, i) => {
+    const above = out[i - 1];
+    const level = above !== undefined && valueOf(above) === valueOf(e);
+    out.push({ ...e, rank: level ? above.rank : i + 1 });
+  });
+  return out;
 }

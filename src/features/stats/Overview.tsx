@@ -29,7 +29,6 @@ const SHOWN_COUNTDOWNS = 3;
 const SHOWN_STREAKS = 6;
 /** A team streak is news at two, a player's at three. */
 const MIN_TEAM_STREAK = 2;
-const MIN_PLAYER_STREAK = 3;
 
 /** One tile that opens the view holding its detail. */
 function OpenTile({
@@ -57,7 +56,7 @@ export function Overview({ onOpen }: { onOpen: (view: View) => void }) {
   const args = season ? { seasonId: season._id } : "skip";
   const data = useQuery(api.stats.hub.overview, args);
   const countdowns = useQuery(api.stats.hub.countdownsFor, args);
-  const streaks = useQuery(api.stats.streaks.all, {});
+  const streaks = useQuery(api.stats.streaks.running, {});
   const trends = useQuery(api.league.teamStats.trends, {});
   if (!season || data === undefined) return <Skeleton className="h-72 rounded-xl" />;
   if (data === null || (data.played === 0 && data.leaders.length === 0)) {
@@ -81,9 +80,7 @@ export function Overview({ onOpen }: { onOpen: (view: View) => void }) {
     ...(streaks?.team ?? [])
       .filter((s) => s.current >= MIN_TEAM_STREAK)
       .map((s) => ({ ...s, who: "Team", id: `team-${s.key}` })),
-    ...(streaks?.players ?? [])
-      .filter((s) => s.current >= MIN_PLAYER_STREAK)
-      .map((s) => ({ ...s, who: s.player.name, id: `${s.player._id}-${s.key}` })),
+    ...(streaks?.players ?? []).map((s) => ({ ...s, who: s.player.name, id: `${s.player._id}-${s.key}` })),
   ]
     .sort((a, b) => b.current - a.current)
     .slice(0, SHOWN_STREAKS);

@@ -3,6 +3,7 @@ export * from "./calendar";
 export * from "./coaches";
 export * from "./coaching";
 export * from "./goals";
+export * from "./milestones";
 export * from "./positions";
 export * from "./roster";
 export * from "./scoring";

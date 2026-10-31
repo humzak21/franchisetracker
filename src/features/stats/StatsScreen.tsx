@@ -13,13 +13,13 @@ import { LeagueView } from "./LeagueView";
 import { ManualStatsLinks } from "./ManualStatsLinks";
 import { Overview } from "./Overview";
 import { PlayerGoals } from "./PlayerGoals";
-import { RecordsBook } from "./RecordsBook";
+import { RecordsView } from "./RecordsView";
 import { SeasonStats } from "./SeasonStats";
 import { SPLIT_OPTIONS, type Split } from "./split";
 import { StreaksBoard } from "./StreaksBoard";
 import { TeamRanks } from "./TeamRanks";
 import { TrendsView } from "./TrendsView";
-import type { View } from "./view";
+import type { RecordsKind, View } from "./view";
 
 const VIEWS: { value: View; label: string }[] = [
   { value: "overview", label: "Overview" },
@@ -42,9 +42,11 @@ export function StatsScreen() {
   const active = useFranchise();
   const [view, setView] = useLocalStorage<View>("ft.stats-view", "overview");
   const [split, setSplit] = useLocalStorage<Split>("ft.stats-split", "regular");
+  const [recordsKind, setRecordsKind] = useLocalStorage<RecordsKind>("ft.records-kind", "books");
   const seasonal = view === "overview" || view === "season" || view === "league" || view === "team";
   const preFranchise = season && active && isPreFranchise(season.year, active.franchise.startYear);
-  const hasSplit = view === "season" || view === "records" || view === "leaders";
+  // Marks count the regular season only: a playoff game is not a step towards a season's total.
+  const hasSplit = view === "season" || view === "leaders" || (view === "records" && recordsKind !== "marks");
 
   return (
     <Page
@@ -92,7 +94,7 @@ export function StatsScreen() {
         {view === "team" && <TeamRanks />}
         {view === "trends" && <TrendsView />}
         {seasonal && season && <ManualStatsLinks seasonId={season._id} />}
-        {view === "records" && <RecordsBook split={split} />}
+        {view === "records" && <RecordsView kind={recordsKind} onKind={setRecordsKind} split={split} />}
         {view === "leaders" && <LeadersBoard split={split} />}
         {view === "streaks" && <StreaksBoard />}
       </div>

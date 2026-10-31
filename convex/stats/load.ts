@@ -27,8 +27,11 @@ export async function franchiseSeasons(ctx: QueryCtx, franchiseId: Id<"franchise
 export async function userSeasonRows(
   ctx: QueryCtx,
   franchise: Doc<"franchises">,
-): Promise<Record<Split, SeasonRow<Id<"players">, Id<"seasons">>[]>> {
-  const out: Record<Split, SeasonRow<Id<"players">, Id<"seasons">>[]> = { regular: [], postseason: [] };
+): Promise<Record<Split, SeasonRow<Id<"players">, Id<"seasons">, Id<"games">>[]>> {
+  const out: Record<Split, SeasonRow<Id<"players">, Id<"seasons">, Id<"games">>[]> = {
+    regular: [],
+    postseason: [],
+  };
   for (const season of await franchiseSeasons(ctx, franchise._id)) {
     // Imported seasons before the franchise hold no log-derived rows.
     if (season.year < franchise.startYear) continue;
@@ -46,6 +49,7 @@ export async function userSeasonRows(
         year: season.year,
         totals: row.totals as StatLine,
         bests: row.bests ?? {},
+        topGames: row.topGames,
       });
     }
   }
@@ -54,17 +58,30 @@ export async function userSeasonRows(
 
 const counts = (weekKey: Doc<"games">["weekKey"]) => ["regular", "postseason"].includes(weekPhase(weekKey));
 
+/** A season's regular-season and playoff games, each with its year. */
+export async function countedGames(ctx: QueryCtx, season: Doc<"seasons">) {
+  const rows = await ctx.db
+    .query("games")
+    .withIndex("by_seasonId_and_weekKey", (q) => q.eq("seasonId", season._id))
+    .take(MAX_GAMES_PER_SEASON);
+  return rows.filter((g) => counts(g.weekKey)).map((g) => ({ ...g, year: season.year }));
+}
+
+const inGameOrder = (a: Doc<"games"> & { year: number }, b: Doc<"games"> & { year: number }) =>
+  a.year - b.year || weekIndex(a.weekKey) - weekIndex(b.weekKey);
+
 /** Every regular-season and playoff game of the franchise, oldest first, with its season's year. */
 export async function franchiseGames(ctx: QueryCtx, franchiseId: Id<"franchises">) {
-  const games: (Doc<"games"> & { year: number })[] = [];
+  const games: Awaited<ReturnType<typeof countedGames>> = [];
   for (const season of await franchiseSeasons(ctx, franchiseId)) {
-    const rows = await ctx.db
-      .query("games")
-      .withIndex("by_seasonId_and_weekKey", (q) => q.eq("seasonId", season._id))
-      .take(MAX_GAMES_PER_SEASON);
-    games.push(...rows.filter((g) => counts(g.weekKey)).map((g) => ({ ...g, year: season.year })));
+    games.push(...(await countedGames(ctx, season)));
   }
-  return games.sort((a, b) => a.year - b.year || weekIndex(a.weekKey) - weekIndex(b.weekKey));
+  return games.sort(inGameOrder);
+}
+
+/** One season's games, oldest first. */
+export async function orderedSeasonGames(ctx: QueryCtx, season: Doc<"seasons">) {
+  return (await countedGames(ctx, season)).sort(inGameOrder);
 }
 
 /** A player's regular-season and playoff lines across every season, oldest first. */

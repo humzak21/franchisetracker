@@ -37,6 +37,15 @@ test("the player page shows a career as curves without overflow", async ({ page 
   await expectNoHorizontalOverflow(page);
 });
 
+test("the player page lists milestones in order without overflow", async ({ page }) => {
+  await openDiggs(page);
+  const milestones = page.locator("#milestones");
+  await expect(milestones.getByRole("heading", { name: "Milestones" })).toBeVisible();
+  await expect(milestones.getByRole("listitem").first()).toBeVisible();
+  await expect(milestones.getByText("Stefon Diggs")).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+});
+
 test("player notes save on blur", async ({ page }) => {
   await openDiggs(page);
   const notes = page.getByLabel("Scouting notes");

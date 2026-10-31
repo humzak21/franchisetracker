@@ -29,6 +29,7 @@ import {
   TRANSACTION_PHASES,
   TRANSACTION_TYPES,
   WEEK_KEYS,
+  MILESTONE_KINDS,
 } from "../../shared/domain";
 import { RECONCILE_RESOLUTIONS } from "../../shared/ingestion/reconcile";
 import { MARK_HORIZONS } from "../../shared/stats/marks";
@@ -59,20 +60,6 @@ export const RECORD_SCOPES = ["game", "season", "career"] as const;
 export const PROMPT_STATUSES = ["pending", "answered"] as const;
 export const STANDING_SOURCES = ["import", "derived"] as const;
 export const TRANSACTION_DIRECTIONS = ["in", "out"] as const;
-export const MILESTONE_KINDS = [
-  "career_high",
-  "threshold_game",
-  "first_threshold_season",
-  "franchise_record",
-  "streak",
-  "first_td",
-  "game_winner",
-  "connection",
-  "mark",
-  "player_streak",
-  "team_record",
-  "custom",
-] as const;
 export const WARNING_SEVERITIES = ["info", "warning", "error"] as const;
 export const IMPORT_STATUSES = ["running", "done", "failed"] as const;
 

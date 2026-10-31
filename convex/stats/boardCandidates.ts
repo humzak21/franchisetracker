@@ -29,7 +29,7 @@ const MAX_LEADERS = 3000;
 /** A player's seasons with every team, playoffs included. */
 const MAX_PLAYER_ROWS = 80;
 
-type Row = StatRow<Id<"players">, Id<"seasons">, Id<"teams">>;
+type Row = StatRow<Id<"players">, Id<"seasons">, Id<"teams">, Id<"games">>;
 
 export const toStatRow = (row: Doc<"seasonPlayerStats">, year: number): Row => ({
   playerId: row.playerId,
@@ -39,6 +39,7 @@ export const toStatRow = (row: Doc<"seasonPlayerStats">, year: number): Row => (
   gamesPlayed: row.gamesPlayed,
   totals: row.totals as StatLine,
   bests: row.bests ?? {},
+  topGames: row.topGames,
 });
 
 /**

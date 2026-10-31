@@ -22,10 +22,11 @@ export type BrokenRecord = {
   value: number;
 };
 
-type Entry = RankEntry<Id<"players">, Id<"seasons">>;
+type Entry = RankEntry<Id<"players">, Id<"seasons">, Id<"games">>;
 
-/** The game a single-game record was set in: the holder's line that season with that value. */
+/** The game a single-game record was set in: the entry's, or on an older row his line with that value. */
 async function gameOf(ctx: MutationCtx, holder: Entry, stat: string) {
+  if (holder.gameId && holder.weekKey) return { gameId: holder.gameId, weekKey: holder.weekKey };
   const lines = await ctx.db
     .query("gameStatLines")
     .withIndex("by_playerId_and_seasonId", (q) =>
@@ -40,7 +41,8 @@ const sameTop = (a: readonly Entry[], b: readonly Entry[]) => JSON.stringify(a) 
 export async function refreshRecords(
   ctx: MutationCtx,
   franchise: Doc<"franchises">,
-  game: Doc<"games">,
+  /** The game just committed; null from a rebuild, which breaks nothing worth announcing. */
+  game: Doc<"games"> | null,
 ): Promise<{ broken: BrokenRecord[]; changed: ListKey[] }> {
   const rows = await userSeasonRows(ctx, franchise);
   const existing = await ctx.db
@@ -111,7 +113,7 @@ export async function refreshRecords(
               }
             : {}),
         });
-        if (isBreak && holder.seasonId === game.seasonId) {
+        if (isBreak && holder.seasonId === game?.seasonId) {
           broken.push({
             recordId: current._id,
             statKey: stat,
