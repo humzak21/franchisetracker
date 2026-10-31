@@ -3,6 +3,7 @@
  * each season row so the season table can link every high to its box score.
  */
 import { weekIndex, type WeekKey } from "../domain/calendar";
+import { RECORD_STATS, TOP_GAMES } from "./records";
 import type { StatLine } from "./registry";
 import { SEASON_HIGH_STATS, singleGameValue } from "./singleGame";
 
@@ -25,4 +26,24 @@ export function seasonHighs<G>(games: readonly PlayedGame<G>[]): Record<string, 
     }
   }
   return highs;
+}
+
+/**
+ * The best games per record stat, so a single-game list can hold a player's second and third
+ * best too. A tie stays with the earlier game, and zeros are not games to remember.
+ */
+export function topGames<G>(games: readonly PlayedGame<G>[]): Record<string, SeasonHigh<G>[]> {
+  const ordered = [...games].sort((a, b) => weekIndex(a.weekKey) - weekIndex(b.weekKey));
+  const top: Record<string, SeasonHigh<G>[]> = {};
+  for (const stat of RECORD_STATS) {
+    const best = ordered
+      .flatMap(({ gameId, weekKey, line }) => {
+        const value = line[stat] ?? 0;
+        return value > 0 ? [{ value, gameId, weekKey }] : [];
+      })
+      .sort((a, b) => b.value - a.value)
+      .slice(0, TOP_GAMES);
+    if (best.length > 0) top[stat] = best;
+  }
+  return top;
 }

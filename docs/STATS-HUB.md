@@ -299,7 +299,7 @@ The `scoring_plays` row target with game scope and multi-screen merge, `scoringP
 **Sprint 16: hub overview, pace, trends (M)** (built as Sprint 17; the differences are in `SPRINTS.md`, Sprint 17 "As built")
 Overview view, pace columns and the Home pace line, Countdowns card, Trends view, player page Pace, Trends and Cumulative sections; `CumulativeChart`, `SeasonBars`, `PaceBar`, `DeltaBadge` in the gallery. Done when Home and Stats say what a season is on pace for and the player page shows a career as curves, not only rows.
 
-**Sprint 17: records and streaks depth (M)**
+**Sprint 17: records and streaks depth (M)** (built as Sprint 19; the differences are in `SPRINTS.md`, Sprint 19 "As built")
 Fastest-to and best-span lists in the Records book with typed entries, full single-game lists, team records, Streaks with dates and the new kinds, `MilestoneTimeline` on the player page, mark and streak milestones on Home. Done when "fastest to 1,000 yards in a season", "most TDs in any 5 games" and "most points we ever scored" are each one tap.
 
 **Sprint 18: splits and the explorer (M)**

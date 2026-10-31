@@ -114,9 +114,9 @@ The owner's point: by the second decade the app, not the owner, has to remember 
 | Roster 5.3 | Team switcher for other teams' rosters | missing (`roster.bySeason` takes `teamId` but no UI) |
 | Roster 5.3 | Depth chart view | missing (nav description claims it) |
 | Roster 5.3 | Roster diff between two seasons | missing |
-| Player 5.4 | Milestones list on the player page | missing |
+| Player 5.4 | Milestones list on the player page | built in Sprint 19 |
 | Player 5.4 | Manual headshot upload | missing |
-| Stats 5.5 | Imported league leaders top 20 with "where we rank" | missing (the table exists; no screen) |
+| Stats 5.5 | Imported league leaders top 20 with "where we rank" | built in Sprint 19 |
 | Settings 5.12 | Appearance (team colour intensity, density, reduced motion) | missing |
 | Settings 5.12 | Edit franchise team, start year, season length, playoff format | missing |
 | Settings 5.12 | Temperature and token budget | missing |

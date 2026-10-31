@@ -3,8 +3,9 @@
  * games a player appeared in, both oldest first. A streak counts only the games it applies to:
  * a home win streak skips road games rather than ending on them.
  */
-import type { WeekKey } from "../domain/calendar";
+import { weekLabel, type WeekKey } from "../domain/calendar";
 import { statValue } from "./aggregate";
+import { sharedRanks } from "./recordBoards";
 import type { StatLine } from "./registry";
 
 /** Where a streak stands: a game's season and week, or a season alone for a season-long run. */
@@ -224,6 +225,41 @@ export const PLAYER_STREAK_MARKS: ReadonlySet<number> = new Set([5, 10, 15, 20])
 
 /** A streak worth showing: at least two in a row at some point. */
 export const MIN_STREAK = 2;
+
+/** A running streak worth a line on the Streaks view. */
+export const MIN_ACTIVE_STREAK = 3;
+
+/** Entries each longest-streak list shows. */
+export const STREAK_LIST_SIZE = 10;
+
+type Dated = Pick<StreakPoint, "year" | "weekKey">;
+
+/** "2029 Week 3", or the year alone for a season-long run. */
+export const streakPointLabel = ({ year, weekKey }: Dated) =>
+  weekKey ? `${year} ${weekLabel(weekKey)}` : String(year);
+
+/** The two ends of a run, or null on a row from before dates were kept. */
+export function streakSpanLabel(from: Dated | undefined | null, to: Dated | undefined | null) {
+  if (!from || !to) return null;
+  const [start, end] = [streakPointLabel(from), streakPointLabel(to)];
+  return start === end ? start : `${start} to ${end}`;
+}
+
+/** Longest-streak lists, one per kind in registry order, each best first with shared ranks. */
+export function rankRuns<R extends { key: string; longest: number }>(
+  entries: readonly R[],
+  kinds: readonly { key: string }[],
+  size: number = STREAK_LIST_SIZE,
+) {
+  return kinds.flatMap(({ key }) => {
+    const list = entries
+      .filter((e) => e.key === key)
+      .sort((a, b) => b.longest - a.longest)
+      .slice(0, size);
+    if (list.length === 0) return [];
+    return [{ key, entries: sharedRanks(list, (e) => e.longest) }];
+  });
+}
 
 type MeasuredRun<S extends string> = Run<S> & { key: StreakKey };
 

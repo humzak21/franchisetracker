@@ -141,6 +141,8 @@ export async function writePlacements(
   key: ListKey,
 ): Promise<void> {
   const ranked = await rankedList(ctx, franchise, book, key);
+  const placementKey = (e: { playerId?: string; year?: number; weekKey?: string }) =>
+    `${e.playerId}|${e.year ?? ""}|${e.weekKey ?? ""}`;
   const desired = new Map<
     string,
     Omit<
@@ -152,13 +154,14 @@ export async function writePlacements(
       e.playerId
         ? [
             [
-              `${e.playerId}|${e.year ?? ""}`,
+              placementKey(e),
               {
                 playerId: e.playerId as Id<"players">,
                 rank: e.rank,
                 value: e.value,
                 year: e.year,
                 firstYear: e.firstYear,
+                weekKey: e.weekKey,
               },
             ] as const,
           ]
@@ -177,7 +180,7 @@ export async function writePlacements(
     )
     .take(MAX_PLACEMENTS);
   for (const row of existing) {
-    const id = `${row.playerId}|${row.year ?? ""}`;
+    const id = placementKey(row);
     const want = desired.get(id);
     desired.delete(id);
     if (!want) await ctx.db.delete("recordPlacements", row._id);

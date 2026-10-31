@@ -3,9 +3,10 @@
  * team (`docs/STATS-HUB.md` 4.2). Imported seasons have no games, so they count as a starting
  * total and a game count; a mark they already passed has no game to name and is left out.
  */
-import type { WeekKey } from "../domain/calendar";
+import { weekIndex, type WeekKey } from "../domain/calendar";
 import { formatStat } from "./format";
 import { loggedValue, runningTotals, type LoggedGame } from "./ledger";
+import { sharedRanks } from "./recordBoards";
 import { STAT_REGISTRY, type StatKey, type StatLine } from "./registry";
 
 export const MARKS = {
@@ -113,20 +114,40 @@ export function playerMarks<G extends string, S extends string, T extends string
   ]);
 }
 
-/** One line per mark a game reached: a career mark says it all when the season's is the same one. */
-export function marksInGame<M extends PlayerMark>(marks: readonly M[], gameId: string): M[] {
+/** One line per mark per game: a career mark says it all when the season's is the same one. */
+export function distinctMarks<
+  M extends Pick<PlayerMark, "statKey" | "mark" | "horizon"> & { gameId: string },
+>(marks: readonly M[]): M[] {
   const order: MarkHorizon[] = ["career", "team", "season"];
   const best = new Map<string, M>();
   for (const horizon of order) {
     for (const m of marks) {
-      const key = `${m.statKey}|${m.mark}`;
-      if (m.gameId === gameId && m.horizon === horizon && !best.has(key)) best.set(key, m);
+      const key = `${m.gameId}|${m.statKey}|${m.mark}`;
+      if (m.horizon === horizon && !best.has(key)) best.set(key, m);
     }
   }
   return [...best.values()];
 }
 
+export const marksInGame = <M extends PlayerMark>(marks: readonly M[], gameId: string): M[] =>
+  distinctMarks(marks.filter((m) => m.gameId === gameId));
+
+/** "1,000 rushing yards". */
+export function markLabel(m: Pick<PlayerMark, "statKey" | "mark">) {
+  return `${formatStat(m.statKey, m.mark)} ${STAT_REGISTRY[m.statKey].label.toLowerCase()}`;
+}
+
 export function markTitle(name: string, m: Pick<PlayerMark, "statKey" | "mark" | "gamesToReach">) {
-  const label = STAT_REGISTRY[m.statKey].label.toLowerCase();
-  return `${name}: ${formatStat(m.statKey, m.mark)} ${label} in ${m.gamesToReach} games`;
+  return `${name}: ${markLabel(m)} in ${m.gamesToReach} games`;
+}
+
+/** A fastest-to list in order: fewest games first, then the earlier week. Level games share a rank. */
+export function rankMarks<M extends { gamesToReach: number; weekKey: WeekKey; year: number }>(
+  marks: readonly M[],
+): (M & { rank: number })[] {
+  const sorted = [...marks].sort(
+    (a, b) =>
+      a.gamesToReach - b.gamesToReach || weekIndex(a.weekKey) - weekIndex(b.weekKey) || a.year - b.year,
+  );
+  return sharedRanks(sorted, (m) => m.gamesToReach);
 }

@@ -45,6 +45,9 @@ export const vSeasonHigh = v.object({ value: v.number(), gameId: v.id("games"), 
 /** Season highs keyed by stat-registry key (`shared/stats/seasonHighs.ts`). */
 export const vSeasonHighs = v.record(v.string(), vSeasonHigh);
 
+/** A single-game entry on a list says which game; rows from before that was kept do not. */
+const gameEntryFields = { gameId: v.optional(v.id("games")), weekKey: v.optional(vWeekKey) };
+
 export const statTables = {
   /** Materialized per season per player per team. `source` separates log-derived and imported totals. */
   seasonPlayerStats: defineTable({
@@ -56,6 +59,8 @@ export const statTables = {
     ...aggregateFields,
     /** Best game per stat with its game, log-derived rows only. Absent until the row is recomputed. */
     bestGames: v.optional(vSeasonHighs),
+    /** Best three games per record stat, for the single-game lists. Absent until recomputed. */
+    topGames: v.optional(v.record(v.string(), v.array(vSeasonHigh))),
   })
     .index("by_seasonId_and_positionGroup", ["seasonId", "positionGroup"])
     .index("by_seasonId_and_teamId", ["seasonId", "teamId"])
@@ -99,7 +104,13 @@ export const statTables = {
       }),
     ),
     top: v.array(
-      v.object({ playerId: v.id("players"), value: v.number(), seasonId: v.id("seasons"), year: v.number() }),
+      v.object({
+        playerId: v.id("players"),
+        value: v.number(),
+        seasonId: v.id("seasons"),
+        year: v.number(),
+        ...gameEntryFields,
+      }),
     ),
   })
     .index("by_franchiseId_and_split_and_scope_and_statKey", ["franchiseId", "split", "scope", "statKey"])
@@ -123,6 +134,7 @@ export const statTables = {
         seasonId: v.optional(v.id("seasons")),
         teamId: v.optional(v.id("teams")),
         firstYear: v.optional(v.number()),
+        ...gameEntryFields,
       }),
     ),
   }).index("by_franchiseId_and_book_and_split_and_scope_and_statKey", [
@@ -165,6 +177,8 @@ export const statTables = {
     value: v.number(),
     year: v.optional(v.number()),
     firstYear: v.optional(v.number()),
+    /** Single-game lists: a player can make one several times in a season. */
+    weekKey: v.optional(vWeekKey),
   })
     .index("by_playerId", ["playerId"])
     .index("by_franchiseId_and_book_and_split_and_scope_and_statKey", [
@@ -287,6 +301,7 @@ export const statTables = {
     longestTo: v.optional(vStreakPoint),
   })
     .index("by_franchiseId_and_playerId", ["franchiseId", "playerId"])
+    .index("by_franchiseId_and_key_and_longest", ["franchiseId", "key", "longest"])
     .index("by_playerId", ["playerId"]),
 
   milestones: defineTable({

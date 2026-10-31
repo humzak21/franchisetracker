@@ -28,6 +28,7 @@ import { careerBoards, playerBoards, seasonBoards } from "./boardCandidates";
 import { franchiseSeasons, type Split } from "./load";
 import { clearPerformance, performancePage } from "./performance";
 import { rebuildPlayer } from "./recompute";
+import { refreshRecords } from "./refreshRecords";
 import { writeTeamRecords } from "./teamRecords";
 
 /** Players per step: each reads his season rows and rewrites his career. */
@@ -147,8 +148,11 @@ export const step = internalMutation({
         .withIndex("by_franchiseId_and_lastName", (q) => q.eq("franchiseId", franchise._id))
         .paginate({ numItems: LOG_PAGE, cursor: args.cursor ?? null });
       for (const player of page.page) await rebuildPlayer(ctx, player);
-      if (page.isDone) await next("clear");
-      else await next("logs", { cursor: page.continueCursor });
+      if (page.isDone) {
+        // The franchise-era book reads those rows, and no game is about to refresh it.
+        await refreshRecords(ctx, franchise, null);
+        await next("clear");
+      } else await next("logs", { cursor: page.continueCursor });
     } else if (args.phase === "clear") {
       const boards = await ctx.db
         .query("recordBoards")

@@ -5,7 +5,7 @@ import { useQuery } from "@/lib/convex/useQuery";
 
 /** The team's streaks as chips; nothing at all until there is a streak to show. */
 export function TeamStreaks() {
-  const data = useQuery(api.stats.streaks.all, {});
+  const data = useQuery(api.stats.streaks.running, {});
   if (!data || data.team.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-2">

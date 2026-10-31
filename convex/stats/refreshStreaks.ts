@@ -58,10 +58,13 @@ async function writeStreaks(
 }
 
 /** The games a team streak measures, with what each season's run needs. */
-async function teamGames(ctx: QueryCtx, franchise: Doc<"franchises">) {
+export async function teamGames(
+  ctx: QueryCtx,
+  franchise: Doc<"franchises">,
+  games: readonly (Doc<"games"> & { year: number })[],
+) {
   const teams = await teamsById(ctx);
   const user = teams.get(franchise.userTeamId);
-  const games = await franchiseGames(ctx, franchise._id);
   return await Promise.all(
     games.map(async (g) => {
       const opponent = g.opponentTeamId ? teams.get(g.opponentTeamId) : undefined;
@@ -116,7 +119,7 @@ async function teamSeasons(ctx: QueryCtx, franchise: Doc<"franchises">) {
 /** Team streaks; returns the win streak before and after so a new length can be celebrated. */
 export async function refreshTeamStreaks(ctx: MutationCtx, franchise: Doc<"franchises">) {
   const measured = [
-    ...teamStreaks(await teamGames(ctx, franchise)),
+    ...teamStreaks(await teamGames(ctx, franchise, await franchiseGames(ctx, franchise._id))),
     ...seasonStreaks(await teamSeasons(ctx, franchise)),
   ];
   const before = await writeStreaks(ctx, franchise._id, undefined, measured);

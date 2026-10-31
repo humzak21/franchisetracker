@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { ListOrdered } from "lucide-react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
@@ -11,9 +10,9 @@ import {
   type StatCategory,
 } from "@shared/stats";
 import { EmptyState } from "@/components/data/EmptyState";
+import { RankedList } from "@/components/data/RankedList";
 import { Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
-import { cn } from "@/lib/cn";
 import { byRegistryOrder, type Split } from "./split";
 import { useQuery } from "@/lib/convex/useQuery";
 
@@ -51,42 +50,24 @@ export function LeadersBoard({ split }: { split: Split }) {
         {leaders
           .filter((l) => categoryOf(l.statKey) === category)
           .sort(byRegistryOrder)
-          .map((board) => (
-            <section
-              key={board._id}
-              className="rounded-xl border border-border bg-surface"
-              aria-label={`${isStatKey(board.statKey) ? STAT_REGISTRY[board.statKey].label : board.statKey} leaders`}
-            >
-              <h4 className="border-b border-border px-4 py-2.5 text-sm font-medium">
-                {isStatKey(board.statKey) ? STAT_REGISTRY[board.statKey].label : board.statKey}
-              </h4>
-              <ol className="divide-y divide-border">
-                {board.top.map((entry, i) => (
-                  <li key={entry.player.playerId} className="flex min-h-11 items-center gap-3 px-4 py-1.5">
-                    <span
-                      className={cn(
-                        "num w-5 text-right font-display text-lg font-bold",
-                        i === 0 ? "text-primary" : "text-subtle-foreground",
-                      )}
-                    >
-                      {i + 1}
-                    </span>
-                    <Link
-                      to="/players/$playerId"
-                      params={{ playerId: entry.player.playerId }}
-                      className="min-w-0 flex-1 truncate text-sm hover:underline"
-                    >
-                      {entry.player.name}
-                      <span className="ml-1.5 text-xs text-subtle-foreground">{entry.player.position}</span>
-                    </Link>
-                    <span className="num text-sm font-semibold">
-                      {isStatKey(board.statKey) ? formatStat(board.statKey, entry.value) : entry.value}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            </section>
-          ))}
+          .map((board) => {
+            const label = isStatKey(board.statKey) ? STAT_REGISTRY[board.statKey].label : board.statKey;
+            return (
+              <RankedList
+                key={board._id}
+                title={label}
+                label={`${label} leaders`}
+                items={board.top.map((entry, i) => ({
+                  key: entry.player.playerId,
+                  rank: i + 1,
+                  name: entry.player.name,
+                  playerId: entry.player.playerId,
+                  nameEnd: <span className="text-xs text-subtle-foreground">{entry.player.position}</span>,
+                  value: isStatKey(board.statKey) ? formatStat(board.statKey, entry.value) : entry.value,
+                }))}
+              />
+            );
+          })}
       </div>
     </div>
   );

@@ -63,7 +63,7 @@ async function playerMilestones(
     playerId: player._id,
     statKey: key,
     value: length,
-    title: `${player.displayName}: ${length} straight, ${name.toLowerCase()}`,
+    title: `${player.displayName}: ${length} straight, ${name.charAt(0).toLowerCase()}${name.slice(1)}`,
   }));
   const detected = detectMilestones({
     name: player.displayName,

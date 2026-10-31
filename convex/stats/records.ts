@@ -45,6 +45,9 @@ const vListEntry = v.object({
   year: nullable(v.number()),
   /** Career entries: the first season counted. */
   firstYear: nullable(v.number()),
+  /** Single-game entries: which game, once the season has been recomputed. */
+  gameId: nullable(v.id("games")),
+  weekKey: nullable(vWeekKey),
   typedId: nullable(v.id("typedRecords")),
 });
 
@@ -108,6 +111,8 @@ export const lists = query({
                 value: e.value,
                 year: e.year ?? null,
                 firstYear: e.firstYear ?? null,
+                gameId: (e.gameId as Id<"games"> | undefined) ?? null,
+                weekKey: e.weekKey ?? null,
                 typedId: e.typedId ?? null,
               };
             }),
@@ -171,6 +176,7 @@ export const forPlayer = query({
       value: v.number(),
       year: nullable(v.number()),
       firstYear: nullable(v.number()),
+      weekKey: nullable(vWeekKey),
     }),
   ),
   handler: async (ctx, { playerId }) => {
@@ -190,6 +196,7 @@ export const forPlayer = query({
         value: r.value,
         year: r.year ?? null,
         firstYear: r.firstYear ?? null,
+        weekKey: r.weekKey ?? null,
       }))
       .sort((a, b) => a.rank - b.rank);
   },

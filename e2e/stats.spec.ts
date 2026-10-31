@@ -160,6 +160,48 @@ test("the records book, leaders and streaks", async ({ page }) => {
   await expect(page.getByText("Games with a TD pass").first()).toBeVisible();
 });
 
+test("records reach past the books: fastest to, best spans, the team's own", async ({ page }) => {
+  await openView(page, "Records");
+  await page.getByRole("radio", { name: "Fastest to", exact: true }).click();
+  await page.getByLabel("Stat").selectOption("passYds");
+  await page.getByRole("radio", { name: "Single season", exact: true }).click();
+  const fastest = page.getByRole("region", { name: "Fastest to 1,000 passing yards" });
+  await expect(fastest.getByText("Drake Maye").first()).toBeVisible();
+  await expect(fastest.getByText(/\d games/).first()).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Playoffs" })).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+
+  await page.getByRole("radio", { name: "Best spans", exact: true }).click();
+  await page.getByLabel("Stat").selectOption("passTd");
+  const spans = page.getByRole("region", { name: "Best 5 games" });
+  await expect(spans.getByText("Drake Maye").first()).toBeVisible();
+  await expect(spans.getByRole("link", { name: /W\d+ to / }).first()).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.getByRole("radio", { name: "Team records", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Most points team records" })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
+test("streaks say when they began, and a season can be picked without overflow", async ({ page }) => {
+  await openView(page, "Streaks");
+  await expect(page.getByRole("region", { name: "Streaks running now" })).toContainText("since");
+  await expect(page.getByRole("region", { name: "Longest team streaks" })).toBeVisible();
+  await page.getByLabel("Streaks from").selectOption({ index: 1 });
+  await expect(page.getByRole("region", { name: "Longest: Games with a TD pass" })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
+test("league leaders say where we rank without overflow", async ({ page }) => {
+  await openView(page, "League");
+  await page.getByRole("radio", { name: "Top 20s", exact: true }).click();
+  // Other tests may capture leaders for the season, so either state is right here.
+  await expect(
+    page.getByRole("heading", { name: "Where we rank" }).or(page.getByText(/^No leaders for/)),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
 test("milestones can be acknowledged from Home", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Milestones" })).toBeVisible();

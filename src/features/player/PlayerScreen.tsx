@@ -23,6 +23,7 @@ import { PlayerActivity } from "./PlayerActivity";
 import { PlayerEditActions } from "./PlayerEditActions";
 import { PlayerHero } from "./PlayerHero";
 import { PlayerHighlights } from "./PlayerHighlights";
+import { PlayerMilestones } from "./PlayerMilestones";
 import { PlayerPace } from "./PlayerPace";
 import { PlayerStatCards } from "./PlayerStatCards";
 import { PossibleDuplicate } from "./PossibleDuplicate";
@@ -32,6 +33,7 @@ import { useQuery } from "@/lib/convex/useQuery";
 
 const SECTIONS = [
   { id: "stats", label: "Stats" },
+  { id: "milestones", label: "Milestones" },
   { id: "progression", label: "OVR" },
   { id: "career", label: "Career" },
   { id: "trends", label: "Trends" },
@@ -45,7 +47,7 @@ const SECTIONS = [
 
 /**
  * Player page (FEATURES.md 5.4): the card and bio, stat cards, pace in a live season, records and
- * streaks, OVR progression, career stats (real NFL seasons first, marked), trends and cumulative
+ * streaks, milestones, OVR progression, career stats (real NFL seasons first, marked), trends and cumulative
  * curves, game logs, roster history, identity tools and notes. Jump links keep it navigable on a phone.
  */
 export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
@@ -123,6 +125,7 @@ export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
           </Section>
           {trends && <PlayerPace trends={trends} stats={lead} />}
           <PlayerHighlights playerId={playerId} />
+          <PlayerMilestones playerId={playerId} />
           <Section id="progression" title="OVR progression">
             <OvrProgression playerId={playerId} />
           </Section>
