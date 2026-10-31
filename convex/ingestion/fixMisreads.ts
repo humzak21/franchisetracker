@@ -130,6 +130,99 @@ const vMatch = v.object({
   hasSeasonStats: v.boolean(),
 });
 
+export type MisreadFix = {
+  /** The player as the misread created him. */
+  name: string;
+  /** The real player to merge him into; absent when the name was right. */
+  into?: string;
+  teamAbbr: string;
+  /** Picks among players sharing a name, from a dry run's answer. */
+  sourceId?: Id<"players">;
+  intoId?: Id<"players">;
+};
+
+/** Applies the fixes, or with `dryRun` only says what each would do. */
+export async function fixNames(
+  ctx: MutationCtx,
+  { dryRun, year, fixes }: { dryRun: boolean; year: number; fixes: readonly MisreadFix[] },
+) {
+  const franchise = await activeFranchise(ctx);
+  const season = await ctx.db
+    .query("seasons")
+    .withIndex("by_franchiseId_and_year", (q) => q.eq("franchiseId", franchise._id).eq("year", year))
+    .unique();
+  if (!season) throw new Error(`No ${year} season`);
+  const userTeam = await ctx.db.get("teams", franchise.userTeamId);
+  if (!userTeam) throw new Error("User team missing");
+  const describe = async (p: Doc<"players">) => {
+    const entries = await ctx.db
+      .query("rosterEntries")
+      .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", p._id).eq("seasonId", season._id))
+      .take(MAX_ENTRIES);
+    const teams = await Promise.all(
+      entries.map(async (e) => (await ctx.db.get("teams", e.teamId))?.abbr ?? "?"),
+    );
+    const reported = await ctx.db
+      .query("reportedSeasonStats")
+      .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", p._id).eq("seasonId", season._id))
+      .first();
+    return {
+      _id: p._id,
+      position: p.position,
+      college: p.college ?? null,
+      teams,
+      hasSeasonStats: reported !== null,
+    };
+  };
+
+  const out = [];
+  for (const fix of fixes) {
+    const team = await ctx.db
+      .query("teams")
+      .withIndex("by_abbr", (q) => q.eq("abbr", fix.teamAbbr.toUpperCase()))
+      .first();
+    const pick = (list: Doc<"players">[], id: Id<"players"> | undefined) =>
+      id ? list.filter((p) => p._id === id) : list;
+    const sources = pick(await playersNamed(ctx, franchise._id, fix.name), fix.sourceId);
+    const targets = fix.into ? pick(await playersNamed(ctx, franchise._id, fix.into), fix.intoId) : [];
+    const skipped = !team
+      ? `No team ${fix.teamAbbr}`
+      : sources.length !== 1
+        ? `${sources.length} players named ${fix.name}`
+        : fix.into && targets.length !== 1
+          ? `${targets.length} players named ${fix.into}`
+          : null;
+    const row = {
+      name: fix.name,
+      into: fix.into ?? null,
+      team: team?.abbr ?? fix.teamAbbr,
+      sources: await Promise.all(sources.map(describe)),
+      targets: await Promise.all(targets.map(describe)),
+      mode: null as "merge" | "move" | "place" | null,
+      done: false,
+      skipped,
+    };
+    const source = sources[0];
+    const target = targets[0];
+    if (!skipped && team && source) {
+      row.mode = !target
+        ? "place"
+        : (await madeByCommit(ctx, source, season._id, userTeam._id))
+          ? "merge"
+          : "move";
+    }
+    if (!dryRun && team && source && row.mode) {
+      const kept = target ?? source;
+      if (row.mode === "merge") await mergePlayers(ctx, source, kept);
+      if (row.mode === "move") await moveSeason(ctx, source._id, kept._id, season._id, userTeam, team);
+      await placeOn(ctx, kept._id, season._id, userTeam, team);
+      row.done = true;
+    }
+    out.push(row);
+  }
+  return out;
+}
+
 export const run = internalMutation({
   args: {
     dryRun: v.boolean(),
@@ -160,81 +253,5 @@ export const run = internalMutation({
       skipped: v.union(v.string(), v.null()),
     }),
   ),
-  handler: async (ctx, { dryRun, year, fixes }) => {
-    const franchise = await activeFranchise(ctx);
-    const season = await ctx.db
-      .query("seasons")
-      .withIndex("by_franchiseId_and_year", (q) => q.eq("franchiseId", franchise._id).eq("year", year))
-      .unique();
-    if (!season) throw new Error(`No ${year} season`);
-    const userTeam = await ctx.db.get("teams", franchise.userTeamId);
-    if (!userTeam) throw new Error("User team missing");
-    const describe = async (p: Doc<"players">) => {
-      const entries = await ctx.db
-        .query("rosterEntries")
-        .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", p._id).eq("seasonId", season._id))
-        .take(MAX_ENTRIES);
-      const teams = await Promise.all(
-        entries.map(async (e) => (await ctx.db.get("teams", e.teamId))?.abbr ?? "?"),
-      );
-      const reported = await ctx.db
-        .query("reportedSeasonStats")
-        .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", p._id).eq("seasonId", season._id))
-        .first();
-      return {
-        _id: p._id,
-        position: p.position,
-        college: p.college ?? null,
-        teams,
-        hasSeasonStats: reported !== null,
-      };
-    };
-
-    const out = [];
-    for (const fix of fixes) {
-      const team = await ctx.db
-        .query("teams")
-        .withIndex("by_abbr", (q) => q.eq("abbr", fix.teamAbbr.toUpperCase()))
-        .first();
-      const pick = (list: Doc<"players">[], id: Id<"players"> | undefined) =>
-        id ? list.filter((p) => p._id === id) : list;
-      const sources = pick(await playersNamed(ctx, franchise._id, fix.name), fix.sourceId);
-      const targets = fix.into ? pick(await playersNamed(ctx, franchise._id, fix.into), fix.intoId) : [];
-      const skipped = !team
-        ? `No team ${fix.teamAbbr}`
-        : sources.length !== 1
-          ? `${sources.length} players named ${fix.name}`
-          : fix.into && targets.length !== 1
-            ? `${targets.length} players named ${fix.into}`
-            : null;
-      const row = {
-        name: fix.name,
-        into: fix.into ?? null,
-        team: team?.abbr ?? fix.teamAbbr,
-        sources: await Promise.all(sources.map(describe)),
-        targets: await Promise.all(targets.map(describe)),
-        mode: null as "merge" | "move" | "place" | null,
-        done: false,
-        skipped,
-      };
-      const source = sources[0];
-      const target = targets[0];
-      if (!skipped && team && source) {
-        row.mode = !target
-          ? "place"
-          : (await madeByCommit(ctx, source, season._id, userTeam._id))
-            ? "merge"
-            : "move";
-      }
-      if (!dryRun && team && source && row.mode) {
-        const kept = target ?? source;
-        if (row.mode === "merge") await mergePlayers(ctx, source, kept);
-        if (row.mode === "move") await moveSeason(ctx, source._id, kept._id, season._id, userTeam, team);
-        await placeOn(ctx, kept._id, season._id, userTeam, team);
-        row.done = true;
-      }
-      out.push(row);
-    }
-    return out;
-  },
+  handler: async (ctx, args) => await fixNames(ctx, args),
 });

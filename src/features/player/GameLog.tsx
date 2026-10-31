@@ -84,9 +84,14 @@ function columns(
       header: "Marks",
       title: "Highlights",
       sortable: false,
-      value: (r) => gameHighlights(r.stats as StatLine).length + r.touchdowns.length,
+      value: (r) => gameHighlights(r.stats as StatLine).length + r.touchdowns.length + r.marks.length,
       cell: (r) => (
         <span className="flex flex-wrap gap-1">
+          {r.marks.map((mark) => (
+            <Badge key={mark} tone="win" title="Mark reached in this game">
+              {mark}
+            </Badge>
+          ))}
           {gameHighlights(r.stats as StatLine).map((t) => (
             <Badge key={t.key} tone="accent" title={t.label}>
               {t.short}

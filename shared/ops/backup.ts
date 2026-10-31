@@ -64,15 +64,17 @@ export const NOT_BACKED_UP = {
   ingestionTokens: "secrets; generate a new token after a restore",
   errorReports: "about the app, not the franchise",
   backups: "the backups themselves",
-  recordBoards: "worked out from season rows; rebuilt from the Records screen after a restore",
+  recordBoards: "worked out from season rows; a restore rebuilds them",
   recordPlacements: "worked out with the records boards",
   recordBuilds: "the records rebuild job's progress",
   identityTidies: "the identity tidy job's progress",
   rosterSyncs: "a roster page's undo list; the entries it changed are backed up",
-  scoringBoards: "worked out from the scoring plays; rewritten when the next game's plays commit",
-  playerMarks: "worked out from the game logs; Rebuild stats in Settings → Data writes them again",
-  spanBoards: "worked out from the game logs; Rebuild stats in Settings → Data writes them again",
-  teamRecords: "worked out from the games; Rebuild stats in Settings → Data writes them again",
+  scoringBoards: "worked out from the scoring plays; a restore rebuilds them",
+  playerMarks: "worked out from the game logs; a restore rebuilds them",
+  spanBoards: "worked out from the game logs; a restore rebuilds them",
+  teamRecords: "worked out from the games; a restore rebuilds them",
+  maintenanceRuns: "when each job last ran, which says nothing about the restored franchise",
+  usageMonths: "what this month has cost; a restored franchise starts counting afresh",
 } as const;
 
 type Row = { _id: string } & Record<string, unknown>;

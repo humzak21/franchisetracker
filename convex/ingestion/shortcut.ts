@@ -21,7 +21,7 @@ import { activeFranchise } from "../lib/franchise";
 import { rateLimiter } from "../lib/rateLimits";
 import { vWeekKey } from "../lib/validators";
 import { MAX_SET_SIZE } from "./sets";
-import { sha256Hex } from "./tokens";
+import { sha256Hex, sha256HexOfBytes } from "./tokens";
 
 const MAX_GAMES_PER_SEASON = 40;
 
@@ -149,7 +149,11 @@ export const upload = httpAction(async (ctx, request) => {
   if (files.some((file) => file.size > MAX_IMAGE_BYTES)) return json({ error: TOO_LARGE }, 413);
 
   const storageIds: Id<"_storage">[] = [];
-  for (const file of files) storageIds.push(await ctx.storage.store(file));
+  const hashes: string[] = [];
+  for (const file of files) {
+    hashes.push(await sha256HexOfBytes(await file.arrayBuffer()));
+    storageIds.push(await ctx.storage.store(file));
+  }
   const targetKey = target && isTargetKey(target) ? target : undefined;
   const scope = targetKey ? INGESTION_TARGETS[targetKey].scope : undefined;
   // Context inference: without a week, a game screen is the next game, a weekly one the week just played.
@@ -161,10 +165,11 @@ export const upload = httpAction(async (ctx, request) => {
         : scope === "week"
           ? season.lastWeek
           : undefined;
-  let sets: string[];
+  let outcome: { sets: number; duplicate: boolean };
   try {
-    sets = await ctx.runMutation(internal.ingestion.shortcutUploads.create, {
+    outcome = await ctx.runMutation(internal.ingestion.shortcutUploads.create, {
       storageIds,
+      hashes,
       targetKey,
       seasonId: season._id,
       weekKey,
@@ -176,5 +181,5 @@ export const upload = httpAction(async (ctx, request) => {
     if (error instanceof ConvexError) return json({ error: (error.data as AppErrorData).message }, 400);
     throw error;
   }
-  return json({ ok: true, sets: sets.length, images: storageIds.length });
+  return json({ ok: true, ...outcome, images: storageIds.length });
 });

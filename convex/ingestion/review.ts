@@ -3,6 +3,7 @@
  * goes, and commit, which writes canonical rows, recomputes aggregates and stores corrections.
  */
 import { v } from "convex/values";
+import { UPLOAD_HOLDS } from "../../shared/ingestion/budget";
 import { deriveDraft } from "../../shared/ingestion/normalize";
 import { rememberPlayer } from "./playerAssignments";
 import { mutation, query } from "../_generated/server";
@@ -10,7 +11,7 @@ import { requireOwner } from "../lib/auth";
 import { vDraft, vDraftWarning, vFieldConfidence } from "../lib/draftValidators";
 import { must } from "../lib/errors";
 import { activeFranchise } from "../lib/franchise";
-import { vUploadStatus, vWeekKey } from "../lib/validators";
+import { literals, vUploadStatus, vWeekKey } from "../lib/validators";
 import { existingGame, vExistingGame } from "./commitDraft";
 import { commitSet, latestExtraction, requireExtraction } from "./commitSet";
 import { requireSet, setStatus } from "./sets";
@@ -24,6 +25,8 @@ export const get = query({
     season: v.union(v.object({ _id: v.id("seasons"), year: v.number() }), v.null()),
     weekKey: v.union(vWeekKey, v.null()),
     error: v.union(v.string(), v.null()),
+    /** Why a queued set is not being read. */
+    hold: v.union(literals(UPLOAD_HOLDS), v.null()),
     /** When the running extraction started, while the set is extracting. */
     extractionStartedAt: v.union(v.number(), v.null()),
     images: v.array(v.object({ _id: v.id("uploads"), url: v.union(v.string(), v.null()) })),
@@ -59,6 +62,7 @@ export const get = query({
       season: season ? { _id: season._id, year: season.year } : null,
       weekKey: lead.weekKey ?? null,
       error: uploads.find((u) => u.error)?.error ?? null,
+      hold: uploads.find((u) => u.hold)?.hold ?? null,
       extractionStartedAt: uploads.find((u) => u.status === "extracting")?.extractionStartedAt ?? null,
       images: await Promise.all(
         uploads.map(async (u) => ({ _id: u._id, url: await ctx.storage.getUrl(u.storageId) })),

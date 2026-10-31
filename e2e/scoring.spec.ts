@@ -6,13 +6,8 @@ import {
   expectNoHorizontalOverflow,
   isPhone,
   test,
+  png,
 } from "./fixtures";
-
-/** A 1x1 PNG: the local e2e backend has no OpenRouter key, so the built-in sample answer reads it. */
-const PNG = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
-  "base64",
-);
 
 /** Each project commits a different game, so parallel runs never rewrite each other's plays. */
 const gameFor = (info: TestInfo) => (isPhone(info.project.name) ? 1 : 0);
@@ -48,8 +43,8 @@ test("a scoring summary goes from photos to a play list without overflow", async
   const sheet = page.getByRole("dialog", { name: "Capture" });
   await expect(sheet.getByLabel("Screen", { exact: true })).toHaveValue("scoring_plays");
   await sheet.getByLabel("Choose screenshots").setInputFiles([
-    { name: "scoring-1.png", mimeType: "image/png", buffer: PNG },
-    { name: "scoring-2.png", mimeType: "image/png", buffer: PNG },
+    { name: "scoring-1.png", mimeType: "image/png", buffer: png() },
+    { name: "scoring-2.png", mimeType: "image/png", buffer: png() },
   ]);
   await page.getByRole("button", { name: "Upload 2 screenshots" }).click();
   await expect(page).toHaveURL(/\/inbox\/.+/);
@@ -96,9 +91,9 @@ test("a full game log carries its scoring summary without overflow", async ({ pa
   await sheet.getByLabel("Season", { exact: true }).selectOption({ label: String(SAMPLE_YEAR + 1) });
   await sheet.getByLabel("Week", { exact: true }).selectOption(`w${week}`);
   await sheet.getByLabel("Choose screenshots").setInputFiles([
-    { name: "players.png", mimeType: "image/png", buffer: PNG },
-    { name: "team-stats.png", mimeType: "image/png", buffer: PNG },
-    { name: "scoring.png", mimeType: "image/png", buffer: PNG },
+    { name: "players.png", mimeType: "image/png", buffer: png() },
+    { name: "team-stats.png", mimeType: "image/png", buffer: png() },
+    { name: "scoring.png", mimeType: "image/png", buffer: png() },
   ]);
   await page.getByRole("button", { name: "Upload 3 screenshots" }).click();
   await expect(page).toHaveURL(/\/inbox\/.+/);

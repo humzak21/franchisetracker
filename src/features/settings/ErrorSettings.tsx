@@ -8,19 +8,35 @@ import { Badge, Skeleton } from "@/components/ui/misc";
 import { formatAge } from "@/lib/time";
 import { useQuery } from "@/lib/convex/useQuery";
 
-/** Errors (FEATURES.md 8): what broke in the app on any device, newest first, with how often. */
+/** New until marked seen, and new again if it happens after that. */
+const isNew = (r: { seenAt?: number; lastSeen: number }) => r.seenAt === undefined || r.lastSeen > r.seenAt;
+
+/** Errors (FEATURES.md 8): what broke on any device or in a scheduled job, newest first, with how often. */
 export function ErrorSettings() {
   const reports = useQuery(api.ops.errors.recent, {});
   const clear = useMutation(api.ops.errors.clear);
+  const markSeen = useMutation(api.ops.errors.markSeen);
+  const fresh = (reports ?? []).filter(isNew);
   return (
     <Section
       title="Errors"
-      description="Unexpected errors from any device running the app. Backend errors are in the Convex dashboard logs."
+      description="Unexpected errors from any device running the app, and scheduled jobs that failed."
       actions={
         reports && reports.length > 0 ? (
-          <Button size="sm" variant="outline" onClick={() => void clear({})}>
-            Clear
-          </Button>
+          <div className="flex gap-2">
+            {fresh.length > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void markSeen({ ids: fresh.map((r) => r._id) })}
+              >
+                Mark seen
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={() => void clear({})}>
+              Clear
+            </Button>
+          </div>
         ) : undefined
       }
     >
@@ -40,6 +56,7 @@ export function ErrorSettings() {
                       {r.path} · {formatAge(r.lastSeen)}
                     </span>
                   </span>
+                  {isNew(r) && <Badge tone="accent">New</Badge>}
                   {r.count > 1 && <Badge tone="warn">×{r.count}</Badge>}
                   <Badge>{r.kind}</Badge>
                 </summary>

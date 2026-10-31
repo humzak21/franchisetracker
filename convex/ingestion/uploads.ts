@@ -3,6 +3,7 @@
  * everything it needs starts extraction straight away. The inbox listing is in `inbox.ts`.
  */
 import { v } from "convex/values";
+import { DUPLICATE_HELD } from "../../shared/ingestion/budget";
 import { MAX_IMAGE_BYTES, TOO_LARGE } from "../../shared/ingestion/limits";
 import { INGESTION_TARGETS } from "../../shared/ingestion/targets";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -12,7 +13,7 @@ import { vTargetKey } from "../lib/draftValidators";
 import { invalid, must } from "../lib/errors";
 import { activeFranchise } from "../lib/franchise";
 import { vUploadSource, vWeekKey } from "../lib/validators";
-import { MAX_SET_SIZE, readyToExtract, requireSet, startExtraction } from "./sets";
+import { deleteSet, isHeld, MAX_SET_SIZE, readyToExtract, requireSet, startExtraction } from "./sets";
 
 export const vContext = {
   targetKey: v.optional(vTargetKey),
@@ -33,6 +34,8 @@ export const generateUploadUrl = mutation({
 type NewUploads = {
   storageIds: Id<"_storage">[];
   sizes?: { width: number; height: number }[];
+  /** SHA-256 of each file as sent, in order, where it could be worked out. */
+  hashes?: string[];
   source: Doc<"uploads">["source"];
   targetKey?: Doc<"uploads">["targetKey"];
   seasonId?: Id<"seasons">;
@@ -44,9 +47,20 @@ type NewUploads = {
   deferExtraction?: boolean;
 };
 
+/** A screenshot this franchise already has. One rejected or failed earlier was meant to be sent again. */
+async function isRepeat(ctx: MutationCtx, franchiseId: Id<"franchises">, hash: string | undefined) {
+  if (!hash) return false;
+  const same = await ctx.db
+    .query("uploads")
+    .withIndex("by_franchiseId_and_hash", (q) => q.eq("franchiseId", franchiseId).eq("hash", hash))
+    .take(MAX_SET_SIZE);
+  return same.some((u) => u.status !== "rejected" && u.status !== "failed");
+}
+
 /**
  * Inserts uploads. Screenshots sent together for a multi-image target form one set; anything
- * else is a set per screenshot. Sets with full context go straight to extraction.
+ * else is a set per screenshot. Sets with full context go straight to extraction, unless one
+ * holds a screenshot already uploaded: that waits in the inbox, so a repeat costs nothing.
  */
 export async function insertUploads(ctx: MutationCtx, args: NewUploads): Promise<string[]> {
   if (args.storageIds.length === 0 || args.storageIds.length > MAX_SET_SIZE) {
@@ -67,6 +81,8 @@ export async function insertUploads(ctx: MutationCtx, args: NewUploads): Promise
     // The throw rolls back any delete here, so the callers clean up: the Shortcut endpoint deletes
     // what it stored, and the web app refuses an oversized file before uploading it.
     if (!file.contentType?.startsWith("image/") || file.size > MAX_IMAGE_BYTES) throw invalid(TOO_LARGE);
+    const hash = args.hashes?.[i];
+    const repeat = await isRepeat(ctx, franchise._id, hash);
     const id = await ctx.db.insert("uploads", {
       franchiseId: franchise._id,
       storageId,
@@ -79,6 +95,8 @@ export async function insertUploads(ctx: MutationCtx, args: NewUploads): Promise
       weekKey,
       gameId: args.gameId,
       status: "queued",
+      hash,
+      ...(repeat ? { hold: "duplicate" as const, error: DUPLICATE_HELD } : {}),
       createdAt: Date.now(),
     });
     const setKey: string = grouped ? (sharedKey ??= args.setKey ?? id) : id;
@@ -86,7 +104,9 @@ export async function insertUploads(ctx: MutationCtx, args: NewUploads): Promise
     sets.set(setKey, [...(sets.get(setKey) ?? []), must(await ctx.db.get("uploads", id), "Upload")]);
   }
   if (!args.deferExtraction) {
-    for (const uploads of sets.values()) if (readyToExtract(uploads[0]!)) await startExtraction(ctx, uploads);
+    for (const uploads of sets.values()) {
+      if (readyToExtract(uploads[0]!) && !isHeld(uploads)) await startExtraction(ctx, uploads);
+    }
   }
   return [...sets.keys()];
 }
@@ -95,6 +115,7 @@ export const create = mutation({
   args: {
     storageIds: v.array(v.id("_storage")),
     sizes: v.optional(v.array(v.object({ width: v.number(), height: v.number() }))),
+    hashes: v.optional(v.array(v.string())),
     source: vUploadSource,
     ...vContext,
   },
@@ -130,7 +151,13 @@ export const tag = mutation({
     for (const group of groups) {
       const setKey = group[0]!.setKey;
       for (const upload of group) {
-        await ctx.db.patch("uploads", upload._id, { ...context, setKey, status: "queued", error: undefined });
+        await ctx.db.patch("uploads", upload._id, {
+          ...context,
+          setKey,
+          status: "queued",
+          error: undefined,
+          hold: undefined,
+        });
       }
       const updated = await Promise.all(
         group.map(async (u) => must(await ctx.db.get("uploads", u._id), "Upload")),
@@ -202,17 +229,7 @@ export const remove = mutation({
   handler: async (ctx, { setKeys }) => {
     await requireOwner(ctx);
     const franchise = await activeFranchise(ctx);
-    for (const key of setKeys) {
-      const extractions = await ctx.db
-        .query("extractions")
-        .withIndex("by_setKey", (q) => q.eq("setKey", key))
-        .take(50);
-      for (const extraction of extractions) await ctx.db.delete("extractions", extraction._id);
-      for (const upload of await requireSet(ctx, franchise._id, key)) {
-        await ctx.storage.delete(upload.storageId);
-        await ctx.db.delete("uploads", upload._id);
-      }
-    }
+    for (const key of setKeys) await deleteSet(ctx, franchise._id, key);
     return null;
   },
 });

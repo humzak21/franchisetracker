@@ -37,7 +37,7 @@ export function RestoreProgress({ state, onDismiss }: { state: RestoreState; onD
     >
       <span className="min-w-0 flex-1">
         {state.phase === "done"
-          ? `Restored ${state.franchises.join(" and ")} (${state.rows.toLocaleString()} rows). Switch to it from the franchise menu.`
+          ? `Restored ${state.franchises.join(" and ")} (${state.rows.toLocaleString()} rows). Its records rebuild in the background; switch to it from the franchise menu.`
           : state.message}
       </span>
       <Button size="sm" variant="ghost" onClick={onDismiss}>

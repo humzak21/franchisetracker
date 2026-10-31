@@ -1,6 +1,7 @@
 import { Segmented } from "@/components/ui/segmented";
 import { BestSpanLists } from "./BestSpanLists";
 import { FastestToLists } from "./FastestToLists";
+import { MissingBoxScores } from "./MissingBoxScores";
 import { RecordsBook } from "./RecordsBook";
 import type { Split } from "./split";
 import { TeamRecordLists } from "./TeamRecordLists";
@@ -28,6 +29,7 @@ export function RecordsView({
       <div data-swipe-ignore className="-mx-1 scrollbar-none overflow-x-auto px-1">
         <Segmented aria-label="Records" value={kind} onChange={onKind} options={KINDS} />
       </div>
+      {kind !== "team" && <MissingBoxScores />}
       {kind === "books" && <RecordsBook split={split} />}
       {kind === "marks" && <FastestToLists />}
       {kind === "spans" && <BestSpanLists split={split} />}

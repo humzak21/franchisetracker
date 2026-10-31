@@ -92,14 +92,14 @@ export function parseBackup(value: unknown): BackupFile {
 /**
  * Restores every franchise in a backup as new, inactive franchises labelled with `label`; the
  * existing data is never touched. Tables go in reference order; references to rows inserted later
- * are patched at the end. Returns the restored franchises' names and the rows written.
+ * are patched at the end. Returns the restored franchises, by name and new id, and the rows written.
  */
 export async function restoreBackup(
   file: BackupFile,
   write: RestoreWriter,
   label: string,
   onProgress?: (done: number, total: number) => void,
-): Promise<{ franchises: string[]; rows: number }> {
+): Promise<{ franchises: string[]; franchiseIds: string[]; rows: number }> {
   const map = new Map<string, string>();
   const current = new Map((await write.teams()).map((t) => [t.abbr, t._id]));
   for (const team of file.teams) {
@@ -151,6 +151,7 @@ export async function restoreBackup(
 
   return {
     franchises: file.tables.franchises.map((f) => String(prepareForRestore("franchises", f, label).name)),
+    franchiseIds: file.tables.franchises.flatMap((f) => map.get(f._id) ?? []),
     rows,
   };
 }

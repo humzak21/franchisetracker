@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { Select } from "@/components/ui/select";
 import { useQuery } from "@/lib/convex/useQuery";
+import { MissingBoxScores } from "./MissingBoxScores";
 
 const ALL_TIME = "all";
 /** Runs shown before "Show all": every starter has a few going. */
@@ -140,6 +141,7 @@ function Longest() {
 export function StreaksBoard() {
   return (
     <div className="space-y-6">
+      <MissingBoxScores />
       <Section title="Active">
         <RunningNow />
       </Section>

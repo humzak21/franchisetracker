@@ -11,11 +11,44 @@ import { requireOwner } from "../lib/auth";
 import { invalid, must } from "../lib/errors";
 import { activeFranchise, playersById } from "../lib/franchise";
 import { headshotUrls } from "../lib/refs";
-import { seasonGames } from "../lib/reports";
+import { franchiseSeasonList, seasonGames } from "../lib/reports";
 import { vPosition, vReconcileResolution, vWeekKey } from "../lib/validators";
 
 /** A roster and the players who came and went. */
 const MAX_ROWS = 200;
+
+/** Played games with no box score, across the franchise: what per-game lists cannot count. */
+export const missingBoxScores = query({
+  args: {},
+  returns: v.array(v.object({ year: v.number(), weeks: v.array(vWeekKey) })),
+  handler: async (ctx) => {
+    await requireOwner(ctx);
+    const franchise = await activeFranchise(ctx);
+    const seasons = await franchiseSeasonList(ctx, franchise._id);
+    const found = await Promise.all(
+      seasons
+        .filter((s) => s.year >= franchise.startYear)
+        .map(async (season) => {
+          const games = await seasonGames(ctx, season._id);
+          const weeks = weeksWithoutBoxScore(
+            await Promise.all(
+              games.map(async (g) => ({
+                weekKey: g.weekKey,
+                status: g.status,
+                hasBoxScore:
+                  (await ctx.db
+                    .query("gameStatLines")
+                    .withIndex("by_gameId_and_teamId", (q) => q.eq("gameId", g._id))
+                    .first()) !== null,
+              })),
+            ),
+          );
+          return { year: season.year, weeks };
+        }),
+    );
+    return found.filter((s) => s.weeks.length > 0).sort((a, b) => a.year - b.year);
+  },
+});
 
 export const get = query({
   args: { seasonId: v.id("seasons") },

@@ -521,7 +521,7 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 - `topGames` is a new field beside `bestGames`, not a change to its shape as `STATS-HUB.md` 5 sketched, so no row needs rewriting to stay valid and the season table's readers are untouched. It keeps three games per record stat; `gameEntries` falls back to the plain best on a row without it. List entries and placements gain `gameId` and `weekKey`, and every book's single-game entries link to their game.
 - `mergeEntries` now replaces everything stored for a player's season at once, so a game that fell out of a season's top three leaves the list. A typed entry still replaces all of that player's entries for the season.
-- **After deploying, run Settings → Data → Rebuild stats once.** Until then single-game lists show one game per player-season and name no game. The `logs` phase now also refreshes the franchise-era book, which until now moved only when a game committed. `recordBuild:start` skips `logs` and so does not fill `topGames`.
+- **After deploying, run Rebuild stats once** (Settings → Maintenance since Sprint 20). Until then single-game lists show one game per player-season and name no game. The `logs` phase now also refreshes the franchise-era book, which until now moved only when a game committed. `recordBuild:start` skips `logs` and so does not fill `topGames`.
 - Fastest-to and span lists show a stat at a time, one list per mark or window, rather than a mark or window picker: it is fewer controls and shows more. They count franchise games with the team, so they take no typed entries, a change from the plan: a typed "in 41 games" is a number the app cannot check, and the franchise-era book takes none either.
 - Marks are regular season only, so the split control hides on Fastest to. Which of the four Records lists is showing lives on `StatsScreen` for that reason.
 - There is no rank table for spans or marks. `stats/spans:forPlayer` reads the franchise's span boards (156 small rows at most) and `stats/milestones:forPlayer` reads the top 20 of each mark he holds, both only when his page opens, so a rebuild has no placements to rewrite.
@@ -532,18 +532,54 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 - `RankedList` is the third strike of the records list: `RecordList`, `ScoringRecords` and `LeadersBoard` now use it, as do the new lists. `milestoneIcons` moved down to `components/data`, and `MILESTONE_KINDS` to `shared/domain`, so the feed and the timeline share them.
 - A streak milestone's title keeps its capitals ("games with a TD pass"); rows already stored keep the old title.
 - `leagueLeaders` was stored and fed the all-time book, but had no screen. Top 20s sits in League rather than the Leaders view, which is the franchise era's career leaders. "Ours" is the row's team, so a leader captured with no team reads as someone else's.
-- Left for later: the game log and box score badge for a game that reached a mark (`STATS-HUB.md` 4.2); the missing-games count next to these lists (`STATS-HUB.md` 2.6). Sprint 21 still takes `splits`, `quarterScoring` and the Explorer.
+- The game log and box score badge for a game that reached a mark (`STATS-HUB.md` 4.2) and the missing-games count next to these lists (`STATS-HUB.md` 2.6) were left here and done in Sprint 20. Sprint 21 still takes `splits`, `quarterScoring` and the Explorer.
 - Playwright smoke tests for all of this are written and left to CI, because the Mac's swap was full again; the phone project has not run them. The screens were checked by hand at 375 x 812 in light and at desktop width, and the new primitives in dark in the gallery.
 
 ---
 
-## Proposed: Sprints 20 to 23
+## Sprint 20 — Operations without a terminal (S)
+
+**Goal:** the owner never needs a terminal or the Convex dashboard. Maintenance jobs run from Settings, old screenshots tidy themselves away, a restore rebuilds its own boards, failed background jobs say so, extraction cannot overspend, and nothing here gives way at twenty seasons.
+
+- Settings → Maintenance: each job, its last run, a check before anything changes.
+- Nightly retention for finished screenshots, with the setting beside the jobs.
+- A restored franchise rebuilds its boards and marks by itself.
+- Failed scheduled jobs reach Settings → Errors by name, and errors can be marked seen.
+- A monthly extraction budget: a banner at 80 percent, a hold at the limit.
+- The same screenshot twice waits instead of being read.
+- A 20-season scale test against Convex's function limits.
+- Sprint 19's leftovers: the mark badge on a game and the missing-games count beside the lists.
+
+**Done when:** every job in `PLATFORM-AUDIT.md` 1.6 runs from Settings with its last run shown, a restore leaves working records with nothing pressed, a job that fails shows up in Errors within fifteen minutes, a spent budget holds new screenshots and a higher one lets them go, a repeat image costs nothing, and the scale test passes in CI.
+
+**As built:**
+
+- `maintenanceRuns` holds each job's latest run per franchise. Rebuild stats reads `recordBuilds` instead, as that already had a run and a phase. The Rebuild stats button moved here from Data. The jobs' CLI entry points stay, as thin wrappers over the same functions.
+- The history import stays in Real NFL history, and the player tidy in Player identity, where each has its own progress. **Two things stay CLI only**: `repairSeasonStatsTeams`'s `assign` (the panel lists who has no team, and Fix a misread name places them one at a time) and `fixMisreads`'s `sourceId` and `intoId` for players sharing a name, where the sheet sends the owner to the player page.
+- Fix a misread name takes one fix at a time, where the CLI took a list.
+- **Milestones are not archived**, against `PLATFORM-AUDIT.md` 6.4: since Sprint 19 they are a player's timeline. The feed's index only sees unacknowledged ones, so their number costs nothing.
+- **No thumbnails**, against `PLATFORM-AUDIT.md` 6.1. Convex cannot resize an image without a Node action, and a browser-made one would miss the Shortcut. A set past retention goes whole, upload rows and reads with it, as Delete in the inbox does. Corrections keep their numbers and lose only the link back.
+- Retention defaults to 180 days, 30 for rejected, and `keepScreenshotsDays: 0` keeps everything. A failed or unreviewed set is never touched, however old. Screenshots are not in backups, so this cannot be undone. **The first nightly run after deploying deletes anything already past 180 days.**
+- `tidyFranchise` runs 25 sets a step and reschedules. The cron only schedules a step per franchise, so a failure lands in Errors with the rest.
+- The sweep reads `_scheduled_functions` every 15 minutes, which needs no wrapper around any job. Cron runs are not in that table, so the nightly backup is now a cron that schedules the action. A failure counts once: only one newer than the report's `lastSeen` adds to it. A failed extraction is caught by its own run and stays in the inbox, not here.
+- The budget is per franchise, like the models it pays for, in UTC months. `usageMonths` is added to when a run saves, because reading a month of `extractions` could pass the 16 MB read limit. **It counts from this deploy, and only runs that saved with a cost**: a run that failed on the model still spent money OpenRouter knows about and this does not. Treat the budget as a guard, not a ledger.
+- Held sets stay `queued` with `hold: "budget"`, and start again by themselves when the budget is raised or the nightly tidy finds room. That spends without asking, on screenshots the owner already sent.
+- Repeats are found by SHA-256 of the file as picked, before `prepareImage` re-encodes it, or two copies could differ. A repeat is stored and held rather than refused, which works the same for the web, the Shortcut and the offline queue, and leaves the choice in the inbox. A repeat inside a set holds the set. The Shortcut's response gains `duplicate`. Older uploads have no hash, and a deleted upload no longer counts.
+- A restore finishes with `restoreData:rebuild`, from the `logs` phase, so an older backup's rows catch up. Rebuild stats now also rewrites `scoringBoards`, which had no rebuild.
+- `scale.test.ts` seeds 20 seasons of 19 games and 24 lines, then meters a `ctx` against Convex's limits, since convex-test enforces none. The heaviest steps: after a game 5,867 documents and 4.0 MB, a page of marks and spans 8,765 and 4.9 MB, both well inside 32,000 and 16 MB. **It cannot see the time limit**: real opponents' lines add to these, and a mutation's one second is only proven on a deployment. `MAX_PLAYER_LINES` holds a 20-season career.
+- `e2e/fixtures.ts:png()` gives every test upload its own bytes, or the inbox would hold them as repeats.
+- The mark badge sits in the game log's Marks column, and chips above the box score. The missing-games count shows on Records, not Team records, which read scores, and on Streaks. It reads one line per game of every season, so it stays off Home.
+- Left for later, from the same audit rows: per-set cost caps, backoff on 429s, a "retry all failed" action, the commit summary, a bundle size budget and the PWA update toast.
+- Playwright tests are written and left to CI, as the Mac's swap was full again; the phone project has not run them, nor Sprint 19's. Checked by hand at 375 x 812 and desktop width in light: Maintenance, the budget banner and form, the fix sheet, and the marks above a box score. The duplicate hold in the inbox was checked only by tests, as was the game log badge, which sits in the phone's expanded row.
+
+---
+
+## Proposed: Sprints 21 to 23
 
 Planned after the platform audit of October 2026, not yet scheduled or built. The statistics hub plan is `docs/STATS-HUB.md`; the audit with every gap and the reasoning behind the order is `docs/PLATFORM-AUDIT.md`. When one of these is picked up, it gets a full section above with a goal, a "Done when" and, once built, its "As built" notes, and the stable behaviour moves into `FEATURES.md`.
 
 | Sprint | Theme | Size | Source |
 |---|---|---|---|
-| 20 | Operations without a terminal: maintenance panel, retention crons, boards rebuilt after restore, scale test on a synthetic 20-season franchise, scheduled-job errors surfaced, extraction budget, duplicate screenshot hash | S | `PLATFORM-AUDIT.md` 4 and 6 |
 | 21 | Splits and the stat explorer | M | `STATS-HUB.md` 8, Sprint 18 |
 | 22 | Fun layer: season recaps, awards race, rivalry pages, weekly digest, Hall of Fame cases, contract year | M | `PLATFORM-AUDIT.md` 5.2 |
 | 23 | Spec sweep: Appearance and franchise settings, swipe between weeks and seasons, long-press row actions, headshot upload, Shortcut test button, ratings capture | S | `PLATFORM-AUDIT.md` 5.1 |

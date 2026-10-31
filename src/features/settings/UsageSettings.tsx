@@ -8,6 +8,7 @@ import { Section } from "@/components/layout/Section";
 import { Skeleton } from "@/components/ui/misc";
 import { formatAge } from "@/lib/time";
 import { useQuery } from "@/lib/convex/useQuery";
+import { BudgetForm } from "./BudgetForm";
 
 type Usage = FunctionReturnType<typeof api.ingestion.usage.summary>;
 type ModelRow = Usage["byModel"][number];
@@ -57,16 +58,18 @@ export function UsageSettings() {
       description={usage ? `The last ${usage.window} extractions, per model.` : undefined}
       variant="card"
     >
+      <BudgetForm />
       {usage === undefined ? (
-        <Skeleton className="h-32" />
+        <Skeleton className="mt-4 h-32" />
       ) : usage.byModel.length === 0 ? (
         <EmptyState
+          className="mt-4"
           icon={Gauge}
           title="No extractions yet"
           description="Every screenshot read shows up here."
         />
       ) : (
-        <div className="space-y-4">
+        <div className="mt-4 space-y-4">
           <DataTable<ModelRow>
             id="settings-usage"
             data={usage.byModel}

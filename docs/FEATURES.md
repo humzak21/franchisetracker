@@ -146,7 +146,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - `careerPlayerStats`: same shape, per player, all seasons, with the team he played the most games for.
 - `records`: franchise-era records per stat key per scope (single game, season, career), with holder, value, game or season reference, date set, previous holder, and the top 20 behind it. Recomputed incrementally.
 - `scoringBoards`: the scoring records (`shared/stats/scoringBoards.ts`), top 20 per list and split, rebuilt from `scoringPlays` whenever a game's plays change.
-- `playerMarks`: every mark a player has reached ("fastest to"), per career, season and stint with the team, with the game and games taken. `spanBoards`: the best N-game stretches per stat and window, each split apart. `teamRecords`: the team's best and worst games and seasons per stat. All three are worked out from the logs and rebuilt by Settings → Data → Rebuild stats (`shared/stats/marks.ts`, `spans.ts`, `teamRecords.ts`).
+- `playerMarks`: every mark a player has reached ("fastest to"), per career, season and stint with the team, with the game and games taken. `spanBoards`: the best N-game stretches per stat and window, each split apart. `teamRecords`: the team's best and worst games and seasons per stat. All three are worked out from the logs and rebuilt by Settings → Maintenance → Rebuild stats (`shared/stats/marks.ts`, `spans.ts`, `teamRecords.ts`).
 - `recordBoards`: the team and all-time books (`shared/stats/recordBoards.ts`), the best 25 entries per book, split, scope and stat; built once by `stats/recordBuild` and merged per game. `typedRecords`: numbers typed by hand into either book. `recordPlacements`: every list a player makes, for his page.
 - `milestones`: detected events (first 1000-yard season, career high, franchise record broken, streak reached) with week and acknowledgment flag. Feed the dashboard.
 
@@ -241,7 +241,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 
 - Player page: hero with the player card (headshot or monogram) in team colors, position, number, age, height and weight, college, draft slot, acquisition story, contract, dev trait and abilities (per season, on the roster entry), notes; OVR progression chart across seasons and in-season checkpoints.
 - Career stats table by season with totals row, computed from game logs (real NFL seasons before the franchise are imported totals, marked), with the elite highlight rules applied per season. Postseason split toggle.
-- Game log for any season with per-game highlight markers.
+- Game log for any season with per-game highlight markers, and a badge on the game that reached a mark. The box score lists the marks its game reached too.
 - Awards, every records list he makes (rank in the team, franchise-era and all-time books and the best spans; one that falls out of the top 20 goes), streaks at their longest with their dates (an ended streak stays), draft info, transactions involving the player, Hall of Fame status.
 - Milestones, newest first, each linked to its game: marks reached with the games they took and where that stands on the fastest-to list, career highs, threshold games, records and streaks.
 - Compare: two to four players side by side on shared stat keys with a radar or bar chart.
@@ -280,6 +280,7 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Scoring records, under the books, from captured scoring summaries (franchise games only): the longest score of each kind, most touchdowns in a quarter, game-winning scores and connections by season and career. Regular season and playoffs apart.
 - All-time leaders: career top 20 per stat within the franchise era.
 - Streaks: team (wins, home, road and division wins, one-score wins, games scoring 30, games allowing under 20, games with a takeaway), seasons (winning seasons, playoff appearances, division titles, double-digit win seasons) and player (consecutive 100-yard rushing, receiving and scrimmage games, games with a TD, a TD pass, a catch, a receiving TD, a sack, a sack or TFL, a takeaway, a field goal, games without an interception, games played). Each keeps where it began and where it ended. Stats → Streaks lists what is running now (three or more, for the team and anyone on the roster, with its start) and the longest of each kind, of all time or within one season.
+- Lists built from game logs (the records books, fastest to, best spans, streaks) say how many played games have no box score, and which, with a link to Reconcile.
 
 ### 5.6 League
 
@@ -348,7 +349,8 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - **Player picker**: a fixed-height sheet that only its handle drags closed; results stay on screen while the next search loads, so the list does not jump or empty while typing.
 - New players: a player a committed screen names who is not in the database is added to it, roster entry included when the row names a team. Rows without a team (an award winner, a leader) still add the player, without an entry. The scoring summary is the exception.
 - **Enter manually**: every target has a typed-in counterpart in the same review editors (from the Inbox, Awards, Draft and Stats), saved as you go and committed through the same path.
-- Cost and latency panel in Settings with per-model usage.
+- Cost and latency panel in Settings with per-model usage, and a monthly budget: a banner on every screen from 80 percent, and at the limit new screenshots wait in the inbox instead of being read. They start by themselves once there is room: a higher budget, or the new month, at the nightly look.
+- The same screenshot twice: a file already in the inbox (by its hash) is stored but not read, and waits marked "Already uploaded" to be read anyway or deleted, so a repeat costs nothing. One rejected or failed earlier goes straight through.
 
 ### 5.12 Settings
 
@@ -357,10 +359,11 @@ All tables carry `franchiseId`. Years are integers (`2025`). Weeks use a `weekKe
 - Thresholds: edit elite highlight thresholds per stat, two tiers each, on two scales: Highlights (season numbers in every table) and, right under it, Game highlights (one player's numbers in a single game, in box scores and game logs). Only changed stats are saved; Restore defaults clears a scale's overrides.
 - Models: OpenRouter primary and fallback model, temperature, token budget. Both are picked from saved model presets (the defaults plus any the user adds; saving a new model adds it), with an "Other model" field for any id. The re-run sheet uses the same presets.
 - Shortcut: generate and revoke tokens, download the Shortcut file, test endpoint.
-- Data: refresh the real NFL history import; back up every franchise now (and nightly, keeping fourteen) as gzipped JSON to download; restore a listed backup or a file as new, inactive franchises (never overwriting); export the active franchise's games and player seasons as CSV; rebuild every season row, record, mark, span and streak from the game logs (Rebuild stats, also after restoring a backup). Backups leave out inbox screenshots and Shortcut tokens (docs/LAUNCH.md).
+- Data: refresh the real NFL history import; back up every franchise now (and nightly, keeping fourteen) as gzipped JSON to download; restore a listed backup or a file as new, inactive franchises (never overwriting); export the active franchise's games and player seasons as CSV. A restored franchise rebuilds its records, marks and boards by itself. Backups leave out inbox screenshots and Shortcut tokens (docs/LAUNCH.md).
+- Maintenance: every job that used to need a terminal, for the active franchise, each with its last run: rebuild stats, recount team totals, clear typed star lines, move misfiled season stats, clear old screenshots, and fix a misread name. Jobs that change data show what they would do first. How long finished screenshots are kept (90 days, 180 days by default, a year or forever) is set here; the nightly tidy deletes the ones past it, with their reads, and what they committed stays. Rejected screenshots go after 30 days at most.
 - Franchises: delete any franchise, the active one included, after an "are you sure" and typing its name; the franchise used before it takes over (or setup when none is left), and its rows go in the background.
 - Real NFL history: add 1999–2001 to a franchise imported from 2002.
-- Errors: unexpected errors from any device, one row per distinct error with a count.
+- Errors: unexpected errors from any device, and scheduled jobs that failed (by function name), one row per distinct error with a count. Marking them seen leaves only what happens again showing as new.
 - Appearance: team color intensity, density, reduced motion.
 
 ### 5.13 Mobile parity
@@ -465,5 +468,5 @@ Dense football data has to be as readable on a phone as on a 27 inch display. Th
 - Works offline for reading recently viewed screens (PWA cache); writes require connectivity except image captures, which queue locally.
 - Feature parity between desktop and phone is a release criterion for every sprint, not a later pass.
 - Secrets live in Convex env. The Shortcut token is revocable, and the endpoint is rate limited (valid tokens draw from a bucket; bad tokens are throttled separately and never lock out the owner).
-- Unexpected client errors are reported to Settings → Errors; backend errors are in the Convex dashboard logs.
+- Unexpected client errors and failed scheduled jobs are reported to Settings → Errors; other backend errors are in the Convex dashboard logs.
 - No unauthenticated reads or writes: every Convex query, mutation and action requires the signed-in owner (Sign in with Vercel), except the token-checked Shortcut endpoint.

@@ -1,7 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { CircleCheck, CircleX, LoaderCircle, Replace, RotateCcw, Square, Tag } from "lucide-react";
+import {
+  CircleAlert,
+  CircleCheck,
+  CircleX,
+  LoaderCircle,
+  Replace,
+  RotateCcw,
+  Square,
+  Tag,
+} from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { api } from "@convex/_generated/api";
 import { Button } from "@/components/ui/button";
@@ -107,6 +116,23 @@ export function StatusBanner({ data }: { data: Review }) {
         </Banner>
         <RerunSheet setKey={data.setKey} open={rerun} onOpenChange={setRerun} />
       </>
+    );
+  }
+  if (status === "queued" && data.hold && data.targetKey) {
+    return (
+      <Banner
+        tone="warn"
+        icon={<CircleAlert className="text-warn" />}
+        action={
+          data.hold === "duplicate" ? (
+            <Button size="sm" variant="primary" onClick={() => void extract({ setKey: data.setKey })}>
+              Read anyway
+            </Button>
+          ) : undefined
+        }
+      >
+        {data.error}
+      </Banner>
     );
   }
   if (status === "queued") {

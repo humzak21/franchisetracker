@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { useQuery } from "@/lib/convex/useQuery";
 import { BoxScore } from "./BoxScore";
+import { GameMarks } from "./GameMarks";
 import { EditGameSheet } from "./EditGameSheet";
 import { GameNav } from "./GameNav";
 import { HeadToHead } from "./HeadToHead";
@@ -176,6 +177,7 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
                 </Button>
               }
             >
+              <GameMarks gameId={game._id} />
               <BoxScore gameId={game._id} stars={data.stars} onImport={() => importScreenshot()} />
             </Section>
           </>

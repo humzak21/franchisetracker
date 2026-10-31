@@ -46,6 +46,10 @@ export const franchiseTables = {
           presets: v.optional(v.array(v.string())),
         }),
       ),
+      /** Extraction stops for the month at this much; absent means no limit. */
+      monthlyBudgetUsd: v.optional(v.number()),
+      /** Days finished screenshots are kept (`shared/ops/retention.ts`); 0 keeps them forever. */
+      keepScreenshotsDays: v.optional(v.number()),
     }),
     isActive: v.boolean(),
     /** When it last stopped being the active one; deleting the active franchise falls back to the latest. */

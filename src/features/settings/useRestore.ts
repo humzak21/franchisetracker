@@ -2,6 +2,7 @@ import { useConvex } from "convex/react";
 import { gunzipSync, strFromU8 } from "fflate";
 import { useCallback, useState } from "react";
 import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 import { parseBackup, restoreBackup } from "@shared/ops/restore";
 import { errorMessage } from "@/lib/errors";
 
@@ -50,7 +51,10 @@ export function useRestore() {
           label,
           (done, total) => setState({ phase: "writing", done, total }),
         );
-        setState({ phase: "done", ...result });
+        await convex.mutation(api.ops.restoreData.rebuild, {
+          franchiseIds: result.franchiseIds as Id<"franchises">[],
+        });
+        setState({ phase: "done", franchises: result.franchises, rows: result.rows });
       } catch (err) {
         setState({
           phase: "failed",

@@ -7,6 +7,7 @@ import { useShortcut } from "../keyboard";
 import { MovesProvider } from "../moves/MovesProvider";
 import { useSeason } from "../season";
 import { BottomTabBar } from "./BottomTabBar";
+import { BudgetBanner } from "./BudgetBanner";
 import { CaptureButton, CaptureFab } from "./CaptureButton";
 import { CommandPalette } from "./CommandPalette";
 import { OfflineBanner } from "./OfflineBanner";
@@ -55,6 +56,7 @@ export function AppShell() {
         <>
           <OfflineBanner />
           <PromptBanner />
+          <BudgetBanner />
         </>
       ),
     }),

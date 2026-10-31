@@ -7,6 +7,7 @@ import type { WeekKey } from "@shared/domain";
 import { MAX_IMAGE_BYTES, TOO_LARGE } from "@shared/ingestion/limits";
 import type { TargetKey } from "@shared/ingestion/targets";
 import { blobQueue } from "@/lib/blobQueue";
+import { sha256Hex } from "@/lib/hash";
 import { prepareImage } from "@/lib/image";
 import { storeFiles } from "@/lib/storeFiles";
 import { useReportError } from "../errors/useReportError";
@@ -19,7 +20,11 @@ export type UploadContext = {
   source: "web" | "dragdrop";
 };
 
-type QueuedMeta = UploadContext & { sizes: { width: number; height: number }[] | undefined };
+type QueuedMeta = UploadContext & {
+  sizes: { width: number; height: number }[] | undefined;
+  /** Of the files as picked: a resize could tell two copies of one screenshot apart. */
+  hashes?: string[];
+};
 
 /** Captures waiting for a connection; shared by every tab of the installed app. */
 export const captureQueue = blobQueue<QueuedMeta>("ft-captures");
@@ -43,14 +48,16 @@ export function useUploader() {
   const send = useCallback(
     async (blobs: Blob[], meta: QueuedMeta): Promise<string[]> => {
       const storageIds = await storeFiles<Id<"_storage">>(blobs, () => generateUploadUrl());
-      const { sizes, ...context } = meta;
-      return await create({ storageIds, sizes, ...context });
+      const { sizes, hashes, ...context } = meta;
+      return await create({ storageIds, sizes, hashes, ...context });
     },
     [generateUploadUrl, create],
   );
 
   const upload = useCallback(
     async (files: Blob[], context: UploadContext): Promise<UploadOutcome> => {
+      const digests = await Promise.all(files.map(sha256Hex));
+      const hashes = digests.every((d) => d !== null) ? digests : undefined;
       const prepared = await Promise.all(files.map(prepareImage));
       const blobs = prepared.map((p) => p.blob);
       // Refused here rather than by the server, which cannot delete a file it has already stored.
@@ -58,7 +65,7 @@ export function useUploader() {
       const sizes = prepared.every((p) => p.width && p.height)
         ? prepared.map((p) => ({ width: p.width ?? 0, height: p.height ?? 0 }))
         : undefined;
-      const meta = { ...context, sizes };
+      const meta = { ...context, sizes, hashes };
       if (!navigator.onLine) {
         await captureQueue.add(blobs, meta);
         return { kind: "queued" };

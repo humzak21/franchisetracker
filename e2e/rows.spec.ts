@@ -1,14 +1,9 @@
 import type { Page, TestInfo } from "@playwright/test";
-import { SAMPLE_YEAR, expect, expectNoHorizontalOverflow, isPhone, test } from "./fixtures";
+import { SAMPLE_YEAR, expect, expectNoHorizontalOverflow, isPhone, png, test } from "./fixtures";
 
 // Every project shares one backend: these commits are upserts of the same sample rows, so
 // running them in parallel converges on the same data. Only the desktop project settles a
 // reconciliation difference, so the phones never see it flip underneath them.
-
-const PNG = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
-  "base64",
-);
 
 async function capture(page: Page, info: TestInfo, target: string, shots: number) {
   await page.goto("/inbox");
@@ -20,11 +15,13 @@ async function capture(page: Page, info: TestInfo, target: string, shots: number
   await sheet.getByLabel("Season", { exact: true }).selectOption({ label: String(SAMPLE_YEAR) });
   // Season screens are filed under the season alone.
   await expect(sheet.getByLabel("Week", { exact: true })).toHaveCount(0);
-  await sheet
-    .getByLabel("Choose screenshots")
-    .setInputFiles(
-      Array.from({ length: shots }, (_, i) => ({ name: `shot${i}.png`, mimeType: "image/png", buffer: PNG })),
-    );
+  await sheet.getByLabel("Choose screenshots").setInputFiles(
+    Array.from({ length: shots }, (_, i) => ({
+      name: `shot${i}.png`,
+      mimeType: "image/png",
+      buffer: png(),
+    })),
+  );
   await page.getByRole("button", { name: `Upload ${shots} screenshot${shots === 1 ? "" : "s"}` }).click();
   await expect(page).toHaveURL(/\/inbox\/.+/);
   if (isPhone(info.project.name)) await page.getByRole("radio", { name: "Draft" }).click();

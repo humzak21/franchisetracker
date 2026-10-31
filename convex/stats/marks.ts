@@ -1,7 +1,9 @@
 /** Fastest-to lists (`shared/stats/marks.ts`): each mark's list reads one index, already in order. */
 import { v } from "convex/values";
 import {
+  distinctMarks,
   MARK_STATS,
+  markLabel,
   MARKS,
   rankMarks,
   RECORD_TOP,
@@ -14,6 +16,9 @@ import { requireOwner } from "../lib/auth";
 import { activeFranchise, playersById } from "../lib/franchise";
 import { literals, vMarkHorizon, vPosition, vWeekKey } from "../lib/validators";
 import { franchiseSeasons } from "./load";
+
+/** Everyone who crossed something in one game: a big day, a few marks each. */
+const MAX_GAME_MARKS = 200;
 
 const vMarkStat = literals(MARK_STATS as unknown as readonly [MarkStat, ...MarkStat[]]);
 
@@ -41,6 +46,50 @@ export async function fastestList(
     .take(RECORD_TOP);
   return rankMarks(rows.map((r) => ({ ...r, year: years.get(r.seasonId) ?? 0 })));
 }
+
+/** The marks one game reached, for its box score. */
+export const forGame = query({
+  args: { gameId: v.id("games") },
+  returns: v.array(
+    v.object({
+      key: v.string(),
+      player: v.object({ playerId: v.id("players"), name: v.string() }),
+      label: v.string(),
+      gamesToReach: v.number(),
+      horizon: vMarkHorizon,
+    }),
+  ),
+  handler: async (ctx, { gameId }) => {
+    await requireOwner(ctx);
+    const rows = await ctx.db
+      .query("playerMarks")
+      .withIndex("by_gameId", (q) => q.eq("gameId", gameId))
+      .take(MAX_GAME_MARKS);
+    const players = await playersById(
+      ctx,
+      rows.map((r) => r.playerId),
+    );
+    // `distinctMarks` keys on the game and the mark, so each player goes through it alone.
+    const byPlayer = [...new Set(rows.map((r) => r.playerId))].flatMap((playerId) =>
+      distinctMarks(
+        rows.filter((r) => r.playerId === playerId).map((r) => ({ ...r, statKey: r.statKey as MarkStat })),
+      ),
+    );
+    return byPlayer.flatMap((m) => {
+      const player = players.get(m.playerId);
+      if (!player) return [];
+      return [
+        {
+          key: `${m.playerId}-${m.statKey}-${m.mark}`,
+          player: { playerId: player._id, name: player.displayName },
+          label: markLabel(m),
+          gamesToReach: m.gamesToReach,
+          horizon: m.horizon,
+        },
+      ];
+    });
+  },
+});
 
 export const lists = query({
   args: { statKey: vMarkStat, horizon: vMarkHorizon },

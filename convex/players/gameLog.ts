@@ -2,8 +2,16 @@
 import { v } from "convex/values";
 import { isTouchdown } from "../../shared/domain";
 import { sortByWeek, userScore } from "../../shared/games/summary";
-import { inCareerOrder, isStatKey, statValue, type StatLine } from "../../shared/stats";
-import type { Doc } from "../_generated/dataModel";
+import {
+  distinctMarks,
+  inCareerOrder,
+  isStatKey,
+  markLabel,
+  statValue,
+  type MarkStat,
+  type StatLine,
+} from "../../shared/stats";
+import type { Doc, Id } from "../_generated/dataModel";
 import { query, type QueryCtx } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { invalid } from "../lib/errors";
@@ -18,6 +26,8 @@ const MAX_PLAYS = 100;
 /** Twenty seasons of a long career, playoffs included. */
 const MAX_CAREER_LINES = 600;
 const MAX_CAREER_PLAYS = 600;
+/** Every mark a player can hold, every horizon. */
+const MAX_MARKS = 600;
 
 const vLogRow = v.object({
   gameId: v.id("games"),
@@ -31,15 +41,35 @@ const vLogRow = v.object({
   stats: vStatMap,
   /** Touchdowns in the game, where its scoring summary was captured. */
   touchdowns: v.array(v.object({ period: v.number(), clock: v.number(), kind: vScoringKind })),
+  /** The marks he reached in the game: "1,000 rushing yards". */
+  marks: v.array(v.string()),
 });
+
+/** Each game's marks for a player, one line per mark, career first. */
+async function marksByGame(ctx: QueryCtx, playerId: Id<"players">) {
+  const rows = await ctx.db
+    .query("playerMarks")
+    .withIndex("by_playerId", (q) => q.eq("playerId", playerId))
+    .take(MAX_MARKS);
+  const out = new Map<string, string[]>();
+  for (const m of distinctMarks(rows.map((r) => ({ ...r, statKey: r.statKey as MarkStat })))) {
+    out.set(m.gameId, [...(out.get(m.gameId) ?? []), markLabel(m)]);
+  }
+  return out;
+}
 
 /** Lines as a game log shows them, each with its game's opponent, score and touchdowns. */
 async function logRows(
   ctx: QueryCtx,
   lines: readonly Doc<"gameStatLines">[],
   plays: readonly Doc<"scoringPlays">[],
+  playerId: Id<"players">,
 ) {
-  const [franchise, teams] = await Promise.all([activeFranchise(ctx), teamsById(ctx)]);
+  const [franchise, teams, marks] = await Promise.all([
+    activeFranchise(ctx),
+    teamsById(ctx),
+    marksByGame(ctx, playerId),
+  ]);
   const years = await seasonYears(
     ctx,
     lines.map((l) => l.seasonId),
@@ -67,6 +97,7 @@ async function logRows(
         touchdowns: plays
           .filter((p) => p.gameId === game._id && isTouchdown(p.kind))
           .map(({ period, clock, kind }) => ({ period, clock, kind })),
+        marks: marks.get(game._id) ?? [],
       } as const;
     }),
   );
@@ -86,7 +117,7 @@ export const bySeason = query({
       .query("scoringPlays")
       .withIndex("by_playerId_and_seasonId", (q) => q.eq("playerId", playerId).eq("seasonId", seasonId))
       .take(MAX_PLAYS);
-    return await logRows(ctx, sortByWeek(lines), plays);
+    return await logRows(ctx, sortByWeek(lines), plays, playerId);
   },
 });
 
@@ -113,7 +144,7 @@ export const career = query({
       filter && statKey !== undefined && isStatKey(statKey)
         ? lines.filter((l) => (statValue(statKey, l.stats as StatLine) ?? 0) >= filter.min)
         : lines;
-    const rows = await logRows(ctx, kept, plays);
+    const rows = await logRows(ctx, kept, plays, playerId);
     return inCareerOrder(rows);
   },
 });

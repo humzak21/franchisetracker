@@ -39,7 +39,7 @@ export function InboxScreen() {
   }, [sets]);
   const chosen = visible.filter((s) => selected.has(s.setKey));
   const reading = chosen.filter((s) => s.status === "extracting");
-  const retryable = chosen.filter((s) => s.status === "failed" && s.targetKey !== null);
+  const retryable = chosen.filter((s) => (s.status === "failed" || s.hold !== null) && s.targetKey !== null);
   const readAgain = () =>
     void Promise.all(retryable.map((s) => extract({ setKey: s.setKey }))).then(stopSelecting);
 

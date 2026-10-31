@@ -9,7 +9,7 @@ import { v } from "convex/values";
 import { writeBackup } from "../../shared/ops/restore";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { action, internalAction, type ActionCtx } from "../_generated/server";
+import { action, internalAction, internalMutation, type ActionCtx } from "../_generated/server";
 import { requireOwnerAction } from "../lib/auth";
 
 /** Rows read per page: well inside a query's read limits even for wide stat rows. */
@@ -53,7 +53,17 @@ export const create = action({
   },
 });
 
-/** The nightly backup (convex/crons.ts). */
+/** The cron's step: a scheduled run shows up in Settings → Errors if it fails, a cron's would not. */
+export const startNightly = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    await ctx.scheduler.runAfter(0, internal.ops.backupRun.nightly, {});
+    return null;
+  },
+});
+
+/** The nightly backup. */
 export const nightly = internalAction({
   args: {},
   returns: v.null(),
