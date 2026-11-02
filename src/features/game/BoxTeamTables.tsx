@@ -10,7 +10,15 @@ import {
 import { useFranchise } from "@/app/franchise";
 import { DataTable, type EditValue } from "@/components/data/DataTable";
 import { TeamChip } from "@/components/team/TeamChip";
-import { boxColumns, boxRows, totalsRow, type BoxRow, type BoxStars, type BoxTeam } from "./boxScoreColumns";
+import {
+  boxColumns,
+  boxRows,
+  defenseRow,
+  totalsRow,
+  type BoxRow,
+  type BoxStars,
+  type BoxTeam,
+} from "./boxScoreColumns";
 
 type BoxTeamTablesProps = {
   team: BoxTeam;
@@ -21,7 +29,10 @@ type BoxTeamTablesProps = {
   onEdit: (row: BoxRow, statKey: string, value: EditValue) => Promise<unknown> | void;
 };
 
-/** One team's box score: a table per category it has stats in (passing, rushing, ...), in order. */
+/**
+ * One team's box score: a table per category it has stats in (passing, rushing, ...), in order.
+ * The defense's table leads with the whole defense as one row, which stands in for its totals.
+ */
 export function BoxTeamTables({ team, allTeams, categories, stars, onEdit }: BoxTeamTablesProps) {
   const allLines = allTeams.flatMap((t) => t.lines.map((l) => ({ line: l.stats as StatLine })));
   const tables = categories
@@ -42,6 +53,7 @@ export function BoxTeamTables({ team, allTeams, categories, stars, onEdit }: Box
       )}
       {tables.map(({ category, stats, rows }) => {
         const label = STAT_CATEGORY_LABELS[category];
+        const isDefense = category === "defense";
         return (
           <div key={category} className="space-y-2">
             <h3 className="text-[11px] font-semibold tracking-[0.08em] text-subtle-foreground uppercase">
@@ -55,7 +67,8 @@ export function BoxTeamTables({ team, allTeams, categories, stars, onEdit }: Box
               getRowId={(r) => r.id}
               identityColumn="player"
               primaryColumns={CATEGORY_PRIMARY[category]}
-              totals={rows.length > 1 ? totalsRow(rows) : undefined}
+              pinnedRow={isDefense ? defenseRow(team) : undefined}
+              totals={!isDefense && rows.length > 1 ? totalsRow(rows) : undefined}
               onEdit={onEdit}
               canEditRow={(row) => row.playerId !== null}
             />

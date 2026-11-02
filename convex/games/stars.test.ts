@@ -133,6 +133,61 @@ describe("games/stars", () => {
     expect((await stars()).map((s) => s.name)).toEqual(["Drake Maye", "Maxx Crosby"]);
   });
 
+  test("one click stars a whole defense, with its line added up from the box score", async () => {
+    const { t, owner, seasonId, week1 } = await setup();
+    const candidates = await owner.query(api.games.stars.candidates, { gameId: week1._id });
+    const teamId = candidates.find((c) => c.name === "Drake Maye")!.teamId;
+    const stars = async () => (await owner.query(api.games.schedule.get, { gameId: week1._id }))!.stars;
+    const toggle = () => owner.mutation(api.games.stars.toggleDefense, { gameId: week1._id, teamId });
+
+    expect(await toggle()).toBe(true);
+    const star = (await stars()).at(-1);
+    expect(star).toMatchObject({ name: "NE Defense", playerId: null, teamId, teamDefense: true });
+    expect(star?.statLine).toMatch(/^\d+ TKLs/);
+
+    // Nothing but the pick is stored, so a corrected box score corrects the line; the schedule shows the same.
+    const line = await t.run(async (ctx) => {
+      const rows = await ctx.db
+        .query("gameStatLines")
+        .withIndex("by_gameId_and_teamId", (q) => q.eq("gameId", week1._id).eq("teamId", teamId))
+        .take(100);
+      return rows.find((row) => (row.stats.tackles ?? 0) > 0)!;
+    });
+    await t.run((ctx) =>
+      ctx.db.patch("gameStatLines", line._id, {
+        stats: { ...line.stats, tackles: (line.stats.tackles ?? 0) + 100 },
+      }),
+    );
+    const corrected = (await stars()).at(-1)?.statLine;
+    expect(corrected).not.toBe(star?.statLine);
+    const { games } = await owner.query(api.games.schedule.bySeason, { seasonId });
+    expect(games.find((g) => g._id === week1._id)?.stars.at(-1)?.statLine).toBe(corrected);
+
+    // It round-trips through the editor's save, and a second click takes it out.
+    await owner.mutation(api.games.stars.setStars, {
+      gameId: week1._id,
+      stars: [{ teamDefense: true, teamId, caption: "Six sacks" }],
+    });
+    expect((await stars())[0]).toMatchObject({ name: "NE Defense", caption: "Six sacks" });
+    expect(await toggle()).toBe(false);
+    expect(await stars()).toEqual([]);
+  });
+
+  test("a defense has to have played in the game", async () => {
+    const { owner, week1 } = await setup();
+    const teams = await owner.query(api.league.teams.list, {});
+    const other = teams.find((team) => team.abbr === "SEA")!;
+    await expect(
+      owner.mutation(api.games.stars.toggleDefense, { gameId: week1._id, teamId: other._id }),
+    ).rejects.toThrow(/did not play/);
+    await expect(
+      owner.mutation(api.games.stars.setStars, {
+        gameId: week1._id,
+        stars: [{ teamDefense: true, teamId: other._id }],
+      }),
+    ).rejects.toThrow(/did not play/);
+  });
+
   test("candidates in the box score carry the line a star shows; roster-only players have none", async () => {
     const { owner, week1 } = await setup();
     const candidates = await owner.query(api.games.stars.candidates, { gameId: week1._id });
@@ -161,6 +216,12 @@ describe("games/stars", () => {
       stranger.mutation(api.games.stars.toggle, {
         gameId: week1._id,
         playerId: (await t.run((ctx) => ctx.db.query("players").first()))!._id,
+        teamId: week1.opponent!._id,
+      }),
+    ).rejects.toThrow(/Not the owner/);
+    await expect(
+      stranger.mutation(api.games.stars.toggleDefense, {
+        gameId: week1._id,
         teamId: week1.opponent!._id,
       }),
     ).rejects.toThrow(/Not the owner/);

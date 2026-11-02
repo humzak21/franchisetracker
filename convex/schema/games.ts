@@ -37,12 +37,16 @@ export const gameTables = {
     neutralSite: v.optional(v.boolean()),
     weather: v.optional(v.string()),
     notes: v.optional(v.string()),
-    /** Stars of the game in order, picked by hand; as many as the owner likes. */
+    /**
+     * Stars of the game in order, picked by hand; as many as the owner likes. `teamDefense` makes
+     * the star `teamId`'s whole defense rather than a player.
+     */
     stars: v.optional(
       v.array(
         v.object({
           ...playerRefFields,
           teamId: v.optional(v.id("teams")),
+          teamDefense: v.optional(v.boolean()),
           caption: v.optional(v.string()),
         }),
       ),

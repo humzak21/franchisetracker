@@ -1,5 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { isTypedStatLine, starStatLine } from "./starLine";
+import {
+  isTypedStatLine,
+  starStatLine,
+  teamDefenseLine,
+  teamDefenseName,
+  teamDefenseStatLine,
+} from "./starLine";
 
 describe("starStatLine", () => {
   test("a quarterback leads with passing, then his rushing", () => {
@@ -65,6 +71,41 @@ describe("starStatLine", () => {
   test("nothing in the box score is no line", () => {
     expect(starStatLine("LT", {})).toBeNull();
     expect(starStatLine("QB", {})).toBeNull();
+  });
+});
+
+describe("a team's cumulative defense", () => {
+  const lines = [
+    { tackles: 9, tacklesForLoss: 2, sacks: 1.5, passDeflections: 0 },
+    { tackles: 4, defInt: 1, defIntYds: 34, passDeflections: 2 },
+    { tackles: 1, blockedKicks: 1, sacks: 0.5 },
+    // A receiver's tackle after an interception counts; his catches do not.
+    { rec: 6, recYds: 80, tackles: 1 },
+  ];
+
+  test("adds up every defensive number and leaves everything else out", () => {
+    expect(teamDefenseLine(lines)).toEqual({
+      tackles: 15,
+      tacklesForLoss: 2,
+      sacks: 2,
+      defInt: 1,
+      defIntYds: 34,
+      passDeflections: 2,
+      blockedKicks: 1,
+    });
+  });
+
+  test("its line shows every number that is not zero", () => {
+    expect(teamDefenseStatLine(lines)).toBe("15 TKLs, 2 TFLs, 2 sacks, 1 INT, 34 INT yds, 2 PDEF, 1 BLK");
+  });
+
+  test("a side with no defensive plays has no line", () => {
+    expect(teamDefenseStatLine([])).toBeNull();
+    expect(teamDefenseStatLine([{ rec: 3, recYds: 20 }])).toBeNull();
+  });
+
+  test("is named after the team's abbreviation", () => {
+    expect(teamDefenseName("NE")).toBe("NE Defense");
   });
 });
 

@@ -1,22 +1,31 @@
 /**
  * Stars of the game, picked by hand: who can be picked (with their line for the game), saving
- * the ordered list, and the box score's one-click star.
+ * the ordered list, and the box score's one-click stars for a player or a whole defense.
  */
 import { v } from "convex/values";
 import { starStatLine } from "../../shared/games/starLine";
 import { cleanStars, MAX_STARS, toggleStar } from "../../shared/games/stars";
 import { gameFlow, type StatLine } from "../../shared/stats";
 import type { Doc, Id } from "../_generated/dataModel";
-import { mutation, query } from "../_generated/server";
+import { mutation, query, type MutationCtx } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { invalid, must } from "../lib/errors";
-import { MAX_ROSTER, playersById } from "../lib/franchise";
+import { MAX_LINES_PER_TEAM, MAX_ROSTER, playersById } from "../lib/franchise";
 import { headshotUrls } from "../lib/refs";
 import { vPosition } from "../lib/validators";
 import { ownGame } from "./access";
 import { gamePlays } from "./playRows";
 
-const MAX_LINES_PER_TEAM = 100;
+const NOT_IN_GAME = "That team did not play in this game";
+const playedIn = (game: Doc<"games">, teamId: Id<"teams"> | undefined) =>
+  teamId !== undefined && (teamId === game.homeTeamId || teamId === game.awayTeamId);
+
+/** Saves a one-click change and says whether it added a star; null means the list was full. */
+async function saveToggle(ctx: MutationCtx, game: Doc<"games">, next: Doc<"games">["stars"] | null) {
+  if (!next) throw invalid(`Pick at most ${MAX_STARS} stars`);
+  await ctx.db.patch("games", game._id, { stars: next.length > 0 ? next : undefined });
+  return next.length > (game.stars?.length ?? 0);
+}
 
 /**
  * Players with a stat line in this game (both teams, the user's first), each with the line a
@@ -103,6 +112,7 @@ export const setStars = mutation({
         playerId: v.optional(v.id("players")),
         rawName: v.optional(v.string()),
         teamId: v.optional(v.id("teams")),
+        teamDefense: v.optional(v.boolean()),
         caption: v.optional(v.string()),
       }),
     ),
@@ -110,10 +120,11 @@ export const setStars = mutation({
   returns: v.null(),
   handler: async (ctx, { gameId, stars }) => {
     await requireOwner(ctx);
-    const { franchise } = await ownGame(ctx, gameId);
+    const { franchise, game } = await ownGame(ctx, gameId);
     const checked = cleanStars(stars);
     if (!checked.ok) throw invalid(checked.error);
     for (const star of checked.value) {
+      if (star.teamDefense && !playedIn(game, star.teamId)) throw invalid(NOT_IN_GAME);
       if (star.playerId) {
         const player = must(await ctx.db.get("players", star.playerId), "Player");
         if (player.franchiseId !== franchise._id) throw invalid("That player belongs to another franchise");
@@ -137,13 +148,25 @@ export const toggle = mutation({
     const { franchise, game } = await ownGame(ctx, gameId);
     const player = must(await ctx.db.get("players", playerId), "Player");
     if (player.franchiseId !== franchise._id) throw invalid("That player belongs to another franchise");
-    if (teamId !== game.homeTeamId && teamId !== game.awayTeamId) {
-      throw invalid("That team did not play in this game");
-    }
-    const stars = game.stars ?? [];
-    const next = toggleStar(stars, playerId, { playerId, teamId });
-    if (!next) throw invalid(`Pick at most ${MAX_STARS} stars`);
-    await ctx.db.patch("games", gameId, { stars: next.length > 0 ? next : undefined });
-    return next.length > stars.length;
+    if (!playedIn(game, teamId)) throw invalid(NOT_IN_GAME);
+    const isPlayer = (star: { playerId?: Id<"players"> }) => star.playerId === playerId;
+    return saveToggle(ctx, game, toggleStar(game.stars ?? [], isPlayer, { playerId, teamId }));
+  },
+});
+
+/**
+ * The same click for a team's whole defense, for the games where it played great and no single
+ * player did. Returns whether it is a star now.
+ */
+export const toggleDefense = mutation({
+  args: { gameId: v.id("games"), teamId: v.id("teams") },
+  returns: v.boolean(),
+  handler: async (ctx, { gameId, teamId }) => {
+    await requireOwner(ctx);
+    const { game } = await ownGame(ctx, gameId);
+    if (!playedIn(game, teamId)) throw invalid(NOT_IN_GAME);
+    const isDefense = (star: { teamId?: Id<"teams">; teamDefense?: boolean }) =>
+      star.teamDefense === true && star.teamId === teamId;
+    return saveToggle(ctx, game, toggleStar(game.stars ?? [], isDefense, { teamId, teamDefense: true }));
   },
 });

@@ -28,7 +28,9 @@ export function PickedStars({ stars, onChange, sideOf }: PickedStarsProps) {
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium">{star.name}</span>
                 <span className="block text-xs text-subtle-foreground">
-                  {[star.position, side, star.playerId ? null : "typed name"].filter(Boolean).join(" · ")}
+                  {[star.position, side, star.playerId || star.teamDefense ? null : "typed name"]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </span>
                 {star.statLine && (
                   <span className="num block text-xs text-muted-foreground">{star.statLine}</span>

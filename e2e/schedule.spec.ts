@@ -123,6 +123,25 @@ test("a box score player becomes a star in one click and stops being one in anot
   );
 });
 
+test("the whole defense has its own row and becomes a star in one click", async ({ page }) => {
+  await openSchedule(page);
+  // Week 2: no other test stars anyone there or re-saves its list.
+  await page.locator('a[href^="/games/"]').nth(1).click();
+  const defense = page.getByRole("table", { name: "NE defense" });
+  const firstRow = defense.getByRole("row").nth(1);
+  await expect(firstRow).toContainText("NE Defense");
+  await firstRow.getByRole("button", { name: "Make NE Defense a star" }).click();
+  const remove = firstRow.getByRole("button", { name: "Remove NE Defense from the stars" });
+  await expect(remove).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("ol").getByText("NE Defense")).toBeVisible();
+  await expect(page.locator("ol").getByText(/^\d+ TKLs/)).toBeVisible();
+  await remove.click();
+  await expect(firstRow.getByRole("button", { name: "Make NE Defense a star" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+});
+
 /** Each project adds its own week so parallel runs never collide. */
 const ADD_WEEK: Record<string, number> = { desktop: 15, phone: 16, "phone-large": 17 };
 

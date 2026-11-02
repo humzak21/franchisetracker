@@ -172,6 +172,24 @@ export const TABLE_SPECIMENS: Specimen[] = [
     ),
   },
   {
+    id: "datatable-pinned",
+    name: "DataTable · pinned row",
+    note: "A pinned row stays above the others and apart from them whatever the sort: the box score's cumulative defense sits here.",
+    render: () => (
+      <DataTable
+        id="gallery-receivers-pinned"
+        data={RECEIVERS_2025}
+        columns={RECEIVER_COLUMNS}
+        getRowId={(r) => r.id}
+        identityColumn="player"
+        primaryColumns={["rec", "recYds", "recTd"]}
+        pinnedRow={RECEIVER_TOTALS}
+        initialSort={{ id: "recYds", desc: true }}
+        caption="2025 receiving, with the team's line pinned"
+      />
+    ),
+  },
+  {
     id: "datatable-long",
     name: "DataTable · long",
     note: "Past 120 rows only the rows in view are rendered, so a season of league-wide stats scrolls smoothly on a phone.",

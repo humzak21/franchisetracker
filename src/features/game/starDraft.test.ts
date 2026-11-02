@@ -10,6 +10,7 @@ const stars = [
     caption: "3 TD",
     statLine: null,
     teamId: "t1",
+    teamDefense: false,
   },
   {
     playerId: null,
@@ -19,6 +20,7 @@ const stars = [
     caption: null,
     statLine: null,
     teamId: null,
+    teamDefense: false,
   },
 ];
 
@@ -30,6 +32,22 @@ describe("starDraft", () => {
       { playerId: "p1", teamId: "t1", caption: "3 TD" },
       { rawName: "Opponent standout" },
     ]);
+  });
+
+  it("keeps a team's defense as a defense, not a typed name", () => {
+    const draft = draftFromStars([
+      {
+        playerId: null,
+        name: "NE Defense",
+        position: null,
+        headshotUrl: null,
+        caption: null,
+        statLine: "40 TKLs, 6 sacks",
+        teamId: "t1",
+        teamDefense: true,
+      },
+    ]);
+    expect(starsInput(draft)).toEqual([{ teamDefense: true, teamId: "t1" }]);
   });
 
   it("drops blank captions", () => {

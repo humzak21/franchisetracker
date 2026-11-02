@@ -4,11 +4,8 @@ import type { RowGameContext } from "../../shared/ingestion/rows/types";
 import type { StatLine } from "../../shared/stats";
 import type { Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
-import { playersById } from "./franchise";
+import { MAX_LINES_PER_TEAM, playersById } from "./franchise";
 import { vStatMap } from "./validators";
-
-/** Two full rosters' worth of lines with room to spare (as `commitBoxScore`). */
-const MAX_LINES_PER_TEAM = 100;
 
 const nullable = <T extends Parameters<typeof v.union>[0]>(validator: T) => v.union(validator, v.null());
 

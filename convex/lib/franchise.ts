@@ -12,6 +12,9 @@ export const MAX_SEASONS = 150;
  */
 export const MAX_ROSTER = 300;
 
+/** One team's box score in one game: two full rosters' worth of lines with room to spare. */
+export const MAX_LINES_PER_TEAM = 100;
+
 /** 32 teams today; headroom without becoming unbounded. */
 const MAX_TEAMS = 64;
 

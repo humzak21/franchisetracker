@@ -9,6 +9,8 @@ export type DraftStar = {
   name: string;
   position: string | null;
   teamId: Id<"teams"> | null;
+  /** The star is the team's whole defense, not a player. */
+  teamDefense: boolean;
   /** The player's line for the game, shown while picking; never saved. */
   statLine: string | null;
   caption: string;
@@ -16,11 +18,12 @@ export type DraftStar = {
 
 export function draftFromStars(stars: readonly StarView[]): DraftStar[] {
   return stars.map((star, i) => ({
-    key: star.playerId ?? `typed-${i}-${star.name}`,
+    key: star.playerId ?? `${star.teamDefense ? "defense" : "typed"}-${i}-${star.name}`,
     playerId: star.playerId as Id<"players"> | null,
     name: star.name,
     position: star.position,
     teamId: star.teamId as Id<"teams"> | null,
+    teamDefense: star.teamDefense,
     statLine: star.statLine,
     caption: star.caption ?? "",
   }));
@@ -28,7 +31,11 @@ export function draftFromStars(stars: readonly StarView[]): DraftStar[] {
 
 export function starsInput(draft: readonly DraftStar[]) {
   return draft.map((star) => ({
-    ...(star.playerId ? { playerId: star.playerId } : { rawName: star.name }),
+    ...(star.teamDefense
+      ? { teamDefense: true }
+      : star.playerId
+        ? { playerId: star.playerId }
+        : { rawName: star.name }),
     ...(star.teamId ? { teamId: star.teamId } : {}),
     ...(star.caption.trim() ? { caption: star.caption.trim() } : {}),
   }));

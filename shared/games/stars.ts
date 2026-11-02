@@ -11,6 +11,8 @@ export type StarInput<P extends string, T extends string> = {
   /** A name typed in when the player is not in the app. */
   rawName?: string | null;
   teamId?: T | null;
+  /** The star is `teamId`'s whole defense rather than a player: its numbers added up. */
+  teamDefense?: boolean | null;
   caption?: string | null;
 };
 
@@ -18,6 +20,7 @@ export type CleanStar<P extends string, T extends string> = {
   playerId?: P;
   rawName?: string;
   teamId?: T;
+  teamDefense?: true;
   caption?: string;
 };
 
@@ -28,8 +31,12 @@ export function cleanStars<P extends string, T extends string>(
   if (stars.length > MAX_STARS) return { ok: false, error: `Pick at most ${MAX_STARS} stars` };
   const out: CleanStar<P, T>[] = [];
   for (const star of stars) {
-    const rawName = star.playerId ? undefined : star.rawName?.trim() || undefined;
-    if (!star.playerId && !rawName) return { ok: false, error: "Each star needs a player or a name" };
+    const defense = star.teamDefense === true;
+    if (defense && !star.teamId) return { ok: false, error: "A defense star needs its team" };
+    const rawName = star.playerId || defense ? undefined : star.rawName?.trim() || undefined;
+    if (!defense && !star.playerId && !rawName) {
+      return { ok: false, error: "Each star needs a player or a name" };
+    }
     if ((rawName?.length ?? 0) > STAR_NAME_MAX) {
       return { ok: false, error: `Keep names under ${STAR_NAME_MAX} characters` };
     }
@@ -38,26 +45,28 @@ export function cleanStars<P extends string, T extends string>(
       return { ok: false, error: `Keep captions under ${STAR_CAPTION_MAX} characters` };
     }
     out.push({
-      ...(star.playerId ? { playerId: star.playerId } : { rawName }),
+      ...(defense
+        ? { teamDefense: true as const }
+        : star.playerId
+          ? { playerId: star.playerId }
+          : { rawName }),
       ...(star.teamId ? { teamId: star.teamId } : {}),
       ...(caption ? { caption } : {}),
     });
   }
-  const ids = out.flatMap((s) => (s.playerId ? [s.playerId] : []));
-  if (new Set(ids).size !== ids.length) return { ok: false, error: "A player can only be a star once" };
+  const ids = out.flatMap((s) => (s.teamDefense ? [`defense:${s.teamId}`] : s.playerId ? [s.playerId] : []));
+  if (new Set(ids).size !== ids.length) {
+    return { ok: false, error: "A player or defense can only be a star once" };
+  }
   return { ok: true, value: out };
 }
 
 /**
- * The stars with one player toggled, for the box score's one-click star: a star is taken out
- * (the rest keep their order); anyone else joins at the end. Null when the list is full.
+ * The stars with one toggled, for the box score's one-click star: a star is taken out (the rest
+ * keep their order); anyone else joins at the end. Null when the list is full.
  */
-export function toggleStar<S extends { playerId?: string }>(
-  stars: readonly S[],
-  playerId: string,
-  star: S,
-): S[] | null {
-  if (stars.some((s) => s.playerId === playerId)) return stars.filter((s) => s.playerId !== playerId);
+export function toggleStar<S>(stars: readonly S[], isThisStar: (star: S) => boolean, star: S): S[] | null {
+  if (stars.some(isThisStar)) return stars.filter((s) => !isThisStar(s));
   return stars.length >= MAX_STARS ? null : [...stars, star];
 }
 

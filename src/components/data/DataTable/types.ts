@@ -53,6 +53,8 @@ export type DataTableProps<T> = {
   primaryColumns: readonly string[];
   /** Totals row rendered in the footer. */
   totals?: T;
+  /** A row held above the others and apart from them, whatever the sort (a team's cumulative line). */
+  pinnedRow?: T;
   initialSort?: { id: string; desc: boolean };
   searchable?: boolean;
   searchPlaceholder?: string;
