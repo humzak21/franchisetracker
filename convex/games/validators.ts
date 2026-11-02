@@ -19,6 +19,8 @@ export const vStarView = v.object({
   /** The star's numbers in this game, from its box score ("19 ATT, 123 yds, 2 TD"). */
   statLine: nullable(v.string()),
   teamId: nullable(v.id("teams")),
+  /** The star is the team's whole defense, not a player. */
+  teamDefense: v.boolean(),
 });
 
 export const vGameRow = v.object({

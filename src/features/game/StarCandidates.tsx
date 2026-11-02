@@ -18,7 +18,7 @@ type Side = TeamLike & { _id: Id<"teams"> };
 type StarCandidatesProps = {
   candidates: readonly Candidate[] | undefined;
   picked: readonly DraftStar[];
-  onAdd: (star: Omit<DraftStar, "key" | "caption">) => void;
+  onAdd: (star: Omit<DraftStar, "key" | "caption" | "teamDefense">) => void;
   user: Side;
   opponent: Side | null;
 };

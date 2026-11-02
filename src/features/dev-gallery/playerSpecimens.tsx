@@ -54,6 +54,7 @@ const GALLERY_STARS: StarView[] = [
     statLine: "24/31, 77.4%, 301 yds, 3 TD",
     caption: "Game-winning drive in the fourth",
     teamId: "ne",
+    teamDefense: false,
   },
   {
     playerId: null,
@@ -63,6 +64,7 @@ const GALLERY_STARS: StarView[] = [
     statLine: "9 rec, 131 yds, 1 TD",
     caption: null,
     teamId: "ne",
+    teamDefense: false,
   },
   {
     playerId: null,
@@ -72,6 +74,7 @@ const GALLERY_STARS: StarView[] = [
     statLine: "19/30, 63.3%, 244 yds, 1 TD, 6 ATT, 41 yds, 2 TD",
     caption: null,
     teamId: "buf",
+    teamDefense: false,
   },
   {
     playerId: null,
@@ -81,6 +84,17 @@ const GALLERY_STARS: StarView[] = [
     statLine: "4 TKLs, 1 INT, 3 PDEF",
     caption: null,
     teamId: "ne",
+    teamDefense: false,
+  },
+  {
+    playerId: null,
+    name: "NE Defense",
+    position: null,
+    headshotUrl: null,
+    statLine: "48 TKLs, 7 TFLs, 6 sacks, 2 INT, 45 INT yds, 5 PDEF, 1 FF",
+    caption: null,
+    teamId: "ne",
+    teamDefense: true,
   },
 ];
 const GALLERY_TEAMS = NFL_TEAMS.map((t) => ({ ...t, _id: t.abbr }));

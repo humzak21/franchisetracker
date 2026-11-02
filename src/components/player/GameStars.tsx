@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Star } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { EmptyState } from "../data/EmptyState";
-import type { TeamLike } from "../team/TeamLogo";
+import { TeamLogo, type TeamLike } from "../team/TeamLogo";
 import { PlayerChip } from "./PlayerChip";
 
 export type StarView = {
@@ -15,6 +15,8 @@ export type StarView = {
   statLine: string | null;
   /** The side the star played for, when known. */
   teamId: string | null;
+  /** The star is the team's whole defense, not a player. */
+  teamDefense: boolean;
 };
 
 type GameStarsProps = {
@@ -57,6 +59,9 @@ export function GameStars({ stars, team, opponent, layout = "list" }: GameStarsP
     const chip = (
       <PlayerChip
         size={size}
+        avatar={
+          star.teamDefense ? <TeamLogo team={teamOf(star)} size={size === "sm" ? "xs" : "sm"} /> : undefined
+        }
         player={{
           displayName: star.name,
           position: star.position ?? "",

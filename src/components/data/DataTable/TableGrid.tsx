@@ -16,6 +16,7 @@ type TableGridProps<T> = {
   rows: readonly T[] | null;
   getRowId: (row: T) => string;
   totals?: T;
+  pinnedRow?: T;
   sortState: (id: string) => false | "asc" | "desc";
   onSort: (id: string) => void;
   onRowClick?: (row: T) => void;
@@ -55,6 +56,7 @@ export function TableGrid<T>(props: TableGridProps<T>) {
     rows,
     getRowId,
     totals,
+    pinnedRow,
     sortState,
     onSort,
     onRowClick,
@@ -128,7 +130,7 @@ export function TableGrid<T>(props: TableGridProps<T>) {
     );
   };
 
-  const cells = (row: T, isTotals = false) =>
+  const cells = (row: T, isTotals = false, isPinned = false) =>
     all.map((col, index) => (
       <td
         key={col.id}
@@ -138,6 +140,7 @@ export function TableGrid<T>(props: TableGridProps<T>) {
           alignClass[col.align ?? "left"],
           index === 0 && pin,
           isTotals && "border-t-2 border-b-0 border-t-border-strong bg-surface-2 font-semibold",
+          isPinned && "border-b-2 border-b-border-strong bg-surface-2 font-semibold",
         )}
       >
         {index === 0 ? (
@@ -177,7 +180,7 @@ export function TableGrid<T>(props: TableGridProps<T>) {
   });
   const items = virtualizer.getVirtualItems();
 
-  const renderRow = (row: T) => {
+  const renderRow = (row: T, isPinned = false) => {
     const id = getRowId(row);
     const open = expandable && expanded.has(id);
     const clickable = expandable || !!onRowClick;
@@ -188,7 +191,7 @@ export function TableGrid<T>(props: TableGridProps<T>) {
           onClick={clickable ? () => (expandable ? toggle(id) : onRowClick?.(row)) : undefined}
           aria-expanded={expandable ? open : undefined}
         >
-          {cells(row)}
+          {cells(row, false, isPinned)}
         </tr>
         {open && (
           <tr className="bg-surface-2/60">
@@ -261,6 +264,7 @@ export function TableGrid<T>(props: TableGridProps<T>) {
             </td>
           </tr>
         )}
+        {pinnedRow && rows && rows.length > 0 && renderRow(pinnedRow, true)}
         {!virtual && rows?.map((row) => renderRow(row))}
       </tbody>
       {virtual && rows && (

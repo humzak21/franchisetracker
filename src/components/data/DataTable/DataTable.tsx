@@ -135,6 +135,7 @@ export function DataTable<T extends object>(props: DataTableProps<T>) {
             rows={data === undefined ? null : model.rows}
             getRowId={getRowId}
             totals={props.totals}
+            pinnedRow={props.pinnedRow}
             sortState={model.sortState}
             onSort={model.toggleSort}
             onRowClick={props.onRowClick}

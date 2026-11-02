@@ -78,7 +78,12 @@ function PickerBody({
           onAdd={(star) =>
             setDraft((current) => [
               ...current,
-              { ...star, caption: "", key: star.playerId ?? `typed-${Date.now()}-${star.name}` },
+              {
+                ...star,
+                caption: "",
+                teamDefense: false,
+                key: star.playerId ?? `typed-${Date.now()}-${star.name}`,
+              },
             ])
           }
         />

@@ -4,12 +4,10 @@ import type { Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 import { requireOwner } from "../lib/auth";
 import { must } from "../lib/errors";
-import { activeFranchise, playersById } from "../lib/franchise";
+import { activeFranchise, MAX_LINES_PER_TEAM, playersById } from "../lib/franchise";
 import { headshotUrls } from "../lib/refs";
 import { vPosition, vStatMap } from "../lib/validators";
 import schema from "../schema";
-
-const MAX_LINES_PER_TEAM = 100;
 
 const vBoxLine = v.object({
   playerId: v.id("players"),

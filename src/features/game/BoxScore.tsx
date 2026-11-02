@@ -13,7 +13,7 @@ import { useQuery } from "@/lib/convex/useQuery";
 import { errorMessage } from "@/lib/errors";
 import { BoxLinesSheet } from "./BoxLinesSheet";
 import { BoxTeamTables } from "./BoxTeamTables";
-import type { BoxRow } from "./boxScoreColumns";
+import { defenseRowId, type BoxRow } from "./boxScoreColumns";
 
 type BoxScoreProps = { gameId: Id<"games">; stars: readonly StarView[]; onImport: () => void };
 
@@ -21,25 +21,38 @@ type BoxScoreProps = { gameId: Id<"games">; stars: readonly StarView[]; onImport
  * Game detail box score on one page, by team: every table for the franchise's team (passing,
  * rushing, receiving, defense, ...), then every table for the opponent, with threshold highlights. Phone tables keep each category's defining stats and fold the rest into the
  * tap-to-expand card. Edit turns recorded stats into inputs; Player lines adds or removes lines.
- * The star beside each player makes him a star of the game in one click, and a second click undoes it.
+ * The star beside each player, or beside a whole defense, makes it a star of the game in one
+ * click, and a second click undoes it.
  */
 export function BoxScore({ gameId, stars, onImport }: BoxScoreProps) {
   const data = useQuery(api.games.boxScore.get, { gameId });
   const setStat = useMutation(api.games.statLines.setStat);
-  const toggleStar = useMutation(api.games.stars.toggle);
+  const togglePlayer = useMutation(api.games.stars.toggle);
+  const toggleDefense = useMutation(api.games.stars.toggleDefense);
   const [pending, setPending] = useState<string | null>(null);
   const [starError, setStarError] = useState<string | null>(null);
-  const starIds = useMemo(() => new Set(stars.flatMap((s) => (s.playerId ? [s.playerId] : []))), [stars]);
+  const starRows = useMemo(
+    () =>
+      new Set(
+        stars.flatMap((s) => {
+          if (s.teamDefense) return s.teamId ? [defenseRowId(s.teamId)] : [];
+          return s.playerId ? [s.playerId] : [];
+        }),
+      ),
+    [stars],
+  );
   const toggle = useCallback(
     (row: BoxRow, teamId: Id<"teams">) => {
-      if (!row.playerId) return;
-      setPending(row.playerId);
+      setPending(row.id);
       setStarError(null);
-      toggleStar({ gameId, playerId: row.playerId as Id<"players">, teamId })
+      const change = row.playerId
+        ? togglePlayer({ gameId, playerId: row.playerId as Id<"players">, teamId })
+        : toggleDefense({ gameId, teamId });
+      change
         .catch((err: unknown) => setStarError(errorMessage(err, "Could not change the stars.")))
         .finally(() => setPending(null));
     },
-    [gameId, toggleStar],
+    [gameId, togglePlayer, toggleDefense],
   );
   const [linesOpen, setLinesOpen] = useState(false);
 
@@ -111,7 +124,7 @@ export function BoxScore({ gameId, stars, onImport }: BoxScoreProps) {
             team={team}
             allTeams={data.teams}
             categories={categories}
-            stars={{ isStar: (id) => starIds.has(id), pending, toggle }}
+            stars={{ isStar: (id) => starRows.has(id), pending, toggle }}
             onEdit={onEdit}
           />
         ))}

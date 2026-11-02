@@ -28,6 +28,23 @@ describe("cleanStars", () => {
   });
 });
 
+describe("cleanStars with a team's defense", () => {
+  it("keeps the team and the note, and drops any name or player", () => {
+    expect(
+      cleanStars([
+        { teamDefense: true, teamId: "t1", rawName: "ignored", playerId: "p1", caption: " 7 sacks " },
+      ]),
+    ).toEqual({ ok: true, value: [{ teamDefense: true, teamId: "t1", caption: "7 sacks" }] });
+  });
+
+  it("needs a team, and takes each defense once while both sides can have one", () => {
+    expect(cleanStars([{ teamDefense: true }]).ok).toBe(false);
+    const ne = { teamDefense: true, teamId: "t1" };
+    expect(cleanStars([ne, ne]).ok).toBe(false);
+    expect(cleanStars([ne, { teamDefense: true, teamId: "t2" }]).ok).toBe(true);
+  });
+});
+
 describe("moveItem", () => {
   it("moves an item up or down and ignores out-of-range moves", () => {
     expect(moveItem(["a", "b", "c"], 2, 0)).toEqual(["c", "a", "b"]);
@@ -38,21 +55,22 @@ describe("moveItem", () => {
 
 describe("toggleStar", () => {
   type Star = { playerId?: string; rawName?: string; caption?: string };
+  const isPlayer = (id: string) => (star: Star) => star.playerId === id;
   const a: Star = { playerId: "a" };
   const b: Star = { playerId: "b", caption: "note" };
   const typed: Star = { rawName: "Opponent standout" };
 
   it("a player who is not a star joins at the end", () => {
-    expect(toggleStar([a, typed], "b", b)).toEqual([a, typed, b]);
+    expect(toggleStar([a, typed], isPlayer("b"), b)).toEqual([a, typed, b]);
   });
 
   it("a star is taken out, the rest keep their order", () => {
-    expect(toggleStar([a, b, typed], "a", a)).toEqual([b, typed]);
+    expect(toggleStar([a, b, typed], isPlayer("a"), a)).toEqual([b, typed]);
   });
 
   it("a full list takes no one new, but still lets a star go", () => {
     const full = Array.from({ length: MAX_STARS }, (_, i) => ({ playerId: `p${i}` }));
-    expect(toggleStar(full, "new", { playerId: "new" })).toBeNull();
-    expect(toggleStar(full, "p0", { playerId: "p0" })).toHaveLength(MAX_STARS - 1);
+    expect(toggleStar(full, isPlayer("new"), { playerId: "new" })).toBeNull();
+    expect(toggleStar(full, isPlayer("p0"), { playerId: "p0" })).toHaveLength(MAX_STARS - 1);
   });
 });

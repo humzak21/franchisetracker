@@ -4,7 +4,8 @@
  * Built from the game's box score, so stars never need their numbers typed in. Pure.
  */
 import { POSITION_INFO, type Position, type PositionGroup } from "../domain/positions";
-import type { StatLine } from "../stats/registry";
+import { aggregateLines } from "../stats/aggregate";
+import { RAW_STATS, RAW_STAT_KEYS, type StatLine } from "../stats/registry";
 
 const n = (line: StatLine, key: keyof StatLine) => line[key] ?? 0;
 
@@ -42,11 +43,13 @@ function defense(line: StatLine): string[] {
     [n(line, "tacklesForLoss"), "TFL"],
     [n(line, "sacks"), "sack"],
     [n(line, "defInt"), "INT", "INT"],
+    [n(line, "defIntYds"), "INT yd"],
     [n(line, "passDeflections"), "PDEF", "PDEF"],
     [n(line, "forcedFumbles"), "FF", "FF"],
     [n(line, "fumbleRecoveries"), "FR", "FR"],
     [n(line, "safeties"), "SFTY", "SFTY"],
     [n(line, "defTd"), "TD", "TD"],
+    [n(line, "blockedKicks"), "BLK", "BLK"],
   ];
   return parts.filter(([value]) => value !== 0).map(([value, one, many]) => count(value, one, many));
 }
@@ -95,6 +98,25 @@ export function starStatLine(position: Position, line: StatLine): string | null 
   const parts = (BY_GROUP[POSITION_INFO[position].group] ?? []).flatMap((part) => part(line));
   const all = parts.length > 0 ? parts : returns(line);
   return all.length > 0 ? all.join(", ") : null;
+}
+
+/** "NE Defense": what a team's cumulative defense is called wherever it shows. */
+export const teamDefenseName = (abbr: string) => `${abbr} Defense`;
+
+/** A team's defense in one game: its players' defensive numbers added up, and nothing else. */
+export function teamDefenseLine(lines: readonly StatLine[]): StatLine {
+  const totals = aggregateLines(lines);
+  const line: StatLine = {};
+  for (const key of RAW_STAT_KEYS) {
+    if (RAW_STATS[key].category === "defense" && totals[key] !== undefined) line[key] = totals[key];
+  }
+  return line;
+}
+
+/** The cumulative defense's line for the game, or null when no one made a defensive play. */
+export function teamDefenseStatLine(lines: readonly StatLine[]): string | null {
+  const parts = defense(teamDefenseLine(lines));
+  return parts.length > 0 ? parts.join(", ") : null;
 }
 
 /** Words a hand-typed stat line is made of ("22/30, 284 yds, 3 TD", "2 rush TD", "INT, 3 PD"). */

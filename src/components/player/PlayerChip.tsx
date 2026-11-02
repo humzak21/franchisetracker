@@ -16,6 +16,8 @@ type PlayerChipProps = {
   player: PlayerLike;
   /** Secondary line, e.g. a stat line caption for three stars. */
   caption?: ReactNode;
+  /** Takes the headshot's place, for an entry that is not one person (a team's defense). */
+  avatar?: ReactNode;
   /** `sm` is the table size: smaller headshot, position and number on a second line so the name gets the width. */
   size?: "sm" | "md";
   showPosition?: boolean;
@@ -26,18 +28,21 @@ type PlayerChipProps = {
 export function PlayerChip({
   player,
   caption,
+  avatar,
   size = "md",
   showPosition = true,
   className,
 }: PlayerChipProps) {
   return (
     <span className={cn("inline-flex max-w-full min-w-0 items-center gap-2.5", className)}>
-      <Headshot
-        name={player.displayName}
-        src={player.headshotUrl}
-        team={player.team}
-        size={size === "sm" ? "xs" : "sm"}
-      />
+      {avatar ?? (
+        <Headshot
+          name={player.displayName}
+          src={player.headshotUrl}
+          team={player.team}
+          size={size === "sm" ? "xs" : "sm"}
+        />
+      )}
       <span className="min-w-0">
         <span className="flex items-center gap-1.5">
           <span className={cn("truncate font-medium", size === "sm" ? "text-[13px]" : "text-sm")}>
