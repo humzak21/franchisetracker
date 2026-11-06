@@ -15,13 +15,15 @@ import {
   type StatKey,
 } from "@shared/stats";
 import { CumulativeChart, type CumulativeSeries } from "@/components/data/CumulativeChart";
-import { DeltaBadge } from "@/components/data/DeltaBadge";
 import { EmptyState } from "@/components/data/EmptyState";
 import { TrendChart } from "@/components/data/TrendChart";
 import { Section } from "@/components/layout/Section";
-import { RecentGames } from "@/components/player/RecentGames";
-import { Select } from "@/components/ui/select";
+import { STICKY_TOP, type StickyBelow } from "@/components/layout/sticky";
+import { StepSelect } from "@/components/ui/StepSelect";
+import { cn } from "@/lib/cn";
 import { LineChart as LineChartIcon } from "lucide-react";
+import { CareerYearTable } from "./CareerYearTable";
+import { GameByGame } from "./GameByGame";
 
 export type CareerCurvesData = {
   gamesPerSeason: number;
@@ -38,72 +40,29 @@ const CURVE_LABEL: Record<CurveKey, (year: number) => string> = {
   best: (year) => `${year} (best)`,
 };
 
-/** How the chart reads a stat, in the registry's format. */
-const formatter = (stat: StatKey) => (value: number) => formatStat(stat, value);
-
-function YearTable({ stat, data }: { stat: StatKey; data: CareerCurvesData }) {
-  const changes = yearOverYear(data.seasons, stat);
-  const format = formatter(stat);
-  const { better, label } = getStat(stat);
-  return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-surface" data-swipe-ignore>
-      <table className="w-full text-sm">
-        <caption className="sr-only">{label} by season</caption>
-        <thead className="text-left text-xs text-muted-foreground">
-          <tr className="border-b border-border">
-            <th className="px-3 py-2 font-medium">Season</th>
-            <th className="px-3 py-2 text-right font-medium">Age</th>
-            <th className="px-3 py-2 text-right font-medium">G</th>
-            <th className="px-3 py-2 text-right font-medium">{getStat(stat).abbr}</th>
-            <th className="px-3 py-2 text-right font-medium">Change</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {[...changes].reverse().map((change) => {
-            const season = data.seasons.find((s) => s.year === change.year);
-            return (
-              <tr key={change.year}>
-                <th scope="row" className="px-3 py-2 text-left font-medium">
-                  <span className="num">{change.year}</span>
-                  {season?.imported && (
-                    <span className="ml-1.5 text-xs font-normal text-muted-foreground">NFL</span>
-                  )}
-                </th>
-                <td className="num px-3 py-2 text-right text-muted-foreground">{season?.age ?? "—"}</td>
-                <td className="num px-3 py-2 text-right text-muted-foreground">{season?.gamesPlayed}</td>
-                <td className="num px-3 py-2 text-right font-semibold">{format(change.value)}</td>
-                <td className="px-3 py-2 text-right">
-                  <DeltaBadge
-                    delta={change.delta}
-                    better={better}
-                    format={format}
-                    muted={change.smallSample}
-                  />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+/** Jumping to a section lands below the header, the jump links and the stat bar. */
+const BELOW_BAR = "scroll-mt-48";
 
 /**
  * A career as curves, for the player page and Stats → Trends: a stat season by season with each
- * change, then each season's running total against the last, the best and the franchise record,
- * and the last 30 games one by one with their average, median and spread. Imported seasons have no games, so curves start at the franchise.
+ * change, each season's running total against the last, the best and the franchise record, and
+ * every game one by one. Imported seasons have no games, so curves start at the franchise. The stat
+ * picker sticks to the top while any of the three is on screen, so changing it never means
+ * scrolling back up.
  */
 export function CareerCurves({
   data,
   initialStat,
   anchors,
+  pinBelow = "header",
 }: {
   data: CareerCurvesData;
   /** The stat to open on, usually the position's lead stat. */
   initialStat?: StatKey;
   /** Section ids for a page's jump links. */
-  anchors?: { trends: string; cumulative: string };
+  anchors?: { trends: string; cumulative: string; byGame: string };
+  /** What the stat bar pins under: the page header, or the header and the page's jump links. */
+  pinBelow?: StickyBelow;
 }) {
   const options = useMemo(() => trendStats(data.seasons), [data.seasons]);
   const [picked, setPicked] = useState<StatKey | null>(null);
@@ -135,7 +94,7 @@ export function CareerCurves({
       />
     );
   }
-  const format = formatter(stat);
+  const format = (value: number) => formatStat(stat, value);
   const { label } = getStat(stat);
   const points = data.seasons.map((s) => ({
     key: String(s.year),
@@ -143,30 +102,40 @@ export function CareerCurves({
     group: String(s.year),
     value: yearOverYear([s], stat)[0]?.value ?? 0,
   }));
-  const picker = (
-    <Select
-      className="w-56 max-w-full"
-      aria-label="Stat to chart"
-      value={stat}
-      onValueChange={(key) => setPicked(key as StatKey)}
-      options={options.map((key) => ({ value: key, label: getStat(key).label }))}
-    />
-  );
 
   return (
-    <div className="space-y-8">
-      <Section id={anchors?.trends} title="Trends" actions={picker}>
+    <div className="space-y-6">
+      <div
+        className={cn(
+          "sticky z-10 flex items-center gap-2 rounded-xl border border-border-strong bg-surface p-1.5 shadow-lg",
+          STICKY_TOP[pinBelow],
+        )}
+        data-swipe-ignore
+      >
+        <span className="hidden pl-2 text-[11px] font-semibold tracking-[0.08em] text-subtle-foreground uppercase @tablet:inline">
+          Stat
+        </span>
+        <StepSelect
+          className="flex-1 @tablet:max-w-sm"
+          aria-label="Stat to chart"
+          value={stat}
+          onValueChange={(key) => setPicked(key as StatKey)}
+          options={options.map((key) => ({ value: key, label: getStat(key).label }))}
+        />
+      </div>
+      <Section id={anchors?.trends} className={BELOW_BAR} title="Trends">
         <div className="space-y-3">
           {points.length > 1 && (
             <div className="rounded-xl border border-border bg-surface p-3">
               <TrendChart points={points} valueLabel={label} scale="auto" format={format} />
             </div>
           )}
-          <YearTable stat={stat} data={data} />
+          <CareerYearTable stat={stat} data={data} />
         </div>
       </Section>
       <Section
         id={anchors?.cumulative}
+        className={BELOW_BAR}
         title="Cumulative"
         description="Regular season, franchise games only: each season from its first game."
       >
@@ -175,19 +144,17 @@ export function CareerCurves({
             Running totals start with the first committed box score.
           </p>
         ) : (
-          <div className="space-y-3">
-            <div className="rounded-xl border border-border bg-surface p-3">
-              <CumulativeChart
-                series={series}
-                valueLabel={label}
-                format={format}
-                marks={MARKS[stat as MarkStat] ?? []}
-              />
-            </div>
-            <RecentGames games={data.games} stat={stat} />
+          <div className="rounded-xl border border-border bg-surface p-3">
+            <CumulativeChart
+              series={series}
+              valueLabel={label}
+              format={format}
+              marks={MARKS[stat as MarkStat] ?? []}
+            />
           </div>
         )}
       </Section>
+      <GameByGame id={anchors?.byGame} className={BELOW_BAR} games={data.games} stat={stat} />
     </div>
   );
 }

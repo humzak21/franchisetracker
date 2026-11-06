@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { WeekKey } from "../domain";
-import { chosenCurves, recentGames, recordPace, seasonCurves, trendStats, type SeasonCurve } from "./trends";
+import { chosenCurves, gameByGame, recordPace, seasonCurves, trendStats, type SeasonCurve } from "./trends";
 
 const game = (year: number, weekKey: WeekKey, recYds: number) => ({
   gameId: `${year}-${weekKey}`,
@@ -70,20 +70,16 @@ describe("recordPace", () => {
   });
 });
 
-describe("recentGames", () => {
+describe("gameByGame", () => {
   const games = [10, 20, 30].map((yds, i) => game(2026, `w${i + 1}` as WeekKey, yds));
 
-  it("keeps each game's own value, oldest first, from the last `count` games", () => {
-    expect(recentGames([...games].reverse(), "recYds", 2).map((p) => p.value)).toEqual([20, 30]);
-  });
-
-  it("returns every game when there are fewer than the window", () => {
-    const points = recentGames(games, "recYds");
+  it("keeps every game's own value, in career order", () => {
+    const points = gameByGame([...games].reverse(), "recYds");
     expect(points.map((p) => p.value)).toEqual([10, 20, 30]);
-    expect(points[0]).toMatchObject({ key: "2026-w1", group: "2026" });
+    expect(points[0]).toMatchObject({ key: "2026-w1", group: "2026", year: 2026, week: "Week 1" });
   });
 
   it("counts a game without the stat as zero", () => {
-    expect(recentGames([{ ...games[0]!, stats: {} }], "recYds")[0]?.value).toBe(0);
+    expect(gameByGame([{ ...games[0]!, stats: {} }], "recYds")[0]?.value).toBe(0);
   });
 });

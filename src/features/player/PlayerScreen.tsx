@@ -39,6 +39,7 @@ const SECTIONS = [
   { id: "career", label: "Career" },
   { id: "trends", label: "Trends" },
   { id: "cumulative", label: "Cumulative" },
+  { id: "by-game", label: "By game" },
   { id: "splits", label: "Splits" },
   { id: "games", label: "Game log" },
   { id: "rosters", label: "Rosters" },
@@ -49,8 +50,8 @@ const SECTIONS = [
 
 /**
  * Player page (FEATURES.md 5.4): the card and bio, stat cards, pace in a live season, records and
- * streaks, milestones, OVR progression, career stats (real NFL seasons first, marked), trends and cumulative
- * curves, splits, game logs, roster history, identity tools and notes. Jump links keep it navigable on a phone.
+ * streaks, milestones, OVR progression, career stats (real NFL seasons first, marked), trends, cumulative
+ * curves and every game one by one, splits, game logs, roster history, identity tools and notes. Jump links keep it navigable on a phone.
  */
 export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
   const page = useQuery(api.players.player.get, { playerId });
@@ -145,7 +146,8 @@ export function PlayerScreen({ playerId }: { playerId: Id<"players"> }) {
               key={playerId}
               data={trends}
               initialStat={lead[0]}
-              anchors={{ trends: "trends", cumulative: "cumulative" }}
+              anchors={{ trends: "trends", cumulative: "cumulative", byGame: "by-game" }}
+              pinBelow="jumpLinks"
             />
           )}
           <Section

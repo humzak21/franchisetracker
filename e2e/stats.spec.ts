@@ -37,7 +37,7 @@ test("trends chart the team, then any player on the roster", async ({ page }) =>
   await expect(page.getByRole("heading", { name: "Results" })).toBeVisible();
   await page.getByLabel("Show trends for").selectOption({ label: "Drake Maye" });
   await expect(page.getByRole("heading", { name: "Cumulative" })).toBeVisible();
-  await expect(page.getByLabel("Stat to chart")).toHaveValue("passYds");
+  await expect(page.getByLabel("Stat to chart", { exact: true })).toHaveValue("passYds");
   await expect(page.getByRole("table", { name: "Passing yards by season" })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
