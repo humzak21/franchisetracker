@@ -205,6 +205,9 @@ test("league leaders say where we rank without overflow", async ({ page }) => {
 test("the team splits by home and away without overflow", async ({ page }) => {
   await page.goto("/stats");
   await page.getByRole("radio", { name: "Team", exact: true }).click();
+  await expect(
+    page.getByRole("list", { name: "Points per game by season" }).or(page.getByText(/^No team stats for/)),
+  ).toBeVisible();
   await expect(page.getByRole("heading", { name: "By quarter" })).toBeVisible();
   await page.getByRole("radio", { name: "All seasons" }).click();
   await page.getByRole("radio", { name: "Home and away" }).click();
