@@ -37,6 +37,30 @@ test("the player page shows a career as curves without overflow", async ({ page 
   await expectNoHorizontalOverflow(page);
 });
 
+test("the stat bar stays in reach and By game narrows its games without overflow", async ({ page }) => {
+  await openDiggs(page);
+  const byGame = page.locator("#by-game");
+  await byGame.scrollIntoViewIfNeeded();
+  // The picker sticks to the top, so it is still there down at the last chart.
+  const stat = page.getByLabel("Stat to chart", { exact: true });
+  await expect(stat).toBeInViewport();
+  await expect(stat).toHaveValue("recYds");
+  await page.getByRole("button", { name: "Next stat to chart" }).click();
+  await expect(stat).not.toHaveValue("recYds");
+  await page.getByRole("button", { name: "Previous stat to chart" }).click();
+  await expect(stat).toHaveValue("recYds");
+
+  await expect(
+    byGame.getByRole("heading", { name: /^Receiving yards, every game · \d+ games$/ }),
+  ).toBeVisible();
+  await byGame.getByLabel("Games to chart").selectOption({ label: "2026 season" });
+  await expect(byGame.getByRole("heading", { name: /2026 season · \d+ games$/ })).toBeVisible();
+  await byGame.getByLabel("Games to chart").selectOption("custom");
+  await byGame.getByLabel("To game").selectOption({ index: 1 });
+  await expect(byGame.getByRole("heading", { name: /· 2 games$/ })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
 test("the player page lists milestones in order without overflow", async ({ page }) => {
   await openDiggs(page);
   const milestones = page.locator("#milestones");

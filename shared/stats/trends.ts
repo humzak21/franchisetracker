@@ -1,6 +1,6 @@
 /**
  * A career as curves (`docs/STATS-HUB.md` 4.5 and 7): which stats to chart, each season's running
- * total laid over the others, a record's pace, and the recent games one by one. Pure.
+ * total laid over the others, a record's pace, and every game one by one. Pure.
  */
 import { weekLabel, weekPhase } from "../domain";
 import { inCareerOrder, loggedValue, runningTotals, type LoggedGame } from "./ledger";
@@ -76,22 +76,28 @@ export function recordPace(value: number, gamesPerSeason: number): { game: numbe
   }));
 }
 
-export type GamePoint = { key: string; label: string; group: string; value: number };
+export type GamePoint = {
+  key: string;
+  /** "2026 · Week 6": the year and the week, for tooltips and pickers. */
+  label: string;
+  group: string;
+  year: number;
+  /** The week alone, "Week 6" or "Wild Card". */
+  week: string;
+  value: number;
+};
 
-export const RECENT_GAMES = 30;
-
-/** Each of the last `count` games' value, oldest first: every game the player has if fewer. */
-export function recentGames(
-  games: readonly LoggedGame[],
-  stat: StatKey,
-  count: number = RECENT_GAMES,
-): GamePoint[] {
-  return inCareerOrder(games)
-    .slice(-count)
-    .map((game) => ({
+/** Every logged game's value for a stat, in career order. */
+export function gameByGame(games: readonly LoggedGame[], stat: StatKey): GamePoint[] {
+  return inCareerOrder(games).map((game) => {
+    const week = weekLabel(game.weekKey, "long");
+    return {
       key: game.gameId,
-      label: `${game.year} · ${weekLabel(game.weekKey, "long")}`,
+      label: `${game.year} · ${week}`,
       group: String(game.year),
+      year: game.year,
+      week,
       value: loggedValue(stat, game.stats),
-    }));
+    };
+  });
 }

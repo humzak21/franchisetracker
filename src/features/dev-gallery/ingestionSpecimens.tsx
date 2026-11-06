@@ -6,6 +6,7 @@ import { ModelPicker } from "@/components/forms/ModelPicker";
 import { StatComparison } from "@/components/data/StatComparison";
 import { ImageViewer } from "@/components/media/ImageViewer";
 import { Select } from "@/components/ui/select";
+import { StepSelect } from "@/components/ui/StepSelect";
 import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/forms/Field";
 import { Input } from "@/components/ui/input";
@@ -81,6 +82,23 @@ function SelectDemo() {
   );
 }
 
+function StepSelectDemo() {
+  const [value, setValue] = useState("recYds");
+  return (
+    <StepSelect
+      className="max-w-sm"
+      aria-label="Stat to chart"
+      value={value}
+      onValueChange={setValue}
+      options={[
+        { value: "rec", label: "Receptions" },
+        { value: "recYds", label: "Receiving yards" },
+        { value: "recTd", label: "Receiving touchdowns" },
+      ]}
+    />
+  );
+}
+
 export const INGESTION_SPECIMENS: Specimen[] = [
   {
     id: "imageviewer",
@@ -152,6 +170,12 @@ export const INGESTION_SPECIMENS: Specimen[] = [
     name: "Select",
     note: "Native select styled like Input; 44 px on touch.",
     render: () => <SelectDemo />,
+  },
+  {
+    id: "stepselect",
+    name: "StepSelect",
+    note: "Select with previous and next buttons for flicking through a list (a chart's stat); stops at the ends.",
+    render: () => <StepSelectDemo />,
   },
   {
     id: "textarea",

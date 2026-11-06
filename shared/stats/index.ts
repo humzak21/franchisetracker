@@ -24,6 +24,7 @@ export * from "./yoy";
 export * from "./hub";
 export * from "./trends";
 export * from "./summary";
+export * from "./gameRange";
 export * from "./splits";
 export * from "./quarters";
 export * from "./teamRecords";

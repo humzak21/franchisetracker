@@ -10,6 +10,9 @@ export type TrendPoint = {
   value: number;
 };
 
+/** Past this many points the dots merge into a smear, so a long run shows the line alone. */
+const DOT_LIMIT = 40;
+
 const AXIS = { fill: "var(--muted-foreground)", fontSize: 11 } as const;
 
 function Tip({
@@ -98,7 +101,11 @@ export function TrendChart({
             name={valueLabel}
             stroke="var(--team-accent)"
             strokeWidth={2.5}
-            dot={{ r: compact ? 2.5 : 3.5, fill: "var(--team-accent)", strokeWidth: 0 }}
+            dot={
+              points.length > DOT_LIMIT
+                ? false
+                : { r: compact ? 2.5 : 3.5, fill: "var(--team-accent)", strokeWidth: 0 }
+            }
             activeDot={{ r: 5 }}
             isAnimationActive={false}
           />
