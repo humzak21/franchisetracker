@@ -11,7 +11,12 @@ export default defineConfig({
         resolve: { alias },
         test: {
           name: "unit",
-          include: ["shared/**/*.test.ts", "src/**/*.test.{ts,tsx}", "audit/**/*.test.ts"],
+          include: [
+            "shared/**/*.test.ts",
+            "src/**/*.test.{ts,tsx}",
+            "audit/**/*.test.ts",
+            "scripts/**/*.test.ts",
+          ],
           environment: "node",
         },
       },

@@ -3,7 +3,7 @@
 A Football Manager style front end for a Madden franchise. Single user, Convex backend, one responsive React app that is a full client on both the Mac and the iPhone.
 
 - **Product spec (source of truth):** `docs/FEATURES.md`. **Build order:** `docs/SPRINTS.md`. Read the sprint you are working on before writing code, and keep both docs current when scope changes.
-- **Data origin:** franchises are new. Real NFL seasons before a franchise's first season come from nflverse (`docs/NFL-HISTORY.md`, `docs/FEATURES.md` 4.8); everything after is captured as the franchise is played. There is no spreadsheet or workbook import; do not build one.
+- **Data origin:** franchises are new. Real NFL seasons before a franchise's first season come from nflverse (`docs/NFL-HISTORY.md`, `docs/FEATURES.md` 4.8); everything after is captured as the franchise is played, from screenshots or from the Madden save itself (`docs/MADDEN-SAVE.md`). There is no spreadsheet or workbook import; do not build one.
 
 ## Commands
 
@@ -24,6 +24,7 @@ A Football Manager style front end for a Madden franchise. Single user, Convex b
 | Before a production deploy | `npm run check:fresh-clone`, then the rest of `docs/LAUNCH.md` |
 | Format | `npm run format` (Prettier with the Tailwind class sorter) |
 | Production build, served locally | `npm run build && npm run preview` |
+| Read a Madden save into JSON and CSV the app imports | `npm run export:madden -- <CAREER file>` (`docs/MADDEN-SAVE.md`; reads the save only) |
 | Deploy production | Push to `main`. Vercel runs `scripts/vercel-build.mjs`: on Production it deploys Convex with `CONVEX_DEPLOY_KEY` and builds against the production URL; preview builds without a Convex key only build the front end against the cloud dev deployment (`.env.preview`) and show the sign-in screen. Run deploys locally only with the user's go-ahead. |
 
 Environments:
