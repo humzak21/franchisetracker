@@ -1,6 +1,6 @@
 /**
  * A career as curves (`docs/STATS-HUB.md` 4.5 and 7): which stats to chart, each season's running
- * total laid over the others, a record's pace, and a rolling average. Pure.
+ * total laid over the others, a record's pace, and the recent games one by one. Pure.
  */
 import { weekLabel, weekPhase } from "../domain";
 import { inCareerOrder, loggedValue, runningTotals, type LoggedGame } from "./ledger";
@@ -76,28 +76,22 @@ export function recordPace(value: number, gamesPerSeason: number): { game: numbe
   }));
 }
 
-export type RollingPoint = { key: string; label: string; group: string; value: number };
+export type GamePoint = { key: string; label: string; group: string; value: number };
 
-export const ROLLING_WINDOW = 5;
+export const RECENT_GAMES = 30;
 
-/** The average over each game and the `window - 1` before it, once there are that many. */
-export function rollingAverage(
+/** Each of the last `count` games' value, oldest first: every game the player has if fewer. */
+export function recentGames(
   games: readonly LoggedGame[],
   stat: StatKey,
-  window: number = ROLLING_WINDOW,
-): RollingPoint[] {
-  const ordered = inCareerOrder(games);
-  return ordered.flatMap((game, i) => {
-    if (i < window - 1) return [];
-    const span = ordered.slice(i - window + 1, i + 1);
-    const sum = span.reduce((n, g) => n + loggedValue(stat, g.stats), 0);
-    return [
-      {
-        key: game.gameId,
-        label: `${game.year} · ${weekLabel(game.weekKey, "long")}`,
-        group: String(game.year),
-        value: Math.round((sum / window) * 10) / 10,
-      },
-    ];
-  });
+  count: number = RECENT_GAMES,
+): GamePoint[] {
+  return inCareerOrder(games)
+    .slice(-count)
+    .map((game) => ({
+      key: game.gameId,
+      label: `${game.year} · ${weekLabel(game.weekKey, "long")}`,
+      group: String(game.year),
+      value: loggedValue(stat, game.stats),
+    }));
 }

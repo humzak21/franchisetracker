@@ -5,8 +5,6 @@ import {
   getStat,
   MARKS,
   recordPace,
-  rollingAverage,
-  ROLLING_WINDOW,
   seasonCurves,
   trendStats,
   yearOverYear,
@@ -21,6 +19,7 @@ import { DeltaBadge } from "@/components/data/DeltaBadge";
 import { EmptyState } from "@/components/data/EmptyState";
 import { TrendChart } from "@/components/data/TrendChart";
 import { Section } from "@/components/layout/Section";
+import { RecentGames } from "@/components/player/RecentGames";
 import { Select } from "@/components/ui/select";
 import { LineChart as LineChartIcon } from "lucide-react";
 
@@ -93,7 +92,7 @@ function YearTable({ stat, data }: { stat: StatKey; data: CareerCurvesData }) {
 /**
  * A career as curves, for the player page and Stats → Trends: a stat season by season with each
  * change, then each season's running total against the last, the best and the franchise record,
- * and a rolling average of the games. Imported seasons have no games, so curves start at the franchise.
+ * and the last 30 games one by one with their average, median and spread. Imported seasons have no games, so curves start at the franchise.
  */
 export function CareerCurves({
   data,
@@ -144,7 +143,6 @@ export function CareerCurves({
     group: String(s.year),
     value: yearOverYear([s], stat)[0]?.value ?? 0,
   }));
-  const rolling = rollingAverage(data.games, stat);
   const picker = (
     <Select
       className="w-56 max-w-full"
@@ -186,14 +184,7 @@ export function CareerCurves({
                 marks={MARKS[stat as MarkStat] ?? []}
               />
             </div>
-            {rolling.length > 1 && (
-              <div className="rounded-xl border border-border bg-surface p-3">
-                <h4 className="mb-2 text-xs font-medium text-muted-foreground">
-                  {label}, average of the last {ROLLING_WINDOW} games
-                </h4>
-                <TrendChart points={rolling} valueLabel={`${label} average`} scale="auto" format={format} />
-              </div>
-            )}
+            <RecentGames games={data.games} stat={stat} />
           </div>
         )}
       </Section>
