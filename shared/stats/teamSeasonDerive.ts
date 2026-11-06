@@ -5,6 +5,7 @@
  * captured from the team stats screen or entered by hand override these per stat
  * (`teamTrends.seasonRows`). Pure.
  */
+import type { LeagueTeamLine, LeagueTeamRawKey } from "./leagueTeamRegistry";
 import { offensiveYards, type TeamStatKey, type TeamStatLine } from "./teamRegistry";
 import type { TeamSeasonStatKey } from "./teamSeasonRegistry";
 
@@ -22,6 +23,8 @@ export type TeamSeasonTotals = {
   /** Games with the team stats screen captured, which every other figure covers. */
   statGames: number;
   stats: Partial<Record<TeamSeasonStatKey, number>>;
+  /** The season as a league team stats line, so the team has a row in League → Teams before that screen is captured. */
+  league: LeagueTeamLine;
 };
 
 const defined = (values: readonly (number | undefined)[]) =>
@@ -87,5 +90,107 @@ export function deriveTeamSeason(games: readonly TeamSeasonGame[]): TeamSeasonTo
     games: games.length,
     statGames: games.filter((g) => g.own || g.opponent).length,
     stats: Object.fromEntries(Object.entries(stats).filter(([, value]) => value !== undefined)),
+    league: leagueLine(games),
+  };
+}
+
+type Column = readonly [LeagueTeamRawKey, TeamStatKey];
+
+/**
+ * League columns summed together over the games that recorded every `keys` column, so a rate's
+ * made and tried (or a margin's two halves) always cover the same games. An `extra` column a
+ * counted game left blank counts as none.
+ */
+type Group = { keys: readonly Column[]; extra?: readonly Column[] };
+
+const single = (column: Column): Group => ({ keys: [column] });
+
+/**
+ * From the team's own side of each game. Total yards are left out: the league screen's total
+ * counts return yards, which a game's team stats do not.
+ */
+const OWN: readonly Group[] = [
+  single(["passYds", "passYds"]),
+  single(["rushYds", "rushYds"]),
+  single(["firstDowns", "firstDowns"]),
+  {
+    keys: [
+      ["thirdDownConv", "thirdDownConv"],
+      ["thirdDownAtt", "thirdDownAtt"],
+    ],
+  },
+  {
+    keys: [
+      ["fourthDownConv", "fourthDownConv"],
+      ["fourthDownAtt", "fourthDownAtt"],
+    ],
+  },
+  {
+    keys: [
+      ["twoPtConv", "twoPtConv"],
+      ["twoPtAtt", "twoPtAtt"],
+    ],
+  },
+  {
+    keys: [
+      ["redZoneAtt", "redZoneAtt"],
+      ["redZoneTd", "redZoneTd"],
+    ],
+    extra: [["redZoneFg", "redZoneFg"]],
+  },
+  {
+    keys: [
+      ["intThrown", "intThrown"],
+      ["fumblesLost", "fumblesLost"],
+    ],
+  },
+];
+
+/** From the opponent's side: what the defense allowed or took away. */
+const OPPONENT: readonly Group[] = [
+  single(["passYdsAllowed", "passYds"]),
+  single(["rushYdsAllowed", "rushYds"]),
+  single(["sacks", "sacksAllowed"]),
+  {
+    keys: [
+      ["defInt", "intThrown"],
+      ["fumblesRecovered", "fumblesLost"],
+    ],
+  },
+  {
+    keys: [
+      ["redZoneDefAtt", "redZoneAtt"],
+      ["redZoneDefTd", "redZoneTd"],
+    ],
+    extra: [["redZoneDefFg", "redZoneFg"]],
+  },
+];
+
+function sumGroup(lines: readonly TeamStatLine[], { keys, extra = [] }: Group): LeagueTeamLine {
+  const counted = lines.filter((line) => keys.every(([, from]) => line[from] !== undefined));
+  if (counted.length === 0) return {};
+  const total = (from: TeamStatKey) => counted.reduce((n, line) => n + (line[from] ?? 0), 0);
+  const recorded = extra.filter(([, from]) => counted.some((line) => line[from] !== undefined));
+  return Object.fromEntries([...keys, ...recorded].map(([key, from]) => [key, total(from)]));
+}
+
+/**
+ * The season summed the way Madden's league screen prints it. Passing and rushing touchdowns are
+ * left out: a game's team stats do not split them.
+ */
+function leagueLine(games: readonly TeamSeasonGame[]): LeagueTeamLine {
+  const own = games.flatMap((g) => (g.own ? [g.own] : []));
+  const opponent = games.flatMap((g) => (g.opponent ? [g.opponent] : []));
+  const line: LeagueTeamLine = Object.assign(
+    {},
+    ...OWN.map((group) => sumGroup(own, group)),
+    ...OPPONENT.map((group) => sumGroup(opponent, group)),
+  );
+  const pointsPg = mean(games.map((g) => g.pointsFor));
+  const pointsAllowed = sum(games.map((g) => g.pointsAgainst));
+  return {
+    ...line,
+    ...(pointsPg !== undefined ? { pointsPg } : {}),
+    ...(pointsAllowed !== undefined ? { pointsAllowed } : {}),
   };
 }

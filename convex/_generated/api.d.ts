@@ -97,6 +97,7 @@ import type * as ingestion_playerAssignments from "../ingestion/playerAssignment
 import type * as ingestion_repairSeasonStatsTeams from "../ingestion/repairSeasonStatsTeams.js";
 import type * as ingestion_resolvePlayers from "../ingestion/resolvePlayers.js";
 import type * as ingestion_review from "../ingestion/review.js";
+import type * as ingestion_rosterContext from "../ingestion/rosterContext.js";
 import type * as ingestion_rowCommit from "../ingestion/rowCommit.js";
 import type * as ingestion_rowPlayers from "../ingestion/rowPlayers.js";
 import type * as ingestion_sets from "../ingestion/sets.js";
@@ -116,6 +117,7 @@ import type * as league_seed from "../league/seed.js";
 import type * as league_standings from "../league/standings.js";
 import type * as league_teamHistory from "../league/teamHistory.js";
 import type * as league_teamStats from "../league/teamStats.js";
+import type * as league_teamStatsEdit from "../league/teamStatsEdit.js";
 import type * as league_teams from "../league/teams.js";
 import type * as leagueGames_importSchedule from "../leagueGames/importSchedule.js";
 import type * as leagueGames_scores from "../leagueGames/scores.js";
@@ -127,6 +129,7 @@ import type * as lib_franchise from "../lib/franchise.js";
 import type * as lib_gameContext from "../lib/gameContext.js";
 import type * as lib_goals from "../lib/goals.js";
 import type * as lib_hof from "../lib/hof.js";
+import type * as lib_leagueLines from "../lib/leagueLines.js";
 import type * as lib_leagueRecords from "../lib/leagueRecords.js";
 import type * as lib_leagueStats from "../lib/leagueStats.js";
 import type * as lib_maintenanceRuns from "../lib/maintenanceRuns.js";
@@ -328,6 +331,7 @@ declare const fullApi: ApiFromModules<{
   "ingestion/repairSeasonStatsTeams": typeof ingestion_repairSeasonStatsTeams;
   "ingestion/resolvePlayers": typeof ingestion_resolvePlayers;
   "ingestion/review": typeof ingestion_review;
+  "ingestion/rosterContext": typeof ingestion_rosterContext;
   "ingestion/rowCommit": typeof ingestion_rowCommit;
   "ingestion/rowPlayers": typeof ingestion_rowPlayers;
   "ingestion/sets": typeof ingestion_sets;
@@ -347,6 +351,7 @@ declare const fullApi: ApiFromModules<{
   "league/standings": typeof league_standings;
   "league/teamHistory": typeof league_teamHistory;
   "league/teamStats": typeof league_teamStats;
+  "league/teamStatsEdit": typeof league_teamStatsEdit;
   "league/teams": typeof league_teams;
   "leagueGames/importSchedule": typeof leagueGames_importSchedule;
   "leagueGames/scores": typeof leagueGames_scores;
@@ -358,6 +363,7 @@ declare const fullApi: ApiFromModules<{
   "lib/gameContext": typeof lib_gameContext;
   "lib/goals": typeof lib_goals;
   "lib/hof": typeof lib_hof;
+  "lib/leagueLines": typeof lib_leagueLines;
   "lib/leagueRecords": typeof lib_leagueRecords;
   "lib/leagueStats": typeof lib_leagueStats;
   "lib/maintenanceRuns": typeof lib_maintenanceRuns;

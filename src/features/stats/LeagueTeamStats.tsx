@@ -53,7 +53,7 @@ function columns(keys: ReturnType<typeof leagueTeamColumns>, perGame: boolean): 
 /**
  * Every team's season (FEATURES.md 5.5): an overview, then one Madden team stats tab at a time
  * (offense, defense, conversions, red zone, turnovers), as season totals or per game played.
- * From the league team stats screen or typed in.
+ * From the league team stats screen or typed in; the user team's row fills from its games first.
  */
 export function LeagueTeamStats() {
   const { season } = useSeason();
@@ -67,6 +67,7 @@ export function LeagueTeamStats() {
   const keys = useMemo(() => leagueTeamColumns(tab, perGame), [tab, perGame]);
   const cols = useMemo(() => columns(keys, perGame), [keys, perGame]);
   const lead = keys.includes(def.lead) ? def.lead : keys[0];
+  const ours = data?.find((r) => r.isUser && r.fromGames);
 
   return (
     <div className="space-y-3">
@@ -123,6 +124,12 @@ export function LeagueTeamStats() {
             />
           }
         />
+      )}
+      {ours && (
+        <p className="text-xs text-subtle-foreground">
+          The {ours.team.name}' numbers come from your games where the league screen has none (passing and
+          rushing touchdowns are not in a game's team stats). A captured league screen replaces them.
+        </p>
       )}
       {perGame && data && data.length > 0 && (
         <p className="text-xs text-subtle-foreground">

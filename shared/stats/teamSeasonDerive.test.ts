@@ -71,7 +71,46 @@ describe("deriveTeamSeason", () => {
     expect(totals.statGames).toBe(1);
   });
 
+  test("sums a league team stats line: own side for offense, the opponent's for defense", () => {
+    const { league } = deriveTeamSeason([
+      {
+        pointsFor: 24,
+        pointsAgainst: 10,
+        own: { passYds: 250, rushYds: 100, totalYds: 380, thirdDownConv: 5, thirdDownAtt: 11, intThrown: 1 },
+        opponent: { passYds: 180, rushYds: 70, sacksAllowed: 2, intThrown: 2, fumblesLost: 1, redZoneTd: 1 },
+      },
+      {
+        pointsFor: 17,
+        pointsAgainst: 20,
+        own: { passYds: 200, rushYds: 90, thirdDownConv: 4, thirdDownAtt: 12, intThrown: 0 },
+        opponent: { passYds: 220, rushYds: 110, sacksAllowed: 3, intThrown: 0, fumblesLost: 0 },
+      },
+    ]);
+    expect(league).toEqual({
+      pointsPg: 20.5,
+      pointsAllowed: 30,
+      passYds: 450,
+      rushYds: 190,
+      thirdDownConv: 9,
+      thirdDownAtt: 23,
+      passYdsAllowed: 400,
+      rushYdsAllowed: 180,
+      sacks: 5,
+      defInt: 2,
+      fumblesRecovered: 1,
+    });
+  });
+
+  test("a rate's made and tried only count the games that recorded both", () => {
+    const { league } = deriveTeamSeason([
+      { pointsFor: 7, pointsAgainst: 3, own: { redZoneTd: 2, redZoneAtt: 3, redZoneFg: 1 }, opponent: null },
+      { pointsFor: 7, pointsAgainst: 3, own: { redZoneTd: 3 }, opponent: null },
+      { pointsFor: 7, pointsAgainst: 3, own: { redZoneTd: 1, redZoneAtt: 2 }, opponent: null },
+    ]);
+    expect(league).toMatchObject({ redZoneTd: 3, redZoneAtt: 5, redZoneFg: 1 });
+  });
+
   test("no games, nothing derived", () => {
-    expect(deriveTeamSeason([])).toEqual({ games: 0, statGames: 0, stats: {} });
+    expect(deriveTeamSeason([])).toEqual({ games: 0, statGames: 0, stats: {}, league: {} });
   });
 });

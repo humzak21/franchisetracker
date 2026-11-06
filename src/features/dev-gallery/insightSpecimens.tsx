@@ -97,7 +97,7 @@ const TRENDS = [
 const TURNOVERS = [
   { year: 2023, value: -6, rank: 29, tied: false },
   { year: 2024, value: 2, rank: 14, tied: true },
-  { year: 2025, value: 11, rank: 3, tied: false },
+  { year: 2025, value: 11, rank: 3, tied: false, of: 32, average: 0.4 },
 ];
 const oneDecimal = (n: number) => n.toFixed(1);
 
@@ -128,7 +128,7 @@ export const INSIGHT_SPECIMENS: Specimen[] = [
   {
     id: "seasonstatcard",
     name: "SeasonStatCard",
-    note: "One stat across seasons: the focused season's value, rank and change, over a bar per season. Negative seasons hang below zero; a missing season keeps an empty slot.",
+    note: "One stat across seasons: the focused season's value, rank out of the league, change and gap to the league average, beside a bar per season. Negative seasons hang below zero; a missing season keeps an empty slot. The pencil opens the screen's editor.",
     render: () => (
       <div className="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-3">
         <SeasonStatCard
@@ -137,6 +137,7 @@ export const INSIGHT_SPECIMENS: Specimen[] = [
           year={2025}
           better="higher"
           format={String}
+          onEdit={() => undefined}
         />
         <SeasonStatCard
           label="Yards allowed per game"
