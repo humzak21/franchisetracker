@@ -2,7 +2,7 @@ import type { StatTrend } from "@shared/stats/teamTrends";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-/** Where a season's team stat values came from, as one line under the ribbons; null when none show. */
+/** Where a season's team stat values came from, as one line under the cards; null when none show. */
 export function sourceNote(trends: readonly StatTrend[], year: number, games: number): string | null {
   const points = trends.flatMap((t) => t.points.filter((p) => p.year === year));
   const fromGames = points.filter((p) => p.source === "games").length;

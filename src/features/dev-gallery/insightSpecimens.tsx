@@ -6,6 +6,7 @@ import { DivergingBars } from "@/components/data/DivergingBars";
 import { PointsChart } from "@/components/data/PointsChart";
 import { RankTrend } from "@/components/data/RankTrend";
 import { SeasonCalendar } from "@/components/data/SeasonCalendar";
+import { SeasonStatCard } from "@/components/data/SeasonStatCard";
 import type { Specimen } from "./specimens";
 
 /** The 2025 Patriots' first ten results: [week, opponent, home, us, them]. */
@@ -93,6 +94,13 @@ const TRENDS = [
   },
 ];
 
+const TURNOVERS = [
+  { year: 2023, value: -6, rank: 29, tied: false },
+  { year: 2024, value: 2, rank: 14, tied: true },
+  { year: 2025, value: 11, rank: 3, tied: false },
+];
+const oneDecimal = (n: number) => n.toFixed(1);
+
 export const INSIGHT_SPECIMENS: Specimen[] = [
   {
     id: "pointschart",
@@ -116,6 +124,32 @@ export const INSIGHT_SPECIMENS: Specimen[] = [
     name: "RankTrend",
     note: "Team rank ribbons across seasons: this season's ribbon, the move since last season, every season's rank.",
     render: () => <RankTrend rows={TRENDS} year={2025} />,
+  },
+  {
+    id: "seasonstatcard",
+    name: "SeasonStatCard",
+    note: "One stat across seasons: the focused season's value, rank and change, over a bar per season. Negative seasons hang below zero; a missing season keeps an empty slot.",
+    render: () => (
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-3">
+        <SeasonStatCard
+          label="Turnover differential"
+          points={TURNOVERS}
+          year={2025}
+          better="higher"
+          format={String}
+        />
+        <SeasonStatCard
+          label="Yards allowed per game"
+          points={[
+            { year: 2023, value: 341.2, rank: null, tied: false },
+            { year: 2024, value: 319.7, rank: null, tied: false },
+          ]}
+          year={2025}
+          better="lower"
+          format={oneDecimal}
+        />
+      </div>
+    ),
   },
   {
     id: "seasoncalendar",
