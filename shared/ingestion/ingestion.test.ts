@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { resolveTeamAbbr } from "../domain/teams";
 import { diffDrafts } from "./diff";
-import { matchPlayer, nameScore, nameTokens, type NameCandidate } from "./nameMatch";
+import { nameScore, nameTokens } from "./nameMatch";
+import { matchPlayer, type NameCandidate } from "./playerMatch";
 import { normalizeBoxScore, normalizeTeamStats } from "./normalize";
 import { boxScoreSchema, teamStatsSchema, type JsonSchema } from "./schema";
 import { buildPrompt } from "./prompt";

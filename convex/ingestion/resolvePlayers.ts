@@ -1,6 +1,8 @@
 /** Who the printed names in a read draft are: the last step before it is stored for review. */
 import { matchDraftRow } from "../../shared/ingestion/draftMatch";
-import { matchPlayer, nameTokens } from "../../shared/ingestion/nameMatch";
+import { statRole } from "../../shared/ingestion/normalize";
+import { nameTokens } from "../../shared/ingestion/nameMatch";
+import { matchPlayer } from "../../shared/ingestion/playerMatch";
 import type { DraftRow } from "../../shared/ingestion/rows/types";
 import { isRowDraft, rowTarget } from "../../shared/ingestion/targets";
 import type { Draft, FieldConfidence, RowTargetDraft } from "../../shared/ingestion/types";
@@ -124,7 +126,24 @@ export async function resolvePlayers(
     const found = await lookup(wanted.names.slice(i, i + NAMES_PER_LOOKUP));
     for (const c of found) if (!candidates.some((k) => k.playerId === c.playerId)) candidates.push(c);
   }
-  const resolve = <T extends { name: string; teamAbbr: string | null }>(row: T, path: string) => {
+  // Only the two teams that played are in a game's screenshots; a list screen can name anyone.
+  const gameTeams =
+    "lines" in draft
+      ? job.gameTeams.length >= 2
+        ? job.gameTeams
+        : [...new Set([...job.gameTeams, draft.game.homeAbbr, draft.game.awayAbbr])].filter(
+            (t): t is string => t !== null,
+          )
+      : [];
+  /**
+   * `teamAbbr` keys saved choices; `printedTeam` is the team the screen itself gave, when it did.
+   * A league-wide list (awards, leaders) defaults to the owner's team for the key only, so its
+   * names are not pulled toward the owner's roster.
+   */
+  const resolve = (
+    row: { name: string; teamAbbr: string | null; printedTeam?: string | null; position?: string | null },
+    path: string,
+  ) => {
     const saved = remembered.get(`${row.teamAbbr}|${nameTokens(row.name).join(" ")}`);
     if (saved) {
       const entry = confidence.find((c) => c.path === path);
@@ -132,7 +151,8 @@ export async function resolvePlayers(
       const { carried: _, ...candidate } = saved;
       return { match: { status: "matched" as const, candidates: [candidate] }, playerId: saved.playerId };
     }
-    const match = matchPlayer<Id<"players">>(row.name, candidates, row);
+    const hint = { teamAbbr: row.printedTeam === undefined ? row.teamAbbr : row.printedTeam, gameTeams };
+    const match = matchPlayer<Id<"players">>(row.name, candidates, { ...hint, position: row.position });
     if (match.status === "ambiguous") {
       const entry = confidence.find((c) => c.path === path);
       if (entry) entry.value = Math.min(entry.value, UNSETTLED_NAME);
@@ -145,7 +165,11 @@ export async function resolvePlayers(
       return { ...row, playerId: null, match };
     }
     const resolved = resolve(
-      { name: row.name, teamAbbr: row.teamAbbr ?? metaTeam ?? userTeamAbbr },
+      {
+        name: row.name,
+        teamAbbr: row.teamAbbr ?? metaTeam ?? userTeamAbbr,
+        printedTeam: row.teamAbbr ?? metaTeam,
+      },
       `${root}.${row.id}.name`,
     );
     // A name the rosters could not settle waits for a decision before it commits, unless the
@@ -154,7 +178,10 @@ export async function resolvePlayers(
     return { ...row, ...resolved, accepted: row.accepted && settled };
   };
   if ("lines" in draft) {
-    const lines = draft.lines.map((line) => ({ ...line, ...resolve(line, `lines.${line.id}.name`) }));
+    const lines = draft.lines.map((line) => ({
+      ...line,
+      ...resolve({ ...line, position: line.position ?? statRole(line.stats) }, `lines.${line.id}.name`),
+    }));
     return draft.target === "game_log"
       ? { ...draft, lines, plays: plays.map((p) => resolveRow(p, true, "plays")) }
       : { ...draft, lines };

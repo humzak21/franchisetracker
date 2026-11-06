@@ -196,6 +196,15 @@ export function inferPosition(stats: StatLine): Position {
   return "MLB";
 }
 
+/**
+ * The position a stat line proves on its own: only a passer, a kicker and a punter. Anything
+ * else (a back with catches, a linebacker with a sack) says too little to weigh a name match by.
+ */
+export function statRole(stats: StatLine): Position | null {
+  const role = inferPosition(stats);
+  return role === "QB" || role === "K" || role === "P" ? role : null;
+}
+
 export function normalizeGameLog(raw: unknown): Normalized<GameLogDraft> {
   const players = normalizeBoxScore(raw);
   const teams = normalizeTeamStats(raw);

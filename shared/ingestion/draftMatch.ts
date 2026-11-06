@@ -4,7 +4,8 @@
  * are mostly new players, so a name alone is never enough to settle it. Pure.
  */
 import { positionGroupOf, isPosition } from "../domain/positions";
-import { matchPlayer, nameTokens, type NameCandidate } from "./nameMatch";
+import { nameTokens } from "./nameMatch";
+import { matchPlayer, type NameCandidate } from "./playerMatch";
 import { rowOverallPick } from "./rows/peopleSpecs";
 import type { DraftRow } from "./rows/types";
 import type { PlayerMatch } from "./types";

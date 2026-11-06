@@ -235,8 +235,25 @@ describe("commit guards", () => {
   });
 
   test("an accepted row with an unsettled name will not commit until someone decides", async () => {
-    const { owner, first, read, addPlayer } = await setup();
-    await addPlayer({ firstName: "Dan", lastName: "Maye", displayName: "Dan Maye", position: "QB" });
+    const { t, franchiseId, owner, first, read, addPlayer, teamId } = await setup();
+    // A teammate with the same initial and surname: a name only someone can settle.
+    const dan = await addPlayer({
+      firstName: "Dan",
+      lastName: "Maye",
+      displayName: "Dan Maye",
+      position: "QB",
+    });
+    const ne = await teamId("NE");
+    await t.run((ctx) =>
+      ctx.db.insert("rosterEntries", {
+        franchiseId,
+        seasonId: first,
+        teamId: ne,
+        playerId: dan,
+        position: "QB",
+        status: "active",
+      }),
+    );
     const { setKey, draft } = await read("yearly_awards", first);
     if (!("rows" in draft)) throw new Error("not rows");
     const unsettled = draft.rows.find((r) => r.match?.status === "ambiguous");
