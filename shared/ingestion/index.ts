@@ -1,6 +1,7 @@
 export * from "./diff";
 export * from "./manual";
 export * from "./nameMatch";
+export * from "./playerMatch";
 export * from "./normalize";
 export * from "./prompt";
 export * from "./schema";

@@ -1,23 +1,47 @@
 /** Who the printed names in a box score might be: the extraction action's roster lookup. */
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
 import { onRoster } from "../../shared/roster/averages";
-import { nameTokens, type NameCandidate } from "../../shared/ingestion/nameMatch";
+import { nameTokens } from "../../shared/ingestion/nameMatch";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalQuery, type QueryCtx } from "../_generated/server";
 import { activeFranchise, MAX_ROSTER, playersById, teamsById } from "../lib/franchise";
 import { searchPlayers } from "../players/nameSearch";
+import { leagueSeason, seasonPlace } from "./rosterContext";
 
-const SEARCH_HITS = 5;
+const SEARCH_HITS = 8;
 const MAX_NAMES = 120;
 /** A draft class and whoever else first appeared that season, misreads and retakes included. */
 const MAX_DRAFT_POOL = 600;
 
+const vCandidate = v.object({
+  playerId: v.id("players"),
+  displayName: v.string(),
+  firstName: v.string(),
+  lastName: v.string(),
+  aliases: v.array(v.string()),
+  teamAbbr: v.union(v.string(), v.null()),
+  position: v.union(v.string(), v.null()),
+  inactive: v.boolean(),
+  inLeague: v.optional(v.boolean()),
+  lastTeamAbbr: v.union(v.string(), v.null()),
+});
+
+const nameFields = (p: Doc<"players">) => ({
+  playerId: p._id,
+  displayName: p.displayName,
+  firstName: p.firstName,
+  lastName: p.lastName,
+  aliases: [...p.aliases],
+});
+
 /**
  * Players a printed name may refer to: the rosters of the teams given for the season, active
  * players ahead of anyone released or traded away, then a text search across the franchise for
- * each name (traded players, typos in the roster). The search skips retired players: 16,000 people
- * in the NFL history are not who a box score means. Anyone on a season's roster stays in the pool,
- * since a retired player still played the seasons they are rostered for.
+ * each name (traded players, typos in the roster). Every search hit carries where they are this
+ * season and last, so a namesake on another team or out of the league ranks behind the player on
+ * the team that printed the name. The search skips retired players: 16,000 people in the NFL
+ * history are not who a box score means. Anyone on a season's roster stays in the pool, since a
+ * retired player still played the seasons they are rostered for.
  */
 export const forNames = internalQuery({
   args: {
@@ -25,27 +49,19 @@ export const forNames = internalQuery({
     teamAbbrs: v.array(v.string()),
     names: v.array(v.string()),
   },
-  returns: v.array(
-    v.object({
-      playerId: v.id("players"),
-      displayName: v.string(),
-      firstName: v.string(),
-      lastName: v.string(),
-      aliases: v.array(v.string()),
-      teamAbbr: v.union(v.string(), v.null()),
-      position: v.union(v.string(), v.null()),
-      inactive: v.boolean(),
-    }),
-  ),
+  returns: v.array(vCandidate),
   handler: async (ctx, { seasonId, teamAbbrs, names }) => {
-    const out = new Map<Id<"players">, NameCandidate<Id<"players">>>();
-    const teams = [...(await teamsById(ctx)).values()].filter((t) => teamAbbrs.includes(t.abbr));
+    const out = new Map<Id<"players">, Infer<typeof vCandidate>>();
+    const allTeams = [...(await teamsById(ctx)).values()];
+    const teams = allTeams.filter((t) => teamAbbrs.includes(t.abbr));
     const franchise = await activeFranchise(ctx);
-    if (seasonId) {
+    const season = seasonId ? await ctx.db.get("seasons", seasonId) : null;
+    const league = season ? await leagueSeason(ctx, season, allTeams) : null;
+    if (season) {
       for (const team of teams) {
         const entries = await ctx.db
           .query("rosterEntries")
-          .withIndex("by_seasonId_and_teamId", (q) => q.eq("seasonId", seasonId).eq("teamId", team._id))
+          .withIndex("by_seasonId_and_teamId", (q) => q.eq("seasonId", season._id).eq("teamId", team._id))
           .take(MAX_ROSTER);
         const players = await playersById(
           ctx,
@@ -58,42 +74,32 @@ export const forNames = internalQuery({
           // A player traded between these two teams is on the one they still play for.
           if (inactive && out.has(player._id)) continue;
           out.set(player._id, {
-            playerId: player._id,
-            displayName: player.displayName,
-            firstName: player.firstName,
-            lastName: player.lastName,
-            aliases: player.aliases,
+            ...nameFields(player),
             teamAbbr: team.abbr,
             position: entry.position,
             inactive,
+            inLeague: league?.loaded ? !inactive : undefined,
+            lastTeamAbbr: null,
           });
         }
       }
     }
     for (const name of names.slice(0, MAX_NAMES)) {
-      const last = nameTokens(name).at(-1);
+      const tokens = nameTokens(name);
+      const last = tokens.at(-1);
       if (!last) continue;
-      const hits = await searchPlayers(ctx, franchise._id, last, SEARCH_HITS, { activeOnly: true });
+      // The search prefix-matches its last term, so "walker k" ranks the K. Walkers first.
+      const text = tokens.length > 1 ? `${last} ${tokens[0]}` : last;
+      const hits = await searchPlayers(ctx, franchise._id, text, SEARCH_HITS, { activeOnly: true });
       for (const p of hits) {
         if (out.has(p._id)) continue;
-        out.set(p._id, {
-          playerId: p._id,
-          displayName: p.displayName,
-          firstName: p.firstName,
-          lastName: p.lastName,
-          aliases: p.aliases,
-          teamAbbr: null,
-          position: p.position,
-        });
+        const place = league
+          ? await seasonPlace(ctx, league, p._id)
+          : { teamAbbr: null, inactive: false, inLeague: undefined, lastTeamAbbr: null };
+        out.set(p._id, { ...nameFields(p), position: p.position, ...place });
       }
     }
-    return [...out.values()].map((c) => ({
-      ...c,
-      aliases: [...c.aliases],
-      teamAbbr: c.teamAbbr ?? null,
-      position: c.position ?? null,
-      inactive: c.inactive ?? false,
-    }));
+    return [...out.values()];
   },
 });
 

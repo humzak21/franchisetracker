@@ -3,7 +3,7 @@
  * ranked by the stat the kind of play implies, counting out those already on another play.
  */
 import type { ScoringKind } from "../domain/scoring";
-import { matchPlayer } from "../ingestion/nameMatch";
+import { matchPlayer } from "../ingestion/playerMatch";
 import type { MatchCandidate, PlayerMatch } from "../ingestion/types";
 import { RAW_STATS, type RawStatKey, type StatLine } from "../stats/registry";
 
