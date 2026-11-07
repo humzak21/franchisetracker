@@ -41,11 +41,16 @@ without any renaming.
   season totals per player (`SeasonOffensiveStats` and friends, keyed by season and team) and as
   each team's record and titles (`Team.TeamSeasonStats`). Export after every week played and the
   franchise never loses a game log; a season already finished can only be loaded as totals.
-- **The scoring summary names no scorer.** `ScoringSummary` rows give the quarter, the seconds
-  left, the running score and the try after a touchdown; the player snapshots on them are the
-  game's final box score, not per play. The export files each score with its kind where the
-  points settle it (field goal, safety, the try) and `other` with a description for a touchdown,
-  so the app's review can pick the scorer from the box score's unclaimed scorers.
+- **The scoring summary names no scorer, and few games keep one.** `ScoringSummary` rows give
+  the quarter, the seconds left and both scores just before and just after the play itself; the
+  player snapshots on them are the game's final box score, not per play. A touchdown's row stops
+  at the six: its try only shows in the next row's previous score (the final, for the last
+  score), and `Conversion` names the try that was converted (`FieldGoal` a kick, `Touchdown` two
+  points), so a try that failed reads `None` whether it was a kick or a two-pointer. The export
+  (`scripts/madden-save/scoring.ts`) files each score with the score after its try, its kind where
+  the points settle it (field goal, safety) and `other` for a touchdown, so the app's review
+  picks the scorer from the box score's unclaimed scorers. Only a handful of the user's games keep
+  a summary (5 of 337 in a three-season save); every other game exports with no plays.
 - **Weekly awards carry no season.** Last season's rows stay in `PlayerAward` until this
   season's week overwrites them, so early in a season the same week has two rows per award. The
   export dates them by where they sit in the table (last season's rows are a contiguous block)
