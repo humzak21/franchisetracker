@@ -7,6 +7,7 @@ import { weekLabel, weekPhase } from "@shared/domain";
 import { formatRecord } from "@shared/stats";
 import { useCapture } from "@/app/capture/CaptureProvider";
 import { EmptyState } from "@/components/data/EmptyState";
+import { GameFileImport } from "@/components/forms/GameFileImport";
 import { NotesEditor } from "@/components/forms/NotesEditor";
 import { Page } from "@/components/layout/Page";
 import { Section } from "@/components/layout/Section";
@@ -172,9 +173,12 @@ export function GameDetailScreen({ gameId }: { gameId: string }) {
             <Section
               title="Box score"
               actions={
-                <Button size="sm" variant="outline" onClick={() => importScreenshot()}>
-                  <ImageUp /> Import game log
-                </Button>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button size="sm" variant="outline" onClick={() => importScreenshot()}>
+                    <ImageUp /> Import game log
+                  </Button>
+                  <GameFileImport gameId={game._id} />
+                </div>
               }
             >
               <GameMarks gameId={game._id} />

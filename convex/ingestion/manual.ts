@@ -18,7 +18,7 @@ import type { DraftContext } from "./commitGame";
 import { existingGame, vExistingGame } from "./commitDraft";
 
 /** Entries in progress the inbox lists; more than this open at once is abandoned work. */
-const MAX_OPEN = 50;
+export const MAX_OPEN = 50;
 
 /** The entry, if it is the active franchise's. */
 export async function requireManualDraft(ctx: QueryCtx, draftId: Id<"manualDrafts">) {

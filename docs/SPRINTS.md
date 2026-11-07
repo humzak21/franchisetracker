@@ -638,6 +638,20 @@ Sizing: S is a focused session, M is one to two sessions, L is two to three sess
 
 ---
 
+## Game logs from a file (S, outside the sprint plan)
+
+**Goal:** a game exported from the Madden save goes through review and commit like a full game log from screenshots, with no screenshots.
+
+- Pure mapping in `shared/ingestion/gameFile.ts` (exported game to `GameLogDraft`, the file checked since it comes from disk), with unit tests.
+- `ingestion/gameFile:importFile`: finds the season by year and checks the week's game, resolves names with the extraction's `resolvePlayers`, and files a manual entry; refusals come back as answers so several files go in at once.
+- Import game file on the Inbox and on a game's page (`GameFileImport`), with a gallery specimen and a Playwright smoke test.
+
+**Done when:** an exported game lands in review with its lines, team stats and plays, commits as the week's game, and `npm run check:all` passes.
+
+**As built:** checked with two games from a real Madden 27 save, moved into the sample franchise's second season: the one with a box score committed with its 43 lines, team stats and quarters; the one with a scoring summary landed with its 13 plays, which review flags because the exporter's running score does not add up (an exporter issue, not the import's). Playwright ran on Windows through a local shim for the scripts' `npx` calls, desktop and phone.
+
+---
+
 ## Proposed: Sprint 23
 
 Planned after the platform audit of October 2026, not yet scheduled or built. The statistics hub plan is `docs/STATS-HUB.md`; the audit with every gap and the reasoning behind the order is `docs/PLATFORM-AUDIT.md`. When it is picked up, it gets a full section above with a goal, a "Done when" and, once built, its "As built" notes, and the stable behaviour moves into `FEATURES.md`.

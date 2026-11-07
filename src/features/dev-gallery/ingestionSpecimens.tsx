@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { WeekKey } from "@shared/domain";
 import { CaptureFields, type CaptureFieldsValue } from "@/components/forms/CaptureFields";
+import { GameFileImport } from "@/components/forms/GameFileImport";
 import { ManualEntryLink } from "@/components/forms/ManualEntryLink";
 import { ModelPicker } from "@/components/forms/ModelPicker";
 import { StatComparison } from "@/components/data/StatComparison";
@@ -158,6 +159,12 @@ export const INGESTION_SPECIMENS: Specimen[] = [
     name: "ManualEntryLink",
     note: "The typed-in counterpart of a capture button; opens manual entry with the target preset.",
     render: () => <ManualEntryLink target="yearly_awards" label="Add award" />,
+  },
+  {
+    id: "gamefileimport",
+    name: "GameFileImport",
+    note: "Exported game logs (npm run export:madden) filed for review; one file opens its review, several list what was filed.",
+    render: () => <GameFileImport />,
   },
   {
     id: "modelpicker",

@@ -6,6 +6,7 @@ import { api } from "@convex/_generated/api";
 import { useCapture } from "@/app/capture/CaptureProvider";
 import { useShortcut } from "@/app/keyboard";
 import { EmptyState } from "@/components/data/EmptyState";
+import { GameFileImport } from "@/components/forms/GameFileImport";
 import { Page } from "@/components/layout/Page";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
@@ -77,6 +78,7 @@ export function InboxScreen() {
               <PencilLine /> <span className="hidden @tablet:inline">Enter manually</span>
             </Link>
           </Button>
+          <GameFileImport inHeader />
           {sets && sets.length > 0 && (
             <Button
               variant={selecting ? "secondary" : "ghost"}
