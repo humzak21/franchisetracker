@@ -4,13 +4,13 @@
  * teams' stats and the scoring summary.
  */
 import { WEEK_KEYS } from "../../shared/domain/calendar";
-import { PAT_LABELS, type PatResult } from "../../shared/domain/scoring";
 import { weekKeyOf } from "./calendar";
 import type { MaddenPlayer } from "./players";
 import { num, str, type Row, type SaveFile } from "./saveFile";
+import { scoringPlays, type SummaryRow } from "./scoring";
 import { mapPlayerStats, mapTeamStats } from "./statMap";
 import type { Teams } from "./teams";
-import type { ExportGame, GameLine, ScoringPlay } from "./types";
+import type { ExportGame, GameLine } from "./types";
 
 type Shell = { game: ExportGame; row: Row };
 
@@ -106,52 +106,26 @@ async function readTeamStats(save: SaveFile, { game, row }: Shell) {
   }
 }
 
-/** What a score was worth says what it was; the try after a touchdown is the only play the save names. */
-function classify(delta: number, conversion: string): Pick<ScoringPlay, "kind" | "pat" | "description"> {
-  if (delta === 3) return { kind: "fg", pat: null, description: "Field goal" };
-  if (delta === 2) return { kind: "safety", pat: null, description: "Safety" };
-  if (delta >= 6 && delta <= 8) {
-    const pat: PatResult =
-      delta === 7 ? "kick" : delta === 8 ? "two" : conversion === "Touchdown" ? "two_failed" : "kick_failed";
-    return {
-      kind: "other",
-      pat,
-      description: `Touchdown, ${PAT_LABELS[pat].toLowerCase()} (play not in the save)`,
-    };
-  }
-  return { kind: "other", pat: null, description: `${delta} points` };
-}
-
 async function readPlays(save: SaveFile, { game, row }: Shell) {
-  const rows: Row[] = [];
+  const rows: SummaryRow[] = [];
   for (const ref of await save.refsIn(row.ScoringSummaries)) {
-    const play = await save.deref(ref);
-    if (play) rows.push(play.row);
-  }
-  // Quarter then time left; the running score after each play is the only reliable column.
-  rows.sort(
-    (a, b) => num(a, "Quarter") - num(b, "Quarter") || num(b, "TimeStampInSec") - num(a, "TimeStampInSec"),
-  );
-  let home = 0;
-  let away = 0;
-  for (const play of rows) {
-    const homeScore = num(play, "HomeCurrentScore");
-    const awayScore = num(play, "AwayCurrentScore");
-    const homeScored = homeScore > home;
-    const delta = homeScored ? homeScore - home : awayScore - away;
-    if (delta <= 0) continue;
-    game.plays.push({
-      order: game.plays.length + 1,
-      period: num(play, "Quarter"),
-      clock: num(play, "TimeStampInSec"),
-      teamAbbr: homeScored ? game.homeAbbr : game.awayAbbr,
-      ...classify(delta, str(play, "Conversion")),
-      homeScore,
-      awayScore,
+    const play = (await save.deref(ref))?.row;
+    if (!play) continue;
+    rows.push({
+      quarter: num(play, "Quarter"),
+      timeLeft: num(play, "TimeStampInSec"),
+      homePrevious: num(play, "HomePreviousScore"),
+      homeCurrent: num(play, "HomeCurrentScore"),
+      awayPrevious: num(play, "AwayPreviousScore"),
+      awayCurrent: num(play, "AwayCurrentScore"),
+      conversion: str(play, "Conversion"),
     });
-    home = homeScore;
-    away = awayScore;
   }
+  game.plays = scoringPlays(
+    rows,
+    { home: game.homeScore ?? 0, away: game.awayScore ?? 0 },
+    { home: game.homeAbbr, away: game.awayAbbr },
+  );
 }
 
 export async function readGames(
