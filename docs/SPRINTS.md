@@ -650,6 +650,7 @@ Planned after the platform audit of October 2026, not yet scheduled or built. Th
 
 ## Later (not scheduled)
 
+- Import from the Madden save: `npm run export:madden` (`docs/MADDEN-SAVE.md`) already turns a save into the app's CSVs and a game log per game; the app side would take the JSON game logs through the full game log target (a file instead of screenshots) and a save file from Settings.
 - Drive charts, if a Madden screen provides drive data cleanly (scoring plays are Sprint 14).
 - Shareable read-only season recap pages.
 - Live Text on-device OCR as a pre-pass to improve digit accuracy.
