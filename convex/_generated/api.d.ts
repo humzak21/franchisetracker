@@ -88,6 +88,7 @@ import type * as ingestion_fixtureRows from "../ingestion/fixtureRows.js";
 import type * as ingestion_fixtureSchedule from "../ingestion/fixtureSchedule.js";
 import type * as ingestion_fixtureScoring from "../ingestion/fixtureScoring.js";
 import type * as ingestion_fixtureTeamHistory from "../ingestion/fixtureTeamHistory.js";
+import type * as ingestion_gameFile from "../ingestion/gameFile.js";
 import type * as ingestion_inbox from "../ingestion/inbox.js";
 import type * as ingestion_jobs from "../ingestion/jobs.js";
 import type * as ingestion_manual from "../ingestion/manual.js";
@@ -97,6 +98,7 @@ import type * as ingestion_playerAssignments from "../ingestion/playerAssignment
 import type * as ingestion_repairSeasonStatsTeams from "../ingestion/repairSeasonStatsTeams.js";
 import type * as ingestion_resolvePlayers from "../ingestion/resolvePlayers.js";
 import type * as ingestion_review from "../ingestion/review.js";
+import type * as ingestion_rosterContext from "../ingestion/rosterContext.js";
 import type * as ingestion_rowCommit from "../ingestion/rowCommit.js";
 import type * as ingestion_rowPlayers from "../ingestion/rowPlayers.js";
 import type * as ingestion_sets from "../ingestion/sets.js";
@@ -319,6 +321,7 @@ declare const fullApi: ApiFromModules<{
   "ingestion/fixtureSchedule": typeof ingestion_fixtureSchedule;
   "ingestion/fixtureScoring": typeof ingestion_fixtureScoring;
   "ingestion/fixtureTeamHistory": typeof ingestion_fixtureTeamHistory;
+  "ingestion/gameFile": typeof ingestion_gameFile;
   "ingestion/inbox": typeof ingestion_inbox;
   "ingestion/jobs": typeof ingestion_jobs;
   "ingestion/manual": typeof ingestion_manual;
@@ -328,6 +331,7 @@ declare const fullApi: ApiFromModules<{
   "ingestion/repairSeasonStatsTeams": typeof ingestion_repairSeasonStatsTeams;
   "ingestion/resolvePlayers": typeof ingestion_resolvePlayers;
   "ingestion/review": typeof ingestion_review;
+  "ingestion/rosterContext": typeof ingestion_rosterContext;
   "ingestion/rowCommit": typeof ingestion_rowCommit;
   "ingestion/rowPlayers": typeof ingestion_rowPlayers;
   "ingestion/sets": typeof ingestion_sets;

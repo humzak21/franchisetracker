@@ -81,7 +81,7 @@ export function rowConfidence(
 }
 
 /** A stable, readable line id: team plus the name's tokens, suffixed when two players collide. */
-function lineId(teamAbbr: string | null, name: string, taken: Set<string>): string {
+export function lineId(teamAbbr: string | null, name: string, taken: Set<string>): string {
   const base = `${(teamAbbr ?? "unk").toLowerCase()}-${nameTokens(name).join("-") || "player"}`;
   let id = base;
   for (let n = 2; taken.has(id); n++) id = `${base}-${n}`;

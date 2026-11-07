@@ -104,6 +104,8 @@ export const ingestionTables = {
     gameId: v.optional(v.id("games")),
     draft: vDraft,
     status: literals(MANUAL_DRAFT_STATUSES),
+    /** Read from an exported game file rather than typed; importing the file again replaces it. */
+    fromFile: v.optional(v.boolean()),
     createdAt: v.number(),
     committedAt: v.optional(v.number()),
   }).index("by_franchiseId_and_status", ["franchiseId", "status"]),
