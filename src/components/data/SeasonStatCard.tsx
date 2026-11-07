@@ -1,10 +1,21 @@
+import { Pencil } from "lucide-react";
 import { useLayoutEffect, useRef } from "react";
 import { type BarBox, isBestSeason, previousSeason, seasonBars } from "@shared/stats/seasonSeries";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { DeltaBadge } from "./DeltaBadge";
-import { RankBadge } from "./RankBadge";
+import { LEAGUE_SIZE, RankBadge } from "./RankBadge";
 
-export type SeasonStatPoint = { year: number; value: number; rank: number | null; tied: boolean };
+export type SeasonStatPoint = {
+  year: number;
+  value: number;
+  rank: number | null;
+  tied: boolean;
+  /** Teams ranked that season (the league's size when unknown). */
+  of?: number | null;
+  /** The league average that season, when every team's numbers are known. */
+  average?: number | null;
+};
 
 type SeasonStatCardProps = {
   label: string;
@@ -16,15 +27,26 @@ type SeasonStatCardProps = {
   format: (value: number) => string;
   /** The focused season is a running total still being played: no verdict on its change or best. */
   partial?: boolean;
+  /** Opens an editor for the stat's seasons. */
+  onEdit?: () => void;
 };
 
 /**
- * One stat across seasons: the focused season's value with its league rank and change from the
- * season before, over a bar per season with the value above and the year (and rank) below. A
- * focused season without a value keeps an empty slot so the gap shows. Many seasons scroll inside
- * the card, opened at the focused one, so a phone never scrolls the page sideways.
+ * One stat across seasons: the focused season's value with its league rank, its change from the
+ * season before and how it compares with the league average, beside a bar per season with the
+ * value above and the year (and rank) below. A focused season without a value keeps an empty slot
+ * so the gap shows. Many seasons scroll inside the card, opened at the focused one, so a phone
+ * never scrolls the page sideways.
  */
-export function SeasonStatCard({ label, points, year, better, format, partial }: SeasonStatCardProps) {
+export function SeasonStatCard({
+  label,
+  points,
+  year,
+  better,
+  format,
+  partial,
+  onEdit,
+}: SeasonStatCardProps) {
   const current = points.find((p) => p.year === year);
   const before = current ? previousSeason(points, year) : null;
   const best = !partial && isBestSeason(points, year, better);
@@ -47,7 +69,19 @@ export function SeasonStatCard({ label, points, year, better, format, partial }:
     <article className="flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4">
       <header className="flex items-start justify-between gap-3">
         <h3 className="text-[13px] leading-5 font-medium text-muted-foreground">{label}</h3>
-        {current?.rank != null && <RankBadge rank={current.rank} tied={current.tied} />}
+        <div className="-mt-1 -mr-2 flex shrink-0 items-center gap-1.5">
+          {current?.rank != null && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-subtle-foreground">
+              <RankBadge rank={current.rank} tied={current.tied} of={current.of ?? LEAGUE_SIZE} />
+              of {current.of ?? LEAGUE_SIZE}
+            </span>
+          )}
+          {onEdit && (
+            <Button variant="ghost" size="icon-sm" aria-label={`Edit ${label}`} onClick={onEdit}>
+              <Pencil />
+            </Button>
+          )}
+        </div>
       </header>
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
         <div className="flex min-w-0 flex-col gap-2">
@@ -80,6 +114,12 @@ export function SeasonStatCard({ label, points, year, better, format, partial }:
               </span>
             )}
           </div>
+          {current?.average != null && (
+            <span className="inline-flex items-baseline gap-1 text-xs text-subtle-foreground">
+              <DeltaBadge delta={current.value - current.average} better={better} format={format} />
+              vs league avg {format(current.average)}
+            </span>
+          )}
         </div>
         <ol
           ref={strip}
@@ -93,6 +133,7 @@ export function SeasonStatCard({ label, points, year, better, format, partial }:
               value={point ? format(point.value) : "—"}
               rank={ranked ? (point?.rank ?? null) : undefined}
               tied={point?.tied ?? false}
+              of={point?.of ?? LEAGUE_SIZE}
               bar={bar}
               zero={zero}
               focused={slotYear === year}
@@ -110,6 +151,7 @@ function SeasonSlot({
   value,
   rank,
   tied,
+  of,
   bar,
   zero,
   focused,
@@ -119,13 +161,14 @@ function SeasonSlot({
   /** Undefined when no season of the stat is ranked, so the rank row is left out. */
   rank: number | null | undefined;
   tied: boolean;
+  of: number;
   bar: BarBox | null;
   zero: number;
   focused: boolean;
 }) {
   const text = focused ? "font-semibold text-foreground" : "text-muted-foreground";
   return (
-    <li data-current={focused || undefined} className="flex w-11 shrink-0 flex-col items-center gap-1">
+    <li data-current={focused || undefined} className="flex w-12 shrink-0 flex-col items-center gap-1">
       <span className={cn("num text-[11px]", text)}>{value}</span>
       <div aria-hidden className="relative h-12 w-7">
         {bar ? (
@@ -144,7 +187,7 @@ function SeasonSlot({
       <span className={cn("num text-[10px]", focused ? text : "text-subtle-foreground")}>{year}</span>
       {rank !== undefined &&
         (rank !== null ? (
-          <RankBadge rank={rank} tied={tied} className="min-w-0" />
+          <RankBadge rank={rank} tied={tied} of={of} className="min-w-0 px-1 whitespace-nowrap" />
         ) : (
           <span className="h-5" />
         ))}

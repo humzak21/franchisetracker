@@ -7,8 +7,11 @@ import {
   type TeamSeasonStatKey,
 } from "./teamSeasonRegistry";
 
-/** Where a season value came from: derived from the team's games, or captured (screen or typed). */
-export type TeamSeasonSource = "games" | "captured";
+/**
+ * Where a season value came from: derived from the team's games, read from the league team stats
+ * screen (League → Teams), or captured from the team's own season screen or typed in.
+ */
+export type TeamSeasonSource = "games" | "league" | "captured";
 
 export type TeamSeasonRow = {
   year: number;
@@ -45,18 +48,27 @@ export type CapturedSeasonRow = {
   tied?: boolean;
 };
 
+type SeasonStats = { year: number; stats: Partial<Record<string, number>> };
+
 /**
- * Season values per stat: a captured value wins, else the one derived from the games. Ranks only
- * ever come from captured rows (there is no league-wide data to rank from).
+ * Season values per stat: a captured value wins, then the league team stats screen's, then the
+ * one derived from the games. Ranks here only come from captured rows; `teamSeasonLeague` works
+ * out the rest from League → Teams.
  */
 export function seasonRows(
   captured: readonly CapturedSeasonRow[],
-  derived: readonly { year: number; stats: Partial<Record<string, number>> }[],
+  derived: readonly SeasonStats[],
+  league: readonly SeasonStats[] = [],
 ): TeamSeasonRow[] {
   const rows = new Map<string, TeamSeasonRow>();
-  for (const { year, stats } of derived) {
-    for (const [statKey, value] of Object.entries(stats)) {
-      if (value !== undefined) rows.set(`${year}|${statKey}`, { year, statKey, value, source: "games" });
+  for (const [layer, source] of [
+    [derived, "games"],
+    [league, "league"],
+  ] as const) {
+    for (const { year, stats } of layer) {
+      for (const [statKey, value] of Object.entries(stats)) {
+        if (value !== undefined) rows.set(`${year}|${statKey}`, { year, statKey, value, source });
+      }
     }
   }
   for (const { year, statKey, value, rank, tied } of captured) {

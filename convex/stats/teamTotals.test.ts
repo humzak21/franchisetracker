@@ -33,7 +33,17 @@ afterEach(() => {
 
 describe("team season stats from the games", () => {
   test("a game's team stats roll into the season, and captured values still win", async () => {
-    const { owner, active, season, played } = await setup();
+    const { t, owner, active, season, played } = await setup();
+    // Without the league screen's line for the team, its game totals show.
+    await t.run(async (ctx) => {
+      const own = await ctx.db
+        .query("leagueTeamStats")
+        .withIndex("by_seasonId_and_teamId", (q) =>
+          q.eq("seasonId", season._id).eq("teamId", active.franchise.userTeamId),
+        )
+        .unique();
+      if (own) await ctx.db.delete("leagueTeamStats", own._id);
+    });
     const [first] = played;
     const userTeamId = active.franchise.userTeamId;
     await owner.mutation(api.games.statLines.setTeamStat, {
@@ -56,6 +66,9 @@ describe("team season stats from the games", () => {
       rank: null,
       tied: false,
       source: "games",
+      of: null,
+      average: null,
+      rankFromLeague: false,
     });
     // The sample franchise captured its points per game and sacks; those override the games.
     expect(pointsOf(trends, "pointsPg")).toMatchObject({ value: 28, rank: 3, source: "captured" });

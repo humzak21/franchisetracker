@@ -14,12 +14,15 @@ type DeltaBadgeProps = {
 /** A signed change, coloured by whether it is good: year over year in tables and tiles. */
 export function DeltaBadge({ delta, better = "higher", format = String, muted, className }: DeltaBadgeProps) {
   if (delta === null) return <span className="text-subtle-foreground">—</span>;
+  const shown = format(Math.abs(delta));
+  // A change too small to print (0.04 at one decimal) reads as no change, not as "−0.0".
+  const flat = shown === format(0);
   const good = better === "higher" ? delta > 0 : delta < 0;
-  const tone = delta === 0 || muted ? "text-muted-foreground" : good ? "text-win" : "text-loss";
+  const tone = flat || muted ? "text-muted-foreground" : good ? "text-win" : "text-loss";
   return (
     <span className={cn("num text-xs font-semibold whitespace-nowrap", tone, className)}>
-      {delta > 0 ? "+" : delta < 0 ? "−" : ""}
-      {format(Math.abs(delta))}
+      {flat ? "" : delta > 0 ? "+" : "−"}
+      {shown}
     </span>
   );
 }

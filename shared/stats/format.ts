@@ -36,6 +36,13 @@ export function formatRank(rank: number, tied = false): string {
   return `${tied ? "T-" : ""}${formatOrdinal(rank)}`;
 }
 
+/** Reads a rank as typed or printed ("3", "3rd", "T-3", "T-3rd"); null when it is not one. */
+export function parseRank(text: string): { rank: number; tied: boolean } | null {
+  const match = /^\s*(t-?)?\s*(\d+)(?:st|nd|rd|th)?\s*$/i.exec(text);
+  const rank = match ? Number(match[2]) : 0;
+  return match && rank > 0 ? { rank, tied: match[1] !== undefined } : null;
+}
+
 export type Record3 = { w: number; l: number; t?: number };
 
 /** "12-5" or "12-4-1" when there are ties. */

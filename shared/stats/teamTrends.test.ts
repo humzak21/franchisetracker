@@ -52,6 +52,15 @@ describe("seasonRows", () => {
     ]);
   });
 
+  test("the league screen's value replaces the games' and a captured one replaces both", () => {
+    const league = [{ year: 2027, stats: { pointsPg: 25, sacks: 33 } }];
+    const rows = seasonRows([{ year: 2027, statKey: "pointsPg", value: 27.3, rank: 3 }], derived, league);
+    expect(rows).toEqual([
+      { year: 2027, statKey: "pointsPg", value: 27.3, rank: 3, tied: undefined, source: "captured" },
+      { year: 2027, statKey: "sacks", value: 33, source: "league" },
+    ]);
+  });
+
   test("a captured value overrides the derived one and brings its rank", () => {
     const rows = seasonRows([{ year: 2027, statKey: "pointsPg", value: 27.3, rank: 3, tied: true }], derived);
     expect(rows).toEqual([
